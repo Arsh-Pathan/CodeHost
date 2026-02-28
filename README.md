@@ -60,10 +60,18 @@ DB_NAME=codehost
 
 ### 3. Launch
 
-Run the unified stack:
+To run the unified stack, use the following command. It's important to use `--env-file .env` so that your custom settings (like `PORT=9000`) are correctly applied by Docker Compose:
 
 ```bash
-docker-compose -f infra/docker/docker-compose.yml up --build -d
+docker compose --env-file .env -f infra/docker/docker-compose.yml up --build -d
+```
+
+### 4. Firewall (UFW)
+
+If you are on a VPS, ensure you allow traffic on your custom port:
+
+```bash
+sudo ufw allow 9000/tcp
 ```
 
 ---
@@ -79,10 +87,10 @@ docker-compose -f infra/docker/docker-compose.yml up --build -d
 
 ## 🛡️ Administrative Access
 
-To promote a user to Admin:
+To promote a user to Admin, replace `your@email.com` with the actual user's email:
 
 ```bash
-docker exec -it codehost-db psql -U codehost -d codehost -c "UPDATE \"User\" SET role = 'ADMIN' WHERE email = 'your@email.com';"
+docker exec -it codehost-db psql -U ${DB_USER:-codehost} -d ${DB_NAME:-codehost} -c "UPDATE \"User\" SET role = 'ADMIN' WHERE email = 'your@email.com';"
 ```
 
 ---
