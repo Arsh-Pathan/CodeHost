@@ -9,8 +9,10 @@
   "dependencies": {
     "@codehost/config": "*",
     "@codehost/database": "*",
+    "@codehost/docker": "*",
     "@codehost/logger": "*",
     "@codehost/redis": "*",
+    "@codehost/types": "*",
     "adm-zip": "^0.5.16",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
