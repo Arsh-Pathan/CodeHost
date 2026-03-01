@@ -44,31 +44,22 @@ export class RunnerService {
           PublishAllPorts: true,
           Memory: env.MEMORY_LIMIT || 128 * 1024 * 1024,
           MemorySwap: env.MEMORY_LIMIT || 128 * 1024 * 1024,
-          // Attach to the same network as Traefik
-          NetworkMode: 'docker_default',
+          NetworkMode: 'docker_default', // Use the standard compose network
         },
         Labels: {
-          'codehost.project': projectId,
-          'codehost.deployment': deploymentId,
           'traefik.enable': 'true',
-          // Rule: host.arsh-io.website/username/project
+          // Public URL: host.arsh-io.website/username/project
           [`traefik.http.routers.${containerName}.rule`]: `Host(\`${host}\`) && PathPrefix(\`/${username}/${projectSlug}\`)`,
           [`traefik.http.routers.${containerName}.entrypoints`]: 'web',
-          // Middleware: Remove the /username/project prefix before sending to the app
+          // Tell Traefik which port to send traffic to (Port 80 for our Nginx containers)
+          [`traefik.http.services.${containerName}.loadbalancer.server.port`]: '80',
+          // Strip the prefix so the user app doesn't need to know about /username/project
           [`traefik.http.middlewares.${containerName}-strip.stripprefix.prefixes`]: `/${username}/${projectSlug}`,
           [`traefik.http.routers.${containerName}.middlewares`]: `${containerName}-strip`,
         }
       });
 
       await container.start();
-
-      // Ensure it is definitely on the network (Double check)
-      try {
-        const network = docker.getNetwork('docker_default');
-        await network.connect({ Container: container.id });
-      } catch (e) {
-        // Network might already be connected or named differently
-      }
       const containerInfo = await container.inspect();
       
       let mappedPort = null;
