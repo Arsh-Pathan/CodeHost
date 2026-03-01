@@ -11,7 +11,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY apps/web/package.json ./apps/web/
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
