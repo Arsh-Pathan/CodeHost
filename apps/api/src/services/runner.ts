@@ -43,7 +43,9 @@ export class RunnerService {
         HostConfig: {
           PublishAllPorts: true,
           Memory: env.MEMORY_LIMIT || 128 * 1024 * 1024,
-          MemorySwap: env.MEMORY_LIMIT || 128 * 1024 * 1024, 
+          MemorySwap: env.MEMORY_LIMIT || 128 * 1024 * 1024,
+          // Attach to the same network as Traefik
+          NetworkMode: 'docker_default',
         },
         Labels: {
           'codehost.project': projectId,
@@ -59,6 +61,14 @@ export class RunnerService {
       });
 
       await container.start();
+
+      // Ensure it is definitely on the network (Double check)
+      try {
+        const network = docker.getNetwork('docker_default');
+        await network.connect({ Container: container.id });
+      } catch (e) {
+        // Network might already be connected or named differently
+      }
       const containerInfo = await container.inspect();
       
       let mappedPort = null;
