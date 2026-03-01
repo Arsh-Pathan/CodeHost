@@ -15,7 +15,7 @@ interface Project {
 
 export default function Dashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{ email: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; username: string; role: string } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 

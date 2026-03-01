@@ -72,7 +72,8 @@ router.get('/', async (req: AuthRequest, res) => {
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
     const project = await prisma.project.findUnique({
-      where: { id: req.params.id }
+      where: { id: req.params.id },
+      include: { user: { select: { email: true, username: true } } }
     });
 
     if (!project) {
