@@ -77,7 +77,7 @@ services:
       context: ../../
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://api.${DOMAIN:-host.arsh-io.website}${PORT_SUFFIX}
+        NEXT_PUBLIC_API_URL: http://api.${DOMAIN:-host.arsh-io.website}
     container_name: codehost-web
     depends_on:
       - api
