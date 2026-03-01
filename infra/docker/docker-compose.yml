@@ -77,7 +77,7 @@ services:
       context: ../../
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://api.${DOMAIN:-host.arsh-io.website}
+        NEXT_PUBLIC_API_URL: https://api.${DOMAIN:-host.arsh-io.website}
     container_name: codehost-web
     ports:
       - "3000:3000" # Map Web directly
