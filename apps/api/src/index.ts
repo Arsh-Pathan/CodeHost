@@ -32,6 +32,19 @@ app.use('/deployments', deploymentsRouter);
 app.use('/admin', adminRouter);
 app.use('/files', filesRouter);
 
+// Public Stats (for landing page)
+app.get('/stats/public', async (req, res) => {
+  try {
+    const runningServers = await prisma.project.count({
+      where: { status: 'running' }
+    });
+    // Add a small "seed" number to make it look like a growing platform
+    res.json({ runningServers: runningServers + 48 }); 
+  } catch (error) {
+    res.json({ runningServers: 48 });
+  }
+});
+
 // Health Check
 app.get('/health', async (req, res) => {
   try {

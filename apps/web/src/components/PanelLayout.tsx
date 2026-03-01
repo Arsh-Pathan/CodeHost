@@ -43,7 +43,7 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-[#0F172A] selection:bg-blue-100 selection:text-blue-900">
       {/* Sidebar */}
       <aside 
         className={`${
@@ -53,8 +53,8 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
         <div className="p-6 flex items-center space-x-3 mb-4">
           <Logo className="w-8 h-8 shrink-0" />
           {isSidebarOpen && (
-            <span className="text-xl font-black tracking-tight text-slate-900">
-              Code<span className="text-blue-600">Host</span>
+            <span className="text-xl font-black tracking-tight text-[#0F172A]">
+              Code<span className="text-[#2563EB]">Host</span>
             </span>
           )}
         </div>
@@ -71,12 +71,12 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
                 className={`
                   flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-all group
                   ${isActive 
-                    ? 'bg-blue-50 text-blue-600 font-bold' 
-                    : 'hover:bg-slate-50 hover:text-slate-900'}
+                    ? 'bg-blue-50 text-[#2563EB] font-bold' 
+                    : 'hover:bg-slate-50 hover:text-[#0F172A]'}
                   ${item.disabled ? 'opacity-40 cursor-not-allowed' : ''}
                 `}
               >
-                <Icon size={18} className={`${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'} transition-colors`} />
+                <Icon size={18} className={`${isActive ? 'text-[#2563EB]' : 'text-slate-400 group-hover:text-slate-600'} transition-colors`} />
                 {isSidebarOpen && <span className="text-sm">{item.name}</span>}
               </Link>
             );
@@ -86,23 +86,23 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
         <div className="p-4 border-t border-slate-100 mt-auto">
           {isSidebarOpen ? (
             <div className="flex flex-col space-y-4">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-xs ring-4 ring-blue-500/5">
+              <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-black text-xs ring-4 ring-blue-500/5">
                   {user?.username ? user.username[0] : user?.email[0]}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-black text-slate-900 truncate">{user?.username || 'User'}</span>
+                  <span className="text-xs font-black text-[#0F172A] truncate">{user?.username || 'User'}</span>
                   <span className="text-[10px] font-bold text-slate-400 truncate tracking-tight">{user?.email}</span>
                 </div>
               </div>
               <div className="flex flex-col space-y-1">
-                 <button className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-slate-900 transition-all text-xs font-bold">
+                 <button className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-[#0F172A] transition-all text-xs font-bold">
                     <LifeBuoy size={16} />
                     <span>Support</span>
                  </button>
                  <button 
                   onClick={handleLogout}
-                  className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all text-xs font-bold"
+                  className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-[#E53935] hover:bg-red-50 transition-all text-xs font-bold"
                 >
                   <LogOut size={16} />
                   <span>Logout</span>
@@ -111,7 +111,7 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
             </div>
           ) : (
             <div className="flex flex-col items-center space-y-6">
-              <button onClick={handleLogout} className="p-2 text-slate-300 hover:text-red-500 transition-all">
+              <button onClick={handleLogout} className="p-2 text-slate-300 hover:text-[#E53935] transition-all">
                 <LogOut size={20} />
               </button>
             </div>
@@ -126,22 +126,22 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
           <div className="flex items-center space-x-3">
              <button 
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-                className="p-2 -ml-2 text-slate-400 hover:text-slate-900 transition-all hover:bg-slate-100 rounded-lg"
+                className="p-2 -ml-2 text-slate-400 hover:text-[#0F172A] transition-all hover:bg-slate-100 rounded-lg"
               >
                 <Menu size={20} />
               </button>
               <div className="h-6 w-px bg-slate-200 mx-2" />
               <div className="flex items-center space-x-2 text-xs font-bold">
-                 <Link href="/dashboard" className="text-slate-400 hover:text-blue-600 transition">Console</Link>
+                 <Link href="/dashboard" className="text-slate-400 hover:text-[#2563EB] transition">Console</Link>
                  <ChevronRight size={12} className="text-slate-300" />
-                 <span className="text-slate-900 uppercase tracking-widest">{projectName || 'General'}</span>
+                 <span className="text-[#0F172A] uppercase tracking-widest">{projectName || 'General'}</span>
               </div>
           </div>
           
           <div className="flex items-center space-x-4">
             {user?.role === 'ADMIN' && (
               <Link href="/admin">
-                <button className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-4 py-2 rounded-xl hover:bg-blue-100 transition border border-blue-200 shadow-sm">
+                <button className="text-[10px] font-black uppercase tracking-widest text-[#2563EB] bg-blue-50 px-4 py-2 rounded-xl hover:bg-blue-100 transition border border-blue-200 shadow-sm">
                   Admin
                 </button>
               </Link>

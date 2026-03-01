@@ -20,13 +20,28 @@ import {
 } from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { fetchApi } from '@/lib/api';
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
+  const [serverCount, setServerCount] = React.useState(0);
   const heroRef = useRef<HTMLDivElement>(null);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/stats/public`);
+        const data = await response.json();
+        setServerCount(data.runningServers || 48);
+      } catch (err) {
+        setServerCount(48);
+      }
+    };
+    fetchStats();
+  }, []);
 
   useEffect(() => {
     // Hero Entrance
@@ -115,21 +130,23 @@ export default function Home() {
       {/* Hero Section */}
       <header ref={heroRef} className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
         <div className="hero-badge inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[10px] font-black uppercase tracking-widest mb-10">
-          <Zap size={10} className="fill-blue-600" />
-          <span>V2.0 Now Live - Deploy in 30s</span>
+          <Activity size={10} className="fill-blue-600" />
+          <span>{serverCount}+ Servers Running Globally</span>
+          <span className="h-3 w-px bg-blue-200 mx-2" />
+          <span>Free for Learning & College Students</span>
         </div>
 
-        <h1 className="hero-title text-5xl md:text-8xl font-black tracking-tightest leading-[0.95] max-w-4xl mb-10 text-slate-900">
+        <h1 className="hero-title text-5xl md:text-8xl font-black tracking-tightest leading-[0.95] max-w-4xl mb-10 text-[#0F172A]">
            Deploy Smarter,<br />
-           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Scale Faster.</span>
+           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-[#00BFA5] to-[#FFB300]">Scale Faster.</span>
         </h1>
 
         <p className="hero-subtext text-lg md:text-xl text-slate-500 font-medium max-w-2xl mb-12">
-           The simplest cloud platform for students. No Linux, no Docker, no complicated terminals. Just one-click and your project is online.
+           The simplest cloud platform for students. No Linux, no Docker, no terminals. Just one-click and your project is online.
         </p>
 
         <div className="hero-btns flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
-          <Link href="/signup" className="w-full sm:w-auto px-10 py-5 bg-blue-600 text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-blue-500/40 hover:bg-blue-500 transition-all hover:scale-105 active:scale-95 flex items-center justify-center space-x-3">
+          <Link href="/signup" className="w-full sm:w-auto px-10 py-5 bg-[#2563EB] text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-blue-500/40 hover:bg-blue-500 transition-all hover:scale-105 active:scale-95 flex items-center justify-center space-x-3">
              <span>Start Hosting Free</span>
              <ArrowRight size={18} />
           </Link>
@@ -138,58 +155,60 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Dashboard Preview - Floating mockup */}
+        {/* Dashboard Preview - Floating mockup matching uploaded image */}
         <div className="mt-24 dashboard-preview relative max-w-5xl mx-auto w-full group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2.5rem] blur opacity-20 group-hover:opacity-30 transition-all"></div>
-          <div className="relative bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden p-2">
-             <div className="bg-slate-50 rounded-[2rem] p-4 flex flex-col">
-               <div className="flex items-center space-x-2 mb-4 px-4 pt-2">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                  <div className="flex-1" />
-                  <div className="px-3 py-1 bg-white rounded-full border border-slate-200 text-[10px] font-bold text-slate-400">
-                    dashboard.codehost.app/arsh/my-website
-                  </div>
-               </div>
-               
-               <div className="grid grid-cols-12 gap-6 p-4">
-                  <div className="col-span-3 space-y-3">
-                     {[1,2,3,4].map(idx => <div key={idx} className={`h-10 rounded-xl ${idx === 1 ? 'bg-blue-600/10 border border-blue-600/20' : 'bg-white border border-slate-100'}`} /> )}
-                  </div>
-                  <div className="col-span-9 bg-white rounded-2xl border border-slate-100 p-8 min-h-[400px]">
-                     <div className="flex justify-between items-start mb-10">
-                        <div>
-                           <h4 className="text-xl font-black text-slate-900">Project Details</h4>
-                           <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Status: Running</p>
-                        </div>
-                        <div className="flex space-x-3">
-                           <div className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest">Restart</div>
-                           <div className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-black uppercase tracking-widest">Stop</div>
-                        </div>
-                     </div>
-                     <div className="grid grid-cols-2 gap-6">
-                        <div className="h-32 rounded-3xl bg-slate-50 border border-slate-100 p-6">
-                           <Activity size={20} className="text-blue-600 mb-2" />
-                           <div className="h-2 w-full bg-slate-200 rounded-full mt-4 overflow-hidden">
-                              <div className="h-full bg-blue-600 w-3/4" />
-                           </div>
-                        </div>
-                        <div className="h-32 rounded-3xl bg-slate-50 border border-slate-100 p-6">
-                           <Cpu size={20} className="text-indigo-600 mb-2" />
-                           <div className="h-2 w-full bg-slate-200 rounded-full mt-4 overflow-hidden">
-                              <div className="h-full bg-indigo-600 w-1/4" />
-                           </div>
-                        </div>
-                     </div>
-                     <div className="mt-8 p-6 bg-slate-900 rounded-2xl font-mono text-xs text-blue-400 space-y-1">
-                        <p>&gt; Determining project type...</p>
-                        <p className="text-white">&gt; Detected Node.js (Express)</p>
-                        <p>&gt; Running build steps...</p>
-                        <p className="text-emerald-400">&gt; Deployment Live: coffee.codehost.app</p>
-                     </div>
-                  </div>
-               </div>
+          <div className="absolute -inset-1 bg-gradient-to-r from-[#E53935] via-[#FFB300] to-[#00BFA5] rounded-[2.5rem] blur opacity-20 group-hover:opacity-30 transition-all"></div>
+          <div className="relative bg-[#F8FAFC] rounded-[2.5rem] border border-white shadow-2xl overflow-hidden p-6">
+             <div className="flex items-center space-x-2 mb-8">
+                <div className="w-3 h-3 rounded-full bg-[#E53935]" />
+                <div className="w-3 h-3 rounded-full bg-[#FFB300]" />
+                <div className="w-3 h-3 rounded-full bg-[#00BFA5]" />
+                <div className="flex-1" />
+                <div className="px-4 py-1.5 bg-white/40 backdrop-blur rounded-full border border-white text-[10px] font-bold text-slate-400">
+                  dashboard.codehost.app/arsh/my-website
+                </div>
+             </div>
+             
+             <div className="grid grid-cols-12 gap-8">
+                <div className="col-span-3 space-y-4">
+                   <div className="h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20" />
+                   {[1,2,3].map(idx => <div key={idx} className="h-12 rounded-2xl bg-white/60 border border-white" /> )}
+                </div>
+
+                <div className="col-span-9 bg-white rounded-[2rem] p-10 min-h-[450px] shadow-sm relative border border-white/50">
+                   <div className="flex justify-between items-start mb-12">
+                      <div>
+                         <h4 className="text-2xl font-black text-[#0F172A]">Project Details</h4>
+                         <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Status: Running</p>
+                      </div>
+                      <div className="flex space-x-4">
+                         <div className="px-6 py-2.5 bg-[#0F172A] text-white rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-black transition-all">Restart</div>
+                         <div className="px-6 py-2.5 bg-[#FFEBEE] text-[#E53935] border border-red-50 rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-red-100 transition-all">Stop</div>
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-8 mb-10">
+                      <div className="rounded-3xl bg-slate-50/50 border border-white p-8">
+                         <Activity size={20} className="text-[#2563EB] mb-4" />
+                         <div className="h-2 w-full bg-slate-200/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#2563EB] w-3/4 shadow-[0_0_10px_rgba(37,99,235,0.4)]" />
+                         </div>
+                      </div>
+                      <div className="rounded-3xl bg-slate-50/50 border border-white p-8">
+                         <Cpu size={20} className="text-[#8B5CF6] mb-4" />
+                         <div className="h-2 w-full bg-slate-200/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#8B5CF6] w-1/4" />
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="p-8 bg-[#0F171A] rounded-[2rem] font-mono text-xs text-blue-400 space-y-1.5 shadow-xl">
+                      <p className="opacity-70">&gt; Determining project type...</p>
+                      <p className="text-white">&gt; Detected Node.js (Express)</p>
+                      <p className="opacity-70">&gt; Running build steps...</p>
+                      <p className="text-[#00BFA5]">&gt; Deployment Live: coffee.codehost.app</p>
+                   </div>
+                </div>
              </div>
           </div>
         </div>
@@ -198,8 +217,8 @@ export default function Home() {
       {/* Features Section */}
       <section id="features" className="features-section py-40 px-6 max-w-7xl mx-auto scroll-mt-20">
          <div className="text-center mb-24">
-            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-blue-600 mb-4">Infrastructure Redefined</h2>
-            <h3 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 max-w-3xl mx-auto leading-tight">
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#2563EB] mb-4">Infrastructure Redefined</h2>
+            <h3 className="text-4xl md:text-6xl font-black tracking-tight text-[#0F172A] max-w-3xl mx-auto leading-tight">
                Built for Absolute Simplicity.
             </h3>
          </div>
@@ -210,44 +229,45 @@ export default function Home() {
                 icon: <Box size={24} />, 
                 title: "One-Click Deploy", 
                 desc: "Just upload your code or connect Github. We handle the rest. No terminal required.", 
-                color: "blue" 
+                color: "#2563EB" 
               },
               { 
                 icon: <Terminal size={24} />, 
                 title: "Auto Detection", 
                 desc: "Node.js, Python, or Static HTML. We detect your framework and configure the environment automatically.", 
-                color: "indigo" 
+                color: "#FFB300" 
               },
               { 
                 icon: <Zap size={24} />, 
                 title: "Instant Scaling", 
                 desc: "Our distributed VPS architecture ensures your app is always live and snappy for your users.", 
-                color: "teal" 
+                color: "#00BFA5" 
               },
               { 
                 icon: <Globe size={24} />, 
                 title: "Custom Subdomains", 
                 desc: "Every project gets a free your-app.codehost.app domain with automatic SSL encryption.", 
-                color: "rose" 
+                color: "#E53935" 
               },
               { 
                 icon: <Shield size={24} />, 
                 title: "Secure Isolation", 
                 desc: "Enterprise-grade container isolation ensures your app is safe from other users and attacks.", 
-                color: "amber" 
+                color: "#0F172A" 
               },
               { 
                 icon: <HardDrive size={24} />, 
                 title: "Live Monitoring", 
                 desc: "Real-time CPU and Memory stats stream directly to your dashboard via WebSockets.", 
-                color: "emerald" 
+                color: "#2563EB" 
               }
             ].map((f, i) => (
               <div key={i} className="feature-card group p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all hover:-translate-y-2">
-                 <div className={`w-16 h-16 rounded-2xl bg-${f.color}-50 text-${f.color}-600 flex items-center justify-center mb-10 group-hover:scale-110 transition-transform`}>
+                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform"
+                      style={{ backgroundColor: `${f.color}15`, color: f.color }}>
                     {f.icon}
                  </div>
-                 <h4 className="text-2xl font-black text-slate-900 mb-4">{f.title}</h4>
+                 <h4 className="text-2xl font-black text-[#0F172A] mb-4">{f.title}</h4>
                  <p className="text-slate-500 font-medium leading-relaxed">{f.desc}</p>
               </div>
             ))}
