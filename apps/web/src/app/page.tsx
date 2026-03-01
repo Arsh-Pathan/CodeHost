@@ -121,6 +121,24 @@ export default function Home() {
            from: "random"
          }
        });
+
+       // Mouse Interaction for symbols
+       const onMouseMove = (e: MouseEvent) => {
+          const { clientX, clientY } = e;
+          const xPos = (clientX / window.innerWidth) - 0.5;
+          const yPos = (clientY / window.innerHeight) - 0.5;
+
+          gsap.to(".floating-symbol", {
+             xPercent: xPos * 20,
+             yPercent: yPos * 20,
+             duration: 1,
+             ease: "power2.out",
+             stagger: 0.02
+          });
+       };
+
+       window.addEventListener("mousemove", onMouseMove);
+       return () => window.removeEventListener("mousemove", onMouseMove);
      }, [heroRef]);
 
      return () => ctx.revert();
@@ -132,13 +150,13 @@ export default function Home() {
        
        {/* Tech Floating Elements */}
        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <TechSymbol className="top-[15%] left-[10%]" style={{ fontSize: '120px' }}>{"{"}</TechSymbol>
-          <TechSymbol className="top-[25%] right-[15%]" style={{ fontSize: '80px' }}>{"}"}</TechSymbol>
-          <TechSymbol className="bottom-[20%] left-[15%]" style={{ fontSize: '60px' }}>{"< >"}</TechSymbol>
-          <TechSymbol className="bottom-[15%] right-[10%]" style={{ fontSize: '100px' }}>{"/"}</TechSymbol>
-          <TechSymbol className="top-[40%] left-[5%]" style={{ fontSize: '40px' }}>{"const"}</TechSymbol>
-          <TechSymbol className="bottom-[35%] right-[5%]" style={{ fontSize: '50px' }}>{"[]"}</TechSymbol>
-          <TechSymbol className="top-[60%] right-[20%]" style={{ fontSize: '30px' }}>{"*"}</TechSymbol>
+          <TechSymbol className="top-[15%] left-[10%] text-[#FF6B6B]/20" style={{ fontSize: '120px' }}>{"{"}</TechSymbol>
+          <TechSymbol className="top-[25%] right-[15%] text-[#FFD93D]/20" style={{ fontSize: '80px' }}>{"}"}</TechSymbol>
+          <TechSymbol className="bottom-[20%] left-[15%] text-[#6BCBCA]/20" style={{ fontSize: '60px' }}>{"< >"}</TechSymbol>
+          <TechSymbol className="bottom-[15%] right-[10%] text-[#4D96FF]/20" style={{ fontSize: '100px' }}>{"/"}</TechSymbol>
+          <TechSymbol className="top-[40%] left-[5%] text-[#6BCBCA]/10" style={{ fontSize: '40px' }}>{"const"}</TechSymbol>
+          <TechSymbol className="bottom-[35%] right-[5%] text-[#FFD93D]/10" style={{ fontSize: '50px' }}>{"[]"}</TechSymbol>
+          <TechSymbol className="top-[60%] right-[20%] text-[#FF6B6B]/10" style={{ fontSize: '30px' }}>{"*"}</TechSymbol>
        </div>
 
        {/* Subtle Background Pattern */}
@@ -172,7 +190,7 @@ export default function Home() {
 
         <h1 className="hero-title text-5xl md:text-8xl font-black tracking-tightest leading-[0.95] max-w-4xl mb-10 text-[#0F172A]">
            Deploy Smarter,<br />
-           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-[#00BFA5] to-[#FFB300]">Scale Faster.</span>
+           <span className="text-[#6BCBCA]">Scale</span> <span className="text-[#FFD93D]">Faster.</span>
         </h1>
 
         <p className="hero-subtext text-lg md:text-xl text-slate-500 font-medium max-w-2xl mb-12">

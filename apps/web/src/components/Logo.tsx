@@ -7,25 +7,25 @@ export const Logo = ({ className = "w-8 h-8" }: { className?: string }) => {
       className={className}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Top Left Segment - Red */}
+      {/* Top Left - Creamy Red */}
       <path 
-        d="M512 0L128 221.4V442.8L512 664.2L512 0Z" 
-        fill="#E53935" 
+        d="M512 0L148 210V440L512 650L512 0Z" 
+        fill="#FF6B6B" 
       />
-      {/* Top Right Segment - Yellow */}
+      {/* Top Right - Creamy Yellow */}
       <path 
-        d="M512 0L896 221.4V442.8L512 664.2L512 0Z" 
-        fill="#FFB300" 
+        d="M512 0L876 210V440L512 650L512 0Z" 
+        fill="#FFD93D" 
       />
-      {/* Bottom Left Segment - Teal */}
+      {/* Bottom Left - Creamy Cyan */}
       <path 
-        d="M128 442.8V802.6L512 1024L512 664.2L128 442.8Z" 
-        fill="#00BFA5" 
+        d="M148 460V790L512 1000L512 670L148 460Z" 
+        fill="#6BCBCA" 
       />
-      {/* Bottom Right Segment - Blue */}
+      {/* Bottom Right - Creamy Blue */}
       <path 
-        d="M896 442.8V802.6L512 1024L512 664.2L896 442.8Z" 
-        fill="#2563EB" 
+        d="M876 460V790L512 1000L512 670L876 460Z" 
+        fill="#4D96FF" 
       />
     </svg>
   );
@@ -36,7 +36,7 @@ export const LogoWithText = ({ className = "" }: { className?: string }) => {
     <div className={`flex items-center space-x-3 ${className}`}>
       <Logo className="w-9 h-9" />
       <span className="text-2xl font-black tracking-tight text-[#0F172A]">
-        Code<span className="text-[#2563EB]">Host</span>
+        Code<span className="text-[#4D96FF]">Host</span>
       </span>
     </div>
   );
