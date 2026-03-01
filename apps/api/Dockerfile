@@ -56,6 +56,7 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/config/dist ./packages/config/dist
 COPY --from=builder /app/packages/database/dist ./packages/database/dist
+COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/packages/docker/dist ./packages/docker/dist
 COPY --from=builder /app/packages/logger/dist ./packages/logger/dist
