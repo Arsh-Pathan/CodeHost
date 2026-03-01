@@ -105,7 +105,14 @@ router.delete('/:id', async (req: AuthRequest, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    // In a real app we would stop the container and delete files here
+    // Stop container first
+    try {
+      const { RunnerService } = await import('../services/runner.js');
+      await RunnerService.stopContainer(project.id);
+    } catch (e) {
+      logger.warn(`Failed to stop container for deleted project ${project.id}`);
+    }
+
     await prisma.deployment.deleteMany({
       where: { projectId: project.id }
     });
@@ -119,6 +126,67 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   } catch (error) {
     logger.error({ error }, 'Delete project error');
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/:id/restart', async (req: AuthRequest, res) => {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.id },
+      include: { deployments: { where: { status: 'success' }, orderBy: { createdAt: 'desc' }, take: 1 } }
+    });
+
+    if (!project || project.userId !== req.user!.id) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const lastDeployment = project.deployments[0];
+    if (!lastDeployment) {
+      return res.status(400).json({ error: 'No successful deployment to restart' });
+    }
+
+    const { RunnerService } = await import('../services/runner.js');
+    
+    // We can use startContainer by pulling the image name from the last deployment
+    // For now, let's assume the image name is standardized
+    const imageName = `codehost-project-${project.id}:${lastDeployment.id}`;
+    
+    await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
+    
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { status: 'running' }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, 'Restart project error');
+    res.status(500).json({ error: 'Failed to restart project' });
+  }
+});
+
+router.post('/:id/stop', async (req: AuthRequest, res) => {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!project || project.userId !== req.user!.id) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const { RunnerService } = await import('../services/runner.js');
+    await RunnerService.stopContainer(project.id);
+
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { status: 'stopped' }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, 'Stop project error');
+    res.status(500).json({ error: 'Failed to stop project' });
   }
 });
 

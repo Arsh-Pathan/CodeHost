@@ -111,4 +111,16 @@ export class RunnerService {
       throw error;
     }
   }
+
+  public static async stopContainer(projectId: string) {
+    try {
+      const containerName = `codehost-run-${projectId}`;
+      const container = docker.getContainer(containerName);
+      await container.stop();
+      await container.remove();
+      logger.info(`Stopped and removed container ${containerName}`);
+    } catch (e: any) {
+      logger.warn(`Could not stop container for ${projectId}: ${e.message}`);
+    }
+  }
 }

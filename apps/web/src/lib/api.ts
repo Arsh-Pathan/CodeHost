@@ -1,4 +1,15 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const getApiUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined') {
+    // If we're on host.arsh-io.website, the API is at api.arsh-io.website
+    if (window.location.hostname.endsWith('arsh-io.website')) {
+      return `https://api.arsh-io.website`;
+    }
+  }
+  return 'http://localhost:4000';
+};
+
+export const API_URL = getApiUrl();
 
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
