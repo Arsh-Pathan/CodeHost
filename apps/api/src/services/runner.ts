@@ -85,7 +85,13 @@ export class RunnerService {
 
       docker.modem.demuxStream(logStream,
         { write: (chunk: any) => { emitLog(chunk.toString()); return true; } } as any,
-        { write: (chunk: any) => { emitLog(`[ERROR] ${chunk.toString()}`); return true; } } as any
+        { write: (chunk: any) => { 
+          const msg = chunk.toString();
+          // Many apps use stderr for notices. Only tag as ERROR if it contains error keywords
+          const isError = /error|fatal|exception/i.test(msg);
+          emitLog(isError ? `[ERROR] ${msg}` : msg); 
+          return true; 
+        } } as any
       );
 
       await prisma.deployment.update({
@@ -109,6 +115,41 @@ export class RunnerService {
       await prisma.project.update({ where: { id: projectId }, data: { status: 'failed' } });
       await prisma.deployment.update({ where: { id: deploymentId }, data: { status: 'failed' } });
       throw error;
+    }
+  }
+
+  public static async getStats(projectId: string) {
+    try {
+      const containerName = `codehost-run-${projectId}`;
+      const container = docker.getContainer(containerName);
+      
+      const stats = await container.stats({ stream: false });
+      
+      // Calculate CPU percentage
+      // Formula: (cpu_delta / system_delta) * number_of_cpus * 100.0
+      const cpuDelta = stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage;
+      const systemDelta = stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage;
+      
+      let cpuPercent = 0;
+      if (systemDelta > 0 && cpuDelta > 0) {
+        cpuPercent = (cpuDelta / systemDelta) * stats.cpu_stats.online_cpus * 100.0;
+      }
+
+      // Memory usage
+      const memUsage = stats.memory_stats.usage;
+      const memLimit = stats.memory_stats.limit;
+      const memPercent = (memUsage / memLimit) * 100.0;
+
+      return {
+        cpu: parseFloat(cpuPercent.toFixed(2)),
+        memory: {
+          usage: memUsage,
+          limit: memLimit,
+          percent: parseFloat(memPercent.toFixed(2))
+        }
+      };
+    } catch (e) {
+      return null;
     }
   }
 

@@ -55,9 +55,10 @@ EXPOSE 80
     return dockerfile;
   }
 
-  public static async buildProject(deploymentId: string, projectId: string, zipPath: string) {
-    const workDir = path.join(process.cwd(), 'tmp', 'builds', deploymentId);
-    const sourceDir = path.join(workDir, 'source');
+  public static async buildProject(deploymentId: string, projectId: string, zipPath?: string) {
+    const storageDir = path.join(process.cwd(), 'storage', 'projects', projectId);
+    const sourceDir = path.join(storageDir, 'source');
+    const buildTempDir = path.join(process.cwd(), 'tmp', 'builds', deploymentId);
 
     const emitLog = (message: string) => {
       io.to(`project:${projectId}`).emit('log', {
@@ -77,13 +78,18 @@ EXPOSE 80
         data: { status: 'building' },
       });
 
-      emitLog('> Reading your code...');
-      await fs.ensureDir(sourceDir);
-      this.extractZip(zipPath, sourceDir);
+      if (zipPath) {
+        emitLog('> Reading your code...');
+        await fs.ensureDir(sourceDir);
+        await fs.emptyDir(sourceDir); // Clean existing source if uploading new zip
+        this.extractZip(zipPath, sourceDir);
+      }
 
       emitLog('> Determining the best way to run your app...');
       await this.detectAndGenerateDockerfile(sourceDir);
 
+      // We need to pack the source for Docker build
+      await fs.ensureDir(buildTempDir);
       const tarStream = tar.pack(sourceDir);
       const imageName = `codehost-project-${projectId.toLowerCase()}:${deploymentId}`;
       
@@ -121,7 +127,7 @@ EXPOSE 80
       });
       throw error;
     } finally {
-      await fs.remove(workDir).catch((e) => logger.warn(`Failed to cleanup workdir ${workDir}`, e));
+      await fs.remove(buildTempDir).catch((e) => logger.warn(`Failed to cleanup buildTempDir ${buildTempDir}`, e));
     }
   }
 }

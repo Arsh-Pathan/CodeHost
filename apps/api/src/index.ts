@@ -24,10 +24,13 @@ import authRouter from './routes/auth.js';
 import projectsRouter from './routes/projects.js';
 import deploymentsRouter from './routes/deployments.js';
 import adminRouter from './routes/admin.js';
+import filesRouter from './routes/files.js';
+import { RunnerService } from './services/runner.js';
 app.use('/auth', authRouter);
 app.use('/projects', projectsRouter);
 app.use('/deployments', deploymentsRouter);
 app.use('/admin', adminRouter);
+app.use('/files', filesRouter);
 
 // Health Check
 app.get('/health', async (req, res) => {
@@ -54,6 +57,24 @@ io.on('connection', (socket) => {
     logger.info(`Client disconnected: ${socket.id}`);
   });
 });
+
+// Resource Monitoring Loop
+setInterval(async () => {
+  const rooms = io.sockets.adapter.rooms;
+  for (const [room, _] of rooms) {
+    if (room.startsWith('project:')) {
+      const projectId = room.split(':')[1];
+      try {
+        const stats = await RunnerService.getStats(projectId);
+        if (stats) {
+          io.to(room).emit('stats', stats);
+        }
+      } catch (err) {
+        // Silent
+      }
+    }
+  }
+}, 5000);
 
 const PORT = env.PORT || 4000;
 

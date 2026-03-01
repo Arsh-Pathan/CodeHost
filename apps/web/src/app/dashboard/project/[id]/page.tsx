@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
+import FileManager from '@/components/FileManager';
 
 interface Project {
   id: string;
@@ -63,6 +64,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   
   const [logs, setLogs] = useState<{message: string; timestamp: string; type: string}[]>([]);
+  const [stats, setStats] = useState<{cpu: number; memory: {usage: number; limit: number; percent: number}} | null>(null);
 
   const fetchProjectData = async () => {
     try {
@@ -99,6 +101,10 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
 
     socket.on('log', (log: {message: string; timestamp: string; type: string}) => {
       setLogs((prev) => [...prev, log].slice(-300));
+    });
+
+    socket.on('stats', (data: any) => {
+      setStats(data);
     });
 
     return () => { socket.disconnect(); };
@@ -383,21 +389,35 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                 <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-xl shadow-slate-900/10 flex flex-col space-y-6">
                    <div className="flex items-center justify-between">
                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Live Resources</span>
-                     <Activity size={14} className="text-blue-500" />
+                     <Activity size={14} className={project.status === 'running' ? 'text-emerald-500 animate-pulse' : 'text-slate-600'} />
                    </div>
+                   
+                   <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                         <span className="text-xs font-bold text-slate-400">CPU Usage</span>
+                         <span className="text-xs font-black">{stats?.cpu || 0}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                         <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${stats?.cpu || 0}%` }} />
+                      </div>
+                   </div>
+
                    <div className="space-y-4">
                       <div className="flex justify-between items-end">
                          <span className="text-xs font-bold text-slate-400">Memory (RAM)</span>
-                         <span className="text-xs font-black">64MB / 128MB</span>
+                         <span className="text-xs font-black">
+                           {stats ? `${Math.round(stats.memory.usage / 1024 / 1024)}MB / ${Math.round(stats.memory.limit / 1024 / 1024)}MB` : '0MB / 128MB'}
+                         </span>
                       </div>
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                         <div className="h-full bg-blue-500 w-1/2" />
+                         <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${stats?.memory.percent || 0}%` }} />
                       </div>
                    </div>
-                   <div className="space-y-4">
-                      <div className="flex justify-between items-end">
-                         <span className="text-xs font-bold text-slate-400">Node Engine</span>
-                         <span className="text-xs font-black">v20.x LTS</span>
+                   
+                   <div className="pt-2 border-t border-white/5">
+                      <div className="flex justify-between items-center">
+                         <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Node Engine</span>
+                         <span className="text-[10px] font-black text-slate-300">v20.x LTS</span>
                       </div>
                    </div>
                 </div>
@@ -406,15 +426,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
           )}
 
           {activeTab === 'files' && (
-            <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm flex flex-col items-center justify-center py-20">
-               <div className="w-20 h-20 bg-slate-50 text-slate-400 rounded-3xl flex items-center justify-center mb-6">
-                  <FileCode size={40} />
-               </div>
-               <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">File Manager</h3>
-               <p className="text-slate-500 font-medium mt-2 max-w-sm text-center italic">
-                 Web-based file editing is coming soon to the Free Tier. For now, please upload your project as a .zip file.
-               </p>
-            </div>
+            <FileManager projectId={params.id} />
           )}
 
           {activeTab === 'network' && (
