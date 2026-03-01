@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { fetchApi } from '@/lib/api';
 import { Plus, LogOut, Code, Globe, Activity, Loader2 } from 'lucide-react';
 
+import PanelLayout from '@/components/PanelLayout';
+
 interface Project {
   id: string;
   name: string;
@@ -40,150 +42,129 @@ export default function Dashboard() {
     checkAuthAndFetchProjects();
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    router.push('/');
-  };
-
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch(status) {
-      case 'running': return 'bg-green-100 text-green-700 ring-green-600/20';
-      case 'idle': return 'bg-slate-100 text-slate-700 ring-slate-600/20';
-      case 'building': return 'bg-blue-100 text-blue-700 ring-blue-600/20';
-      case 'failed': return 'bg-red-100 text-red-700 ring-red-600/20';
-      case 'stopped': return 'bg-yellow-100 text-yellow-700 ring-yellow-600/20';
-      default: return 'bg-slate-100 text-slate-700 ring-slate-600/20';
+      case 'running': return { color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Online' };
+      case 'idle': return { color: 'text-slate-400', bg: 'bg-slate-400/10', border: 'border-slate-400/20', label: 'Sleeping' };
+      case 'building': return { color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20', label: 'Building' };
+      case 'failed': return { color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Failed' };
+      case 'stopped': return { color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20', label: 'Offline' };
+      default: return { color: 'text-slate-400', bg: 'bg-slate-400/10', border: 'border-slate-400/20', label: status };
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="text-slate-500 font-medium tracking-tight">Waking things up...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f6f8fa] space-y-4 font-sans text-slate-900">
+        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+        <p className="font-semibold tracking-tight animate-pulse">Initializing your dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      <nav className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center">
-                <Code className="h-5 w-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900 ml-2">CodeHost</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              {user?.role === 'ADMIN' && (
-                <Link href="/admin">
-                  <button className="text-sm font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100 transition border border-blue-200">
-                    Admin Panel
-                  </button>
-                </Link>
-              )}
-              <span className="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-1 rounded-full">{user?.email}</span>
-              <button 
-                onClick={handleLogout}
-                className="text-slate-400 hover:text-slate-600 p-2 rounded-md hover:bg-slate-100 transition"
-              >
-                <LogOut size={18} />
-              </button>
-            </div>
+    <PanelLayout user={user}>
+      <div className="flex flex-col space-y-8">
+        {/* Header Section */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Apps</h1>
+            <p className="text-slate-500 mt-1">Manage and monitor your online projects.</p>
           </div>
-        </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="md:flex md:items-center md:justify-between mb-8">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-3xl font-bold leading-7 text-slate-900 tracking-tight sm:truncate">
-              Your Projects
-            </h2>
-          </div>
-          <div className="mt-4 flex md:ml-4 md:mt-0 space-x-3">
-             <Link
-              href="/dashboard/new"
-              className={projects.length >= 1 ? "pointer-events-none opacity-50" : ""}
-             >
-                <button
-                  type="button"
-                  disabled={projects.length >= 1}
-                  className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 transition"
-                >
-                  <Plus className="-ml-0.5 mr-1.5 h-4 w-4" aria-hidden="true" />
-                  New Project
-                </button>
-             </Link>
-          </div>
+          <Link
+            href="/dashboard/new"
+            className={projects.length >= 1 ? "pointer-events-none opacity-50" : ""}
+          >
+            <button
+              type="button"
+              disabled={projects.length >= 1}
+              className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all hover:-translate-y-0.5"
+            >
+              <Plus className="-ml-1 mr-2 h-4 w-4" />
+              New Project
+            </button>
+          </Link>
         </div>
 
+        {/* Limit Warning */}
         {projects.length >= 1 && (
-           <div className="mb-6 rounded-md bg-blue-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">Free Tier Notice</h3>
-                <div className="mt-2 text-sm text-blue-700">
-                  <p>You have reached your 1 project limit. Delete your existing project to create a new one.</p>
-                </div>
+          <div className="rounded-xl bg-blue-600 p-6 text-white shadow-xl shadow-blue-500/10 flex items-center justify-between border border-white/10">
+            <div className="flex items-center space-x-4 text-white">
+              <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center text-white backdrop-blur-sm">
+                 <Activity size={24} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">One Project Limit (Free Tier)</h3>
+                <p className="text-blue-100/80 text-sm font-medium">You've reached your limit. Delete your current app to deploy another one.</p>
               </div>
             </div>
           </div>
         )}
 
+        {/* Project Grid */}
         {projects.length === 0 ? (
-          <div className="text-center rounded-xl border border-dashed border-slate-300 p-16 bg-white shadow-sm">
-            <div className="mx-auto w-16 h-16 bg-blue-50 flex items-center justify-center rounded-full mb-4">
-              <Globe className="h-8 w-8 text-blue-600" />
+          <div className="flex flex-col items-center justify-center py-20 px-8 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm transition-all hover:bg-slate-50">
+            <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 rotate-12 transition-transform hover:rotate-0">
+              <Globe size={40} />
             </div>
-            <h3 className="mt-2 text-lg font-semibold text-slate-900 tracking-tight">No projects deployed yet</h3>
-            <p className="mt-2 text-md text-slate-500 max-w-sm mx-auto">Get your app on the internet in seconds. No configuration required.</p>
-            <div className="mt-8">
-              <Link
-                href="/dashboard/new"
-                className="inline-flex items-center rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition"
-              >
-                <Plus className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
-                Deploy First App
-              </Link>
-            </div>
+            <h3 className="text-2xl font-bold text-slate-900">No active apps</h3>
+            <p className="text-slate-500 mt-3 max-w-sm text-center font-medium">
+              Start your journey by deploying your first project with our one-click wizard.
+            </p>
+            <Link href="/dashboard/new" className="mt-8">
+              <button className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold flex items-center shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+                <Plus size={20} className="mr-2 text-white" />
+                Upload Project
+              </button>
+            </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
-              <div key={project.id} className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:border-slate-300 hover:shadow-md transition">
-                <div className="p-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-slate-900 truncate">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {projects.map((project) => {
+              const status = getStatusConfig(project.status);
+              return (
+                <Link key={project.id} href={`/dashboard/project/${project.id}`} className="group block">
+                  <div className="h-full flex flex-col bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:border-blue-500/30 transition-all duration-300">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="p-3 bg-blue-50 rounded-xl text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+                        <Code size={24} />
+                      </div>
+                      <div className={`flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${status.bg} ${status.color} ${status.border}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full mr-2 ${project.status === 'running' ? 'bg-emerald-500 animate-pulse' : status.color.replace('text-', 'bg-')}`} />
+                        {status.label}
+                      </div>
+                    </div>
+
+                    <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
                       {project.name}
                     </h3>
-                    <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${getStatusColor(project.status)}`}>
-                       {project.status === 'running' && <Activity className="w-3 h-3 mr-1 animate-pulse" />}
-                       {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                    </span>
+                    
+                    <div className="flex items-center text-sm font-medium text-slate-400 mt-2 truncate">
+                      <Globe size={14} className="mr-2" />
+                      {project.status === 'running' ? `host.arsh-io.website/${user?.username}/${project.name.toLowerCase()}` : 'Provisioning...'}
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
+                      <div className="flex flex-col space-y-1">
+                         <span>CPU Usage</span>
+                         <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="bg-emerald-500 h-full w-[12%] transition-all" />
+                         </div>
+                      </div>
+                      <div className="flex flex-col space-y-1 items-end">
+                         <span>Plan</span>
+                         <span className="text-blue-600">Free Tier</span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="mt-2 text-sm text-slate-500 flex items-center">
-                    <Globe className="h-4 w-4 mr-1 text-slate-400" />
-                    {project.status === 'running' ? `host.arsh-io.website/${user?.username || 'user'}/${project.name.toLowerCase()}` : 'Not deployed'}
-                  </p>
-                  
-                  <div className="mt-6">
-                    <Link
-                      href={`/dashboard/project/${project.id}`}
-                      className="block w-full text-center rounded-md bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-100 transition"
-                    >
-                      Manage App
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </PanelLayout>
   );
 }
+
