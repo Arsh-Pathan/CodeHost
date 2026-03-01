@@ -159,10 +159,19 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   const handleSaveSettings = async () => {
     setActionLoading('save-settings');
     setError('');
+    let finalSettings = { ...settings };
+    if (typeof finalSettings.envVars === 'string') {
+      try {
+        finalSettings.envVars = JSON.parse(finalSettings.envVars);
+      } catch (e) {
+        finalSettings.envVars = {};
+      }
+    }
+
     try {
       await fetchApi(`/projects/${params.id}`, {
         method: 'PUT',
-        body: JSON.stringify(settings)
+        body: JSON.stringify(finalSettings)
       });
       await fetchProjectData();
       alert('Settings saved! Deploy to apply changes.');
@@ -646,6 +655,37 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                             onChange={(e) => setSettings({ ...settings, startCommand: e.target.value })}
                          />
                          <p className="text-[10px] text-slate-400 italic px-1">Command to launch your app. Note: Must listen on PORT.</p>
+                      </div>
+
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Environment Variables (JSON)</label>
+                         <textarea 
+                            rows={3}
+                            placeholder='{ "API_KEY": "123", "GREETING": "Hello CodeHost!" }'
+                            className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            value={typeof settings.envVars === 'string' ? settings.envVars : JSON.stringify(settings.envVars, null, 2)}
+                            onChange={(e) => {
+                              try {
+                                const val = e.target.value;
+                                if (!val) setSettings({ ...settings, envVars: {} });
+                                else {
+                                  // We keep it as string while editing to avoid parser errors while typing
+                                  setSettings({ ...settings, envVars: val });
+                                }
+                              } catch(e) {}
+                            }}
+                            onBlur={(e) => {
+                              try {
+                                if (typeof settings.envVars === 'string') {
+                                   const parsed = JSON.parse(settings.envVars);
+                                   setSettings({ ...settings, envVars: parsed });
+                                }
+                              } catch(e) {
+                                alert('Invalid JSON in Environment Variables');
+                              }
+                            }}
+                         />
+                         <p className="text-[10px] text-slate-400 italic px-1">Format: JSON object.</p>
                       </div>
 
                       <div className="pt-4 border-t border-slate-100">
