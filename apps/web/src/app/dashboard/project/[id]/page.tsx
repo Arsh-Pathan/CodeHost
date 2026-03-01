@@ -36,6 +36,10 @@ interface Project {
   status: string;
   port?: number;
   user?: { email: string; username: string };
+  buildCommand?: string;
+  startCommand?: string;
+  dockerfileOverride?: string;
+  envVars?: any;
 }
 
 interface Deployment {
@@ -63,6 +67,13 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   
+  const [settings, setSettings] = useState({
+    buildCommand: '',
+    startCommand: '',
+    dockerfileOverride: '',
+    envVars: {}
+  });
+  
   const [logs, setLogs] = useState<{message: string; timestamp: string; type: string}[]>([]);
   const [stats, setStats] = useState<{cpu: number; memory: {usage: number; limit: number; percent: number}} | null>(null);
 
@@ -77,6 +88,13 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       setUser(meRes.user);
       setProject(projRes.project);
       setDeployments(depRes.deployments);
+      
+      setSettings({
+        buildCommand: projRes.project.buildCommand || '',
+        startCommand: projRes.project.startCommand || '',
+        dockerfileOverride: projRes.project.dockerfileOverride || '',
+        envVars: projRes.project.envVars || {}
+      });
     } catch (err) {
       router.push('/dashboard');
     } finally {
@@ -130,6 +148,23 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         await fetchApi(`/projects/${params.id}/${action}`, { method: 'POST' });
         await fetchProjectData();
       }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    setActionLoading('save-settings');
+    setError('');
+    try {
+      await fetchApi(`/projects/${params.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(settings)
+      });
+      await fetchProjectData();
+      alert('Settings saved! Deploy to apply changes.');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -547,6 +582,82 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                         </div>
                         <span className="text-xs font-bold text-slate-900">{project.user?.username || project.user?.email}</span>
                      </div>
+                   </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-8 flex items-center">
+                    <HardDrive size={16} className="mr-3 text-blue-600" />
+                    Connection Details
+                 </h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">SFTP Access</span>
+                       <p className="text-xs font-bold text-slate-900 mb-1">sftp.codehost.app</p>
+                       <p className="text-[10px] text-slate-400">Use your dashboard credentials.</p>
+                    </div>
+                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">SSH Access</span>
+                       <p className="text-xs font-bold text-slate-900 mb-1">Disabled on Free Tier</p>
+                       <p className="text-[10px] text-slate-400 italic">Upgrade to Premium for CLI access.</p>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Custom Run Configuration</h3>
+                    <p className="text-xs font-medium text-slate-500 mt-1">Control how your app builds and starts.</p>
+                  </div>
+                  <button 
+                    onClick={handleSaveSettings}
+                    disabled={actionLoading !== null}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 disabled:opacity-50 transition-all flex items-center space-x-2"
+                  >
+                    {actionLoading === 'save-settings' ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    <span>Save Settings</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-8">
+                   <div className="space-y-4">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Build Command</label>
+                         <input 
+                            type="text" 
+                            placeholder="npm install"
+                            className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            value={settings.buildCommand}
+                            onChange={(e) => setSettings({ ...settings, buildCommand: e.target.value })}
+                         />
+                         <p className="text-[10px] text-slate-400 italic px-1">Defaults to 'npm install' or 'pip install' based on detection.</p>
+                      </div>
+
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Start Command</label>
+                         <input 
+                            type="text" 
+                            placeholder="npm start"
+                            className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            value={settings.startCommand}
+                            onChange={(e) => setSettings({ ...settings, startCommand: e.target.value })}
+                         />
+                         <p className="text-[10px] text-slate-400 italic px-1">Command to launch your app. Note: Must listen on PORT.</p>
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-100">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-900 px-1 block mb-3">Power User: Dockerfile Override</label>
+                        <textarea 
+                          rows={6}
+                          placeholder="FROM node:18-alpine ..."
+                          className="w-full p-6 bg-[#0d1117] text-slate-300 rounded-2xl border border-[#30363d] font-mono text-xs focus:outline-none scrollbar-thin scrollbar-thumb-slate-800"
+                          value={settings.dockerfileOverride}
+                          onChange={(e) => setSettings({ ...settings, dockerfileOverride: e.target.value })}
+                        />
+                        <p className="text-[10px] text-slate-500 italic px-1 mt-2">Entering anything here will bypass all automatic detections.</p>
+                      </div>
                    </div>
                 </div>
               </div>

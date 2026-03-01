@@ -190,4 +190,33 @@ router.post('/:id/stop', async (req: AuthRequest, res) => {
   }
 });
 
+router.put('/:id', async (req: AuthRequest, res) => {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!project || project.userId !== req.user!.id) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const { buildCommand, startCommand, dockerfileOverride, envVars } = req.body;
+
+    const updated = await prisma.project.update({
+      where: { id: project.id },
+      data: {
+        buildCommand: buildCommand ?? project.buildCommand,
+        startCommand: startCommand ?? project.startCommand,
+        dockerfileOverride: dockerfileOverride ?? project.dockerfileOverride,
+        envVars: envVars ?? project.envVars,
+      }
+    });
+
+    res.json({ project: updated });
+  } catch (error) {
+    logger.error({ error }, 'Update project error');
+    res.status(500).json({ error: 'Failed to update project settings' });
+  }
+});
+
 export default router;

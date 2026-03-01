@@ -14,33 +14,49 @@ export class BuilderService {
     zip.extractAllTo(extractPath, true);
   }
 
-  private static async detectAndGenerateDockerfile(sourceDir: string): Promise<string> {
+  private static async detectAndGenerateDockerfile(sourceDir: string, project: any): Promise<string> {
     const files = await fs.readdir(sourceDir);
     let dockerfile = '';
 
-    if (files.includes('package.json')) {
+    // 1. Check for Manual Dockerfile Override
+    if (project.dockerfileOverride && project.dockerfileOverride.trim().length > 0) {
+      logger.info('Using user-provided Dockerfile override');
+      dockerfile = project.dockerfileOverride;
+    } 
+    // 2. Check for explicit Dockerfile in source (if not overridden by UI)
+    else if (files.includes('Dockerfile')) {
+      logger.info('Using Dockerfile found in source');
+      dockerfile = await fs.readFile(path.join(sourceDir, 'Dockerfile'), 'utf8');
+    }
+    // 3. Fallback to Heuristics
+    else if (files.includes('package.json')) {
       logger.info('Detected Node.js project');
+      const buildCmd = project.buildCommand || 'npm install';
+      const startCmd = project.startCommand || 'npm start';
+      
       dockerfile = `
 FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN ${buildCmd}
 COPY . .
 ENV PORT=3000
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ${startCmd.includes('[') ? startCmd : `["sh", "-c", "${startCmd}"]`}
       `;
     } else if (files.includes('requirements.txt') || files.includes('main.py')) {
       logger.info('Detected Python project');
+      const buildCmd = project.buildCommand || (files.includes('requirements.txt') ? 'pip install --no-cache-dir -r requirements.txt' : 'echo "No requirements.txt"');
+      const startCmd = project.startCommand || 'python main.py';
+
       dockerfile = `
 FROM python:3.11-slim
 WORKDIR /app
-COPY requirements.txt* .
-RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 COPY . .
+RUN ${buildCmd}
 ENV PORT=8080
 EXPOSE 8080
-CMD ["python", "main.py"]
+CMD ${startCmd.includes('[') ? startCmd : `["sh", "-c", "${startCmd}"]`}
       `;
     } else {
       logger.info('Defaulting to Static HTML project');
@@ -49,6 +65,19 @@ FROM nginx:alpine
 COPY . /usr/share/nginx/html
 EXPOSE 80
       `;
+    }
+
+    // Add Env Vars if present
+    if (project.envVars && typeof project.envVars === 'object') {
+      const envLines = Object.entries(project.envVars)
+        .map(([key, value]) => `ENV ${key}="${value}"`)
+        .join('\n');
+      if (envLines) {
+        // Insert after first line (FROM)
+        const lines = dockerfile.trim().split('\n');
+        lines.splice(1, 0, envLines);
+        dockerfile = lines.join('\n');
+      }
     }
 
     await fs.writeFile(path.join(sourceDir, 'Dockerfile'), dockerfile.trim());
@@ -69,6 +98,9 @@ EXPOSE 80
     };
 
     try {
+      const project = await prisma.project.findUnique({ where: { id: projectId } });
+      if (!project) throw new Error('Project not found');
+
       await prisma.deployment.update({
         where: { id: deploymentId },
         data: { status: 'building' },
@@ -86,7 +118,7 @@ EXPOSE 80
       }
 
       emitLog('> Determining the best way to run your app...');
-      await this.detectAndGenerateDockerfile(sourceDir);
+      await this.detectAndGenerateDockerfile(sourceDir, project);
 
       // We need to pack the source for Docker build
       await fs.ensureDir(buildTempDir);

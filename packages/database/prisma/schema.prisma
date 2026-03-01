@@ -38,10 +38,14 @@ model Project {
   user        User         @relation(fields: [userId], references: [id])
   status      String       @default("idle") // idle, building, running, failed, stopped
   containerId String?
-  port        Int?
-  deployments Deployment[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  port               Int?
+  buildCommand       String?      @default("")
+  startCommand       String?      @default("")
+  dockerfileOverride String?      @default("")
+  envVars            Json?        @default("{}")
+  deployments        Deployment[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 }
 
 model Deployment {
