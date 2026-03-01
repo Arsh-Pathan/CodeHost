@@ -23,8 +23,10 @@ export default function AdminDashboard() {
     const fetchAdminData = async () => {
       try {
         const userRes = await fetchApi('/auth/me');
+        
         if (userRes.user.role !== 'ADMIN') {
-          router.push('/dashboard');
+          setError('Admin privileges required. Please ensure your account has the correct role in the database.');
+          setLoading(false);
           return;
         }
 

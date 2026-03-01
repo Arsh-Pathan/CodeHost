@@ -21,8 +21,15 @@ import {
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { fetchApi } from '@/lib/api';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 gsap.registerPlugin(ScrollTrigger);
+
+const TechSymbol = ({ children, className, style }: any) => (
+  <div className={`absolute select-none pointer-events-none text-slate-200/40 font-mono text-4xl font-bold floating-symbol ${className}`} style={style}>
+    {children}
+  </div>
+);
 
 export default function Home() {
   const [serverCount, setServerCount] = React.useState(0);
@@ -98,18 +105,45 @@ export default function Home() {
         duration: 0.8,
         stagger: 0.1,
         ease: "power3.out"
-      });
-    }, [heroRef]);
+       });
 
-    return () => ctx.revert();
-  }, []);
+       // Floating Tech Symbols Animation
+       gsap.to(".floating-symbol", {
+         y: "random(-30, 30)",
+         x: "random(-20, 20)",
+         rotation: "random(-15, 15)",
+         duration: "random(3, 5)",
+         repeat: -1,
+         yoyo: true,
+         ease: "sine.inOut",
+         stagger: {
+           amount: 2,
+           from: "random"
+         }
+       });
+     }, [heroRef]);
 
-  return (
-    <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
-      
-      {/* Subtle Background Pattern */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]" 
-           style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+     return () => ctx.revert();
+   }, []);
+
+   return (
+     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
+       <LoadingScreen />
+       
+       {/* Tech Floating Elements */}
+       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <TechSymbol className="top-[15%] left-[10%]" style={{ fontSize: '120px' }}>{"{"}</TechSymbol>
+          <TechSymbol className="top-[25%] right-[15%]" style={{ fontSize: '80px' }}>{"}"}</TechSymbol>
+          <TechSymbol className="bottom-[20%] left-[15%]" style={{ fontSize: '60px' }}>{"< >"}</TechSymbol>
+          <TechSymbol className="bottom-[15%] right-[10%]" style={{ fontSize: '100px' }}>{"/"}</TechSymbol>
+          <TechSymbol className="top-[40%] left-[5%]" style={{ fontSize: '40px' }}>{"const"}</TechSymbol>
+          <TechSymbol className="bottom-[35%] right-[5%]" style={{ fontSize: '50px' }}>{"[]"}</TechSymbol>
+          <TechSymbol className="top-[60%] right-[20%]" style={{ fontSize: '30px' }}>{"*"}</TechSymbol>
+       </div>
+
+       {/* Subtle Background Pattern */}
+       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.02]" 
+            style={{ backgroundImage: 'radial-gradient(#2563EB 2px, transparent 2px)', backgroundSize: '60px 60px' }} />
 
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 border-b border-slate-100 bg-white/70 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
