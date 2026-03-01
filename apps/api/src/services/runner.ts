@@ -37,6 +37,10 @@ export class RunnerService {
       const projectSlug = project?.name.toLowerCase() || projectId;
       const host = 'host.arsh-io.website';
 
+      const imageDetail = await docker.getImage(imageName).inspect();
+      const exposedPorts = Object.keys(imageDetail.Config?.ExposedPorts || {});
+      const containerPort = exposedPorts.length > 0 ? exposedPorts[0].split('/')[0] : '80';
+
       const container = await docker.createContainer({
         Image: imageName,
         name: containerName,
@@ -49,15 +53,18 @@ export class RunnerService {
         Labels: {
           'traefik.enable': 'true',
           // Rule: host.arsh-io.website/username/project
-          [`traefik.http.routers.${containerName}.rule`]: `Host(\`${host}\`) && PathPrefix(\`/${username}/${projectSlug}\`)`,
+          [`traefik.http.routers.${containerName}.rule`]: `Host(\`${host}\`) && (PathPrefix(\`/${username}/${projectSlug}/\`) || Path(\`/${username}/${projectSlug}\`))`,
           [`traefik.http.routers.${containerName}.entrypoints`]: 'web',
           
-          // Port 80 is where our Nginx static server runs inside the user container
-          [`traefik.http.services.${containerName}.loadbalancer.server.port`]: '80',
+          [`traefik.http.services.${containerName}.loadbalancer.server.port`]: containerPort,
           
+          // Redirect /username/project to /username/project/ so relative links work
+          [`traefik.http.middlewares.${containerName}-slash.redirectregex.regex`]: `^(https?://[^/]+/${username}/${projectSlug})$`,
+          [`traefik.http.middlewares.${containerName}-slash.redirectregex.replacement`]: `$1/`,
+
           // Strip the /username/project prefix before sending to the app
           [`traefik.http.middlewares.${containerName}-strip.stripprefix.prefixes`]: `/${username}/${projectSlug}`,
-          [`traefik.http.routers.${containerName}.middlewares`]: `${containerName}-strip`,
+          [`traefik.http.routers.${containerName}.middlewares`]: `${containerName}-strip,${containerName}-slash`,
         }
       });
 
