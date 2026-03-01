@@ -8,6 +8,7 @@ import { prisma } from '@codehost/database';
 import { redis } from '@codehost/redis';
 
 const app = express();
+app.set('trust proxy', 1); // Trust Nginx/Cloudflare
 const httpServer = createServer(app);
 export const io = new Server(httpServer, {
   cors: {
