@@ -44,16 +44,18 @@ export class RunnerService {
           PublishAllPorts: true,
           Memory: env.MEMORY_LIMIT || 128 * 1024 * 1024,
           MemorySwap: env.MEMORY_LIMIT || 128 * 1024 * 1024,
-          NetworkMode: 'docker_default', // Use the standard compose network
+          NetworkMode: 'docker_default', // Connect to the Brain's network
         },
         Labels: {
           'traefik.enable': 'true',
-          // Public URL: host.arsh-io.website/username/project
+          // Rule: host.arsh-io.website/username/project
           [`traefik.http.routers.${containerName}.rule`]: `Host(\`${host}\`) && PathPrefix(\`/${username}/${projectSlug}\`)`,
           [`traefik.http.routers.${containerName}.entrypoints`]: 'web',
-          // Tell Traefik which port to send traffic to (Port 80 for our Nginx containers)
+          
+          // Port 80 is where our Nginx static server runs inside the user container
           [`traefik.http.services.${containerName}.loadbalancer.server.port`]: '80',
-          // Strip the prefix so the user app doesn't need to know about /username/project
+          
+          // Strip the /username/project prefix before sending to the app
           [`traefik.http.middlewares.${containerName}-strip.stripprefix.prefixes`]: `/${username}/${projectSlug}`,
           [`traefik.http.routers.${containerName}.middlewares`]: `${containerName}-strip`,
         }
