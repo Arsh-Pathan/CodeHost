@@ -167,7 +167,7 @@ export default function Dashboard() {
                   </div>
                   <p className="mt-2 text-sm text-slate-500 flex items-center">
                     <Globe className="h-4 w-4 mr-1 text-slate-400" />
-                    {project.status === 'running' ? `host.arsh-io.website/${user?.email.split('@')[0].toLowerCase() || 'user'}/${project.name.toLowerCase()}` : 'Not deployed'}
+                    {project.status === 'running' ? `host.arsh-io.website/${user?.username || 'user'}/${project.name.toLowerCase()}` : 'Not deployed'}
                   </p>
                   
                   <div className="mt-6">

@@ -34,15 +34,20 @@ export const generateTokens = (user: { id: string; email: string; role: string }
 
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, username, name, phoneNumber } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!email || !password || !username) {
+      return res.status(400).json({ error: 'Email, password and username are required' });
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
+    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    if (existingEmail) {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+
+    const existingUsername = await prisma.user.findUnique({ where: { username } });
+    if (existingUsername) {
+      return res.status(400).json({ error: 'Username already taken' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -50,6 +55,9 @@ router.post('/register', authLimiter, async (req, res) => {
     const user = await prisma.user.create({
       data: {
         email,
+        username: username.toLowerCase(),
+        name,
+        phoneNumber,
         password: hashedPassword,
       },
     });
@@ -66,7 +74,7 @@ router.post('/register', authLimiter, async (req, res) => {
     });
 
     res.json({
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, email: user.email, username: user.username },
       accessToken,
       refreshToken,
     });
@@ -157,7 +165,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
     try {
         const user = await prisma.user.findUnique({
             where: { id: req.user!.id },
-            select: { id: true, email: true, role: true, createdAt: true }
+            select: { id: true, email: true, username: true, name: true, role: true, createdAt: true }
         });
         
         if (!user) return res.status(404).json({ error: 'User not found' });

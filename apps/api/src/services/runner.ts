@@ -33,7 +33,7 @@ export class RunnerService {
         include: { user: true }
       });
       
-      const username = project?.user?.email?.split('@')[0].toLowerCase() || 'user';
+      const username = project?.user?.username || project?.user?.email?.split('@')[0].toLowerCase() || 'user';
       const projectSlug = project?.name.toLowerCase() || projectId;
       const host = 'host.arsh-io.website';
 

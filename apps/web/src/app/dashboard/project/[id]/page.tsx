@@ -12,7 +12,7 @@ interface Project {
   name: string;
   status: string;
   port?: number;
-  user?: { email: string };
+  user?: { email: string; username: string };
 }
 
 interface Deployment {
@@ -184,12 +184,12 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
               </div>
                <div className="bg-white px-4 py-2 border border-emerald-200 rounded-md shadow-sm">
                 <a 
-                  href={`http://host.arsh-io.website/${project.user?.email.split('@')[0].toLowerCase() || 'user'}/${project.name.toLowerCase()}`} 
+                  href={`http://host.arsh-io.website/${project.user?.username || 'user'}/${project.name.toLowerCase()}`} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="font-mono text-sm font-bold text-slate-900 hover:text-blue-600 hover:underline flex items-center"
                 >
-                  host.arsh-io.website/{project.user?.email.split('@')[0].toLowerCase() || 'user'}/{project.name.toLowerCase()}
+                  host.arsh-io.website/{project.user?.username || 'user'}/{project.name.toLowerCase()}
                   <ExternalLink className="w-3 h-3 ml-1" />
                 </a>
               </div>
