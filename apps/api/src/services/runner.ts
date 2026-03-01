@@ -33,9 +33,9 @@ export class RunnerService {
         include: { user: true }
       });
       
-      const username = project?.user?.email?.split('@')[0] || 'user';
-      const projectSlug = project?.name || projectId;
-      const host = env.DOMAIN || 'host.arsh-io.website';
+      const username = project?.user?.email?.split('@')[0].toLowerCase() || 'user';
+      const projectSlug = project?.name.toLowerCase() || projectId;
+      const host = 'host.arsh-io.website';
 
       const container = await docker.createContainer({
         Image: imageName,
@@ -48,10 +48,11 @@ export class RunnerService {
         Labels: {
           'codehost.project': projectId,
           'codehost.deployment': deploymentId,
-          // Traefik Dynamic Configuration (Path-Based)
           'traefik.enable': 'true',
+          // Rule: host.arsh-io.website/username/project
           [`traefik.http.routers.${containerName}.rule`]: `Host(\`${host}\`) && PathPrefix(\`/${username}/${projectSlug}\`)`,
           [`traefik.http.routers.${containerName}.entrypoints`]: 'web',
+          // Middleware: Remove the /username/project prefix before sending to the app
           [`traefik.http.middlewares.${containerName}-strip.stripprefix.prefixes`]: `/${username}/${projectSlug}`,
           [`traefik.http.routers.${containerName}.middlewares`]: `${containerName}-strip`,
         }
