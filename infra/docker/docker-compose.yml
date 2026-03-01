@@ -33,19 +33,15 @@ services:
       retries: 5
 
   traefik:
-    image: traefik:v3.1
+    image: traefik:latest
     container_name: codehost-proxy
-    environment:
-      - DOCKER_API_VERSION=1.44
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
-      - "--accesslog=true"            # Enable access logs
-      - "--ping=true"                 # Enable ping for healthcheck
     ports:
-      - "${PORT:-80}:80"
+      - "9000:80"
       - "8081:8080" # Traefik Dashboard
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -56,6 +52,8 @@ services:
       context: ../../
       dockerfile: apps/api/Dockerfile
     container_name: codehost-api
+    ports:
+      - "4000:4000" # Map API directly
     depends_on:
       postgres:
         condition: service_healthy
@@ -81,6 +79,8 @@ services:
       args:
         NEXT_PUBLIC_API_URL: http://api.${DOMAIN:-host.arsh-io.website}
     container_name: codehost-web
+    ports:
+      - "3000:3000" # Map Web directly
     depends_on:
       - api
     environment:
