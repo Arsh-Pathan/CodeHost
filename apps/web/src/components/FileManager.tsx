@@ -35,6 +35,11 @@ export default function FileManager({ projectId }: FileManagerProps) {
   const [saving, setSaving] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['']));
   const [isDeploying, setIsDeploying] = useState(false);
+  
+  // Creation States
+  const [showCreateModal, setShowCreateModal] = useState<'file' | 'folder' | null>(null);
+  const [newItemName, setNewItemName] = useState('');
+  const [targetPath, setTargetPath] = useState('');
 
   const fetchFiles = async () => {
     try {
@@ -111,6 +116,37 @@ export default function FileManager({ projectId }: FileManagerProps) {
     setExpandedFolders(newExpanded);
   };
 
+  const handleCreate = async () => {
+    if (!newItemName) return;
+    try {
+      setSaving(true);
+      const filePath = targetPath ? `${targetPath}/${newItemName}` : newItemName;
+      
+      if (showCreateModal === 'file') {
+        await fetchApi(`/files/${projectId}`, {
+          method: 'POST',
+          body: JSON.stringify({ filePath, content: '' })
+        });
+      } else {
+        // Folder creation: we can just save a dummy .keep file or similar
+        // if the backend doesn't support empty directories yet.
+        // For now, let's assume we can just create the folder path.
+        await fetchApi(`/files/${projectId}`, {
+          method: 'POST',
+          body: JSON.stringify({ filePath: `${filePath}/.keep`, content: '' })
+        });
+      }
+      
+      setShowCreateModal(null);
+      setNewItemName('');
+      await fetchFiles();
+    } catch (err) {
+      alert('Failed to create item');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const renderTree = (items: FileItem[], depth = 0) => {
     return items.map((item) => (
       <div key={item.path}>
@@ -151,8 +187,23 @@ export default function FileManager({ projectId }: FileManagerProps) {
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Project Files</h4>
            <div className="flex items-center space-x-1">
-              <button onClick={fetchFiles} className="p-1 hover:bg-slate-100 rounded text-slate-400"><RefreshCw size={14} /></button>
-              <button className="p-1 hover:bg-slate-100 rounded text-slate-400"><Plus size={14} /></button>
+              <button 
+                onClick={() => { setTargetPath(''); setShowCreateModal('file'); }}
+                className="p-1 hover:bg-slate-100 rounded text-slate-400" 
+                title="New File"
+              >
+                <Plus size={14} />
+              </button>
+              <button 
+                onClick={() => { setTargetPath(''); setShowCreateModal('folder'); }}
+                className="p-1 hover:bg-slate-100 rounded text-slate-400" 
+                title="New Folder"
+              >
+                <FolderPlus size={14} />
+              </button>
+              <button onClick={fetchFiles} className="p-1 hover:bg-slate-100 rounded text-slate-400" title="Refresh">
+                <RefreshCw size={14} />
+              </button>
            </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-slate-200">
@@ -211,6 +262,42 @@ export default function FileManager({ projectId }: FileManagerProps) {
           </div>
         )}
       </div>
+
+      {/* Create Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+           <div className="bg-white rounded-3xl p-8 shadow-2xl w-[400px] border border-slate-200">
+              <h3 className="text-lg font-black text-slate-900 mb-2">Create New {showCreateModal === 'file' ? 'File' : 'Folder'}</h3>
+              <p className="text-xs text-slate-500 mb-6">Enter a name for your new {showCreateModal}.</p>
+              
+              <input 
+                 autoFocus
+                 type="text" 
+                 placeholder={`my-${showCreateModal}${showCreateModal === 'file' ? '.js' : ''}`}
+                 className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 mb-6"
+                 value={newItemName}
+                 onChange={(e) => setNewItemName(e.target.value)}
+                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+              />
+              
+              <div className="flex items-center space-x-3">
+                 <button 
+                   onClick={() => setShowCreateModal(null)}
+                   className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                 >
+                   Cancel
+                 </button>
+                 <button 
+                    onClick={handleCreate}
+                    disabled={saving || !newItemName}
+                    className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 disabled:opacity-50 shadow-lg shadow-blue-600/20"
+                 >
+                    {saving ? <Loader2 size={14} className="animate-spin inline mr-2" /> : 'Create'}
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

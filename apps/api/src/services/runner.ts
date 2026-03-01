@@ -58,13 +58,15 @@ export class RunnerService {
           
           [`traefik.http.services.${containerName}.loadbalancer.server.port`]: containerPort,
           
+          // Stripping the /username/project prefix
+          [`traefik.http.middlewares.${containerName}-strip.stripprefix.prefixes`]: `/${username}/${projectSlug}`,
+          
           // Redirect /username/project to /username/project/ so relative links work
+          // IMPORTANT: Must happen before stripping
           [`traefik.http.middlewares.${containerName}-slash.redirectregex.regex`]: `^(https?://[^/]+/${username}/${projectSlug})$`,
           [`traefik.http.middlewares.${containerName}-slash.redirectregex.replacement`]: `$1/`,
 
-          // Strip the /username/project prefix before sending to the app
-          [`traefik.http.middlewares.${containerName}-strip.stripprefix.prefixes`]: `/${username}/${projectSlug}`,
-          [`traefik.http.routers.${containerName}.middlewares`]: `${containerName}-strip,${containerName}-slash`,
+          [`traefik.http.routers.${containerName}.middlewares`]: `${containerName}-slash,${containerName}-strip`,
         }
       });
 
