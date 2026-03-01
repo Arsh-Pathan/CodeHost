@@ -35,8 +35,6 @@ services:
   traefik:
     image: traefik:v3.1
     container_name: codehost-proxy
-    environment:
-      - DOCKER_API_VERSION=1.44
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
