@@ -24,7 +24,8 @@ import {
   HardDrive,
   Cpu,
   Clock,
-  History
+  History,
+  Save
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
