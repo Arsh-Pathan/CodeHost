@@ -44,8 +44,7 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-[#0F172A] selection:bg-blue-100 selection:text-blue-900">
-      {/* Sidebar */}
-      <aside 
+      <aside
         className={`${
           isSidebarOpen ? 'w-64' : 'w-20'
         } bg-white text-slate-600 transition-all duration-300 ease-in-out border-r border-slate-200 flex flex-col fixed h-full z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}
@@ -152,7 +151,6 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
           </div>
         </header>
 
-        {/* Content Area */}
         <div className="p-10 max-w-[1400px] w-full mx-auto flex-1">
           {children}
         </div>

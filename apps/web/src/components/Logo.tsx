@@ -27,8 +27,6 @@ export const Logo = ({ className = "w-9 h-9" }: { className?: string }) => {
                 stroke="#4D96FF"
                 fill="#ffffff"
             />
-
-
         </svg>
     );
 };

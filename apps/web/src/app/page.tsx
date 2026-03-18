@@ -31,6 +31,19 @@ const TechSymbol = ({ children, className, style }: any) => (
   </div>
 );
 
+const SplitText = ({ text, className }: { text: string; className?: string }) => (
+  <>
+    {text.split("").map((char, i) => (
+      <span
+        key={i}
+        className={`hero-letter inline-block ${className || ""}`}
+      >
+        {char === " " ? "\u00A0" : char}
+      </span>
+    ))}
+  </>
+);
+
 export default function Home() {
   const [serverCount, setServerCount] = React.useState(0);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -53,61 +66,116 @@ export default function Home() {
   useEffect(() => {
     // Hero Entrance
     const ctx = gsap.context(() => {
-      gsap.from(".hero-title", {
-        y: 60,
-        opacity: 0,
-        duration: 1.2,
-        ease: "power4.out",
-        stagger: 0.1
+      // Scroll-driven letter scatter: each letter flies off in a random direction
+      // on scroll down, and reassembles when scrolling back up
+      document.querySelectorAll(".hero-letter").forEach((letter) => {
+        const randX = gsap.utils.random(-200, 200);
+        const randY = gsap.utils.random(-150, 150);
+        const randRotate = gsap.utils.random(-90, 90);
+
+        gsap.to(letter, {
+          x: randX,
+          y: randY,
+          rotation: randRotate,
+          opacity: 0,
+          ease: "power2.in",
+          scrollTrigger: {
+            trigger: ".hero-title",
+            start: "top 20%",
+            end: "bottom -20%",
+            scrub: 1,
+          },
+        });
       });
 
       gsap.from(".hero-subtext", {
-        y: 40,
+        y: 30,
         opacity: 0,
         duration: 1,
-        delay: 0.4,
+        delay: 0.3,
         ease: "power3.out"
       });
 
       gsap.from(".hero-btns", {
-        y: 30,
+        y: 20,
         opacity: 0,
         duration: 1,
-        delay: 0.6,
+        delay: 0.5,
         ease: "power3.out"
       });
 
-      gsap.from(".hero-badge", {
-        scale: 0.8,
+      // Dashboard: fade in on scroll
+      gsap.from(".dashboard-preview", {
+        scrollTrigger: {
+          trigger: ".dashboard-preview",
+          start: "top 85%",
+        },
+        y: 60,
         opacity: 0,
-        duration: 0.8,
-        delay: 0.2,
-        ease: "back.out(1.7)"
+        duration: 1.2,
+        ease: "power3.out"
       });
 
-      // Floating Dashboard Animation
-      gsap.to(".dashboard-preview", {
-        y: -15,
-        duration: 2.5,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut"
-      });
-
-      // Scroll Reveal for Features
       gsap.from(".feature-card", {
         scrollTrigger: {
           trigger: ".features-section",
-          start: "top 80%",
+          start: "top 75%",
         },
-        y: 50,
+        y: 40,
+        opacity: 0,
+        duration: 0.7,
+        stagger: 0.08,
+        ease: "power3.out"
+      });
+
+      // Features section heading
+      gsap.from(".features-heading", {
+        scrollTrigger: {
+          trigger: ".features-heading",
+          start: "top 85%",
+        },
+        y: 30,
         opacity: 0,
         duration: 0.8,
+        ease: "power3.out"
+      });
+
+      // Pricing section
+      gsap.from(".pricing-heading", {
+        scrollTrigger: {
+          trigger: ".pricing-heading",
+          start: "top 85%",
+        },
+        y: 30,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power3.out"
+      });
+
+      gsap.from(".pricing-card", {
+        scrollTrigger: {
+          trigger: ".pricing-card",
+          start: "top 85%",
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.7,
         stagger: 0.1,
         ease: "power3.out"
-       });
+      });
 
-       // Floating Tech Symbols Animation
+      // Footer
+      gsap.from(".footer-content", {
+        scrollTrigger: {
+          trigger: ".footer-content",
+          start: "top 90%",
+        },
+        y: 20,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power3.out"
+      });
+
        gsap.to(".floating-symbol", {
          y: "random(-30, 30)",
          x: "random(-20, 20)",
@@ -122,7 +190,6 @@ export default function Home() {
          }
        });
 
-       // Mouse Interaction for symbols
        const onMouseMove = (e: MouseEvent) => {
           const { clientX, clientY } = e;
           const xPos = (clientX / window.innerWidth) - 0.5;
@@ -147,8 +214,7 @@ export default function Home() {
    return (
      <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
        <LoadingScreen />
-       
-       {/* Tech Floating Elements */}
+
        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <TechSymbol className="top-[15%] left-[10%] text-[#FF6B6B]/20" style={{ fontSize: '120px' }}>{"{"}</TechSymbol>
           <TechSymbol className="top-[25%] right-[15%] text-[#FFD93D]/20" style={{ fontSize: '80px' }}>{"}"}</TechSymbol>
@@ -159,50 +225,42 @@ export default function Home() {
           <TechSymbol className="top-[60%] right-[20%] text-[#FF6B6B]/10" style={{ fontSize: '30px' }}>{"*"}</TechSymbol>
        </div>
 
-       {/* Subtle Background Pattern */}
-       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.02]" 
+       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05]"
             style={{ backgroundImage: 'radial-gradient(#2563EB 2px, transparent 2px)', backgroundSize: '60px 60px' }} />
 
-      {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 border-b border-slate-100 bg-white/70 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
+      <nav className="fixed top-0 w-full z-50 bg-white/60 backdrop-blur-2xl px-8 py-5 flex items-center justify-between">
         <LogoWithText />
-        <div className="hidden md:flex items-center space-x-10">
-          <Link href="#features" className="text-sm font-bold text-slate-500 hover:text-blue-600 transition">Features</Link>
-          <Link href="#pricing" className="text-sm font-bold text-slate-500 hover:text-blue-600 transition">Pricing</Link>
-          <Link href="#docs" className="text-sm font-bold text-slate-500 hover:text-blue-600 transition">Docs</Link>
+        <div className="hidden md:flex items-center space-x-8">
+          <Link href="#features" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Features</Link>
+          <Link href="#pricing" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Pricing</Link>
+          <Link href="#docs" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Docs</Link>
         </div>
-        <div className="flex items-center space-x-4">
-          <Link href="/login" className="text-sm font-bold text-slate-600 hover:text-slate-900 px-4">Login</Link>
-          <Link href="/signup" className="px-6 py-2.5 bg-blue-600 text-white text-sm font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all hover:-translate-y-0.5">
-             Deploy Free
+        <div className="flex items-center space-x-3">
+          <Link href="/login" className="text-sm font-medium text-slate-500 hover:text-slate-900 px-4 py-2 transition-colors">Login</Link>
+          <Link href="/signup" className="px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-all">
+             Get Started
           </Link>
         </div>
       </nav>
 
       {/* Hero Section */}
       <header ref={heroRef} className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div className="hero-badge inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[10px] font-black uppercase tracking-widest mb-10">
-          <Activity size={10} className="fill-blue-600" />
-          <span>{serverCount}+ Servers Running Globally</span>
-          <span className="h-3 w-px bg-blue-200 mx-2" />
-          <span>Free for Learning & College Students</span>
-        </div>
 
-        <h1 className="hero-title text-5xl md:text-8xl font-black tracking-tightest leading-[0.95] max-w-4xl mb-10 text-[#0F172A]">
-           Deploy Smarter,<br />
-           <span className="text-[#6BCBCA]">Scale</span> <span className="text-[#FFD93D]">Faster.</span>
-        </h1>
+          <h1 className="hero-title text-5xl md:text-8xl font-black tracking-tightest leading-[0.95] max-w-4xl mb-10 text-[#0F172A]">
+              <span className="block"><SplitText text="Cloud, Made" /></span>
+              <span className="block"><SplitText text="Simple" className="text-[#2563EB]" /></span>
+          </h1>
 
         <p className="hero-subtext text-lg md:text-xl text-slate-500 font-medium max-w-2xl mb-12">
            The simplest cloud platform for students. No Linux, no Docker, no terminals. Just one-click and your project is online.
         </p>
 
-        <div className="hero-btns flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
-          <Link href="/signup" className="w-full sm:w-auto px-10 py-5 bg-[#2563EB] text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-blue-500/40 hover:bg-blue-500 transition-all hover:scale-105 active:scale-95 flex items-center justify-center space-x-3">
+        <div className="hero-btns flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
+          <Link href="/signup" className="w-full sm:w-auto px-8 py-4 bg-[#0F172A] text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center space-x-2">
              <span>Start Hosting Free</span>
-             <ArrowRight size={18} />
+             <ArrowRight size={16} />
           </Link>
-          <Link href="#features" className="w-full sm:w-auto px-10 py-5 bg-white border border-slate-200 text-slate-600 text-sm font-black uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all flex items-center justify-center">
+          <Link href="#features" className="w-full sm:w-auto px-8 py-4 bg-white border border-slate-200 text-slate-500 text-sm font-medium rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all flex items-center justify-center">
              See how it works
           </Link>
         </div>
@@ -220,7 +278,7 @@ export default function Home() {
                   dashboard.codehost.app/arsh/my-website
                 </div>
              </div>
-             
+
              <div className="grid grid-cols-12 gap-8">
                 <div className="col-span-3 space-y-4">
                    <div className="h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20" />
@@ -268,7 +326,7 @@ export default function Home() {
 
       {/* Features Section */}
       <section id="features" className="features-section py-40 px-6 max-w-7xl mx-auto scroll-mt-20">
-         <div className="text-center mb-24">
+         <div className="features-heading text-center mb-24">
             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#2563EB] mb-4">Infrastructure Redefined</h2>
             <h3 className="text-4xl md:text-6xl font-black tracking-tight text-[#0F172A] max-w-3xl mx-auto leading-tight">
                Built for Absolute Simplicity.
@@ -277,41 +335,41 @@ export default function Home() {
 
          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {[
-              { 
-                icon: <Box size={24} />, 
-                title: "One-Click Deploy", 
-                desc: "Just upload your code or connect Github. We handle the rest. No terminal required.", 
-                color: "#2563EB" 
+              {
+                icon: <Box size={24} />,
+                title: "One-Click Deploy",
+                desc: "Just upload your code or connect Github. We handle the rest. No terminal required.",
+                color: "#2563EB"
               },
-              { 
-                icon: <Terminal size={24} />, 
-                title: "Auto Detection", 
-                desc: "Node.js, Python, or Static HTML. We detect your framework and configure the environment automatically.", 
-                color: "#FFB300" 
+              {
+                icon: <Terminal size={24} />,
+                title: "Auto Detection",
+                desc: "Node.js, Python, or Static HTML. We detect your framework and configure the environment automatically.",
+                color: "#FFB300"
               },
-              { 
-                icon: <Zap size={24} />, 
-                title: "Instant Scaling", 
-                desc: "Our distributed VPS architecture ensures your app is always live and snappy for your users.", 
-                color: "#00BFA5" 
+              {
+                icon: <Zap size={24} />,
+                title: "Instant Scaling",
+                desc: "Our distributed VPS architecture ensures your app is always live and snappy for your users.",
+                color: "#00BFA5"
               },
-              { 
-                icon: <Globe size={24} />, 
-                title: "Custom Subdomains", 
-                desc: "Every project gets a free your-app.codehost.app domain with automatic SSL encryption.", 
-                color: "#E53935" 
+              {
+                icon: <Globe size={24} />,
+                title: "Custom Subdomains",
+                desc: "Every project gets a free your-app.codehost.app domain with automatic SSL encryption.",
+                color: "#E53935"
               },
-              { 
-                icon: <Shield size={24} />, 
-                title: "Secure Isolation", 
-                desc: "Enterprise-grade container isolation ensures your app is safe from other users and attacks.", 
-                color: "#0F172A" 
+              {
+                icon: <Shield size={24} />,
+                title: "Secure Isolation",
+                desc: "Enterprise-grade container isolation ensures your app is safe from other users and attacks.",
+                color: "#0F172A"
               },
-              { 
-                icon: <HardDrive size={24} />, 
-                title: "Live Monitoring", 
-                desc: "Real-time CPU and Memory stats stream directly to your dashboard via WebSockets.", 
-                color: "#2563EB" 
+              {
+                icon: <HardDrive size={24} />,
+                title: "Live Monitoring",
+                desc: "Real-time CPU and Memory stats stream directly to your dashboard via WebSockets.",
+                color: "#2563EB"
               }
             ].map((f, i) => (
               <div key={i} className="feature-card group p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all hover:-translate-y-2">
@@ -329,19 +387,19 @@ export default function Home() {
       {/* Pricing Section */}
       <section id="pricing" className="py-24 px-6 bg-slate-50">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
+          <div className="pricing-heading text-center mb-20">
             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-blue-600 mb-4">Transparent Pricing</h2>
             <h3 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900">Choose your scale.</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
              {/* Free Tier */}
-             <div className="bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm flex flex-col justify-between">
+             <div className="pricing-card bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div>
                    <h4 className="text-lg font-black text-slate-900 mb-2">Student Free</h4>
                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">For individuals</p>
                    <div className="flex items-baseline space-x-1 mb-10">
-                      <span className="text-5xl font-black text-slate-900">$0</span>
+                      <span className="text-5xl font-black text-slate-900">₹0</span>
                       <span className="text-slate-400 font-bold">/forever</span>
                    </div>
                    <ul className="space-y-4 mb-10">
@@ -369,15 +427,15 @@ export default function Home() {
              </div>
 
              {/* Pro Tier */}
-             <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl shadow-blue-500/20 flex flex-col justify-between transform scale-105 active:scale-100 transition-all relative">
+             <div className="pricing-card bg-slate-900 rounded-[3rem] p-10 shadow-2xl shadow-blue-500/20 flex flex-col justify-between transform scale-105 active:scale-100 transition-all relative">
                 <div className="absolute top-0 right-10 -translate-y-1/2 px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
-                   Most Popular
+                   Best Deal
                 </div>
                 <div>
                    <h4 className="text-lg font-black text-white mb-2">Power User</h4>
                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-8">For serious builders</p>
                    <div className="flex items-baseline space-x-1 mb-10 text-white">
-                      <span className="text-5xl font-black">$5</span>
+                      <span className="text-5xl font-black">₹50</span>
                       <span className="text-slate-500 font-bold">/month</span>
                    </div>
                    <ul className="space-y-4 mb-10">
@@ -409,12 +467,12 @@ export default function Home() {
              </div>
 
              {/* Teams Tier */}
-             <div className="bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm flex flex-col justify-between">
+             <div className="pricing-card bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div>
                    <h4 className="text-lg font-black text-slate-900 mb-2">Teams</h4>
                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">Collaborative scaling</p>
                    <div className="flex items-baseline space-x-1 mb-10">
-                      <span className="text-5xl font-black text-slate-900">$20</span>
+                      <span className="text-5xl font-black text-slate-900">₹100</span>
                       <span className="text-slate-400 font-bold">/month</span>
                    </div>
                    <ul className="space-y-4 mb-10">
@@ -446,12 +504,12 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-20 px-6 bg-white border-t border-slate-100 text-slate-400 font-medium">
-         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
+         <div className="footer-content max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
             <div>
                <LogoWithText className="mb-6" />
                <p className="text-sm max-w-sm">The most user-friendly cloud hosting platform on the planet. Built for the next generation of developers.</p>
             </div>
-            
+
             <div className="flex space-x-10 text-sm">
                <div className="space-y-4">
                   <h5 className="font-black text-slate-900 text-[10px] uppercase tracking-widest">Platform</h5>
@@ -478,7 +536,7 @@ export default function Home() {
             </div>
          </div>
          <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold text-slate-300">
-            <p>© 2026 CodeHost SaaS Platform. All rights reserved.</p>
+            <p>© 2026 Arsh Pathan. All rights reserved.</p>
             <div className="flex space-x-6">
                <Link href="#">Terms</Link>
                <Link href="#">Privacy</Link>

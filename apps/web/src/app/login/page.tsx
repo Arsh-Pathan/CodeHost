@@ -53,7 +53,6 @@ export default function Login() {
               {error}
             </div>
           )}
-          <div className="space-y-4 rounded-md shadow-sm">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Email address</label>
               <input
@@ -76,7 +75,6 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-          </div>
 
           <div>
             <button
