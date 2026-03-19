@@ -17,7 +17,7 @@ const transporter = canSendEmail
   : null;
 
 export async function sendVerificationEmail(to: string, token: string) {
-  const verifyUrl = `${env.APP_URL}/auth/verify-email?token=${token}`;
+  const verifyUrl = `${env.APP_URL}/verify-email?token=${token}`;
 
   if (!transporter) {
     logger.warn(`SMTP not configured. Verification link for ${to}: ${verifyUrl}`);

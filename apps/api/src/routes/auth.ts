@@ -232,8 +232,7 @@ router.get('/verify-email', async (req, res) => {
       },
     });
 
-    // Redirect to frontend login with success param
-    res.redirect(`${env.APP_URL}/login?verified=true`);
+    res.json({ message: 'Email verified successfully' });
   } catch (error) {
     logger.error({ error }, 'Email verification error');
     res.status(500).json({ error: 'Internal server error' });
