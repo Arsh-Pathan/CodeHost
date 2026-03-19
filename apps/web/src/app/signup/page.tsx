@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api';
+import OAuthButtons from '@/components/oauth-buttons';
 
 export default function Signup() {
   const router = useRouter();
@@ -58,13 +59,16 @@ export default function Signup() {
             </Link>
           </p>
         </div>
-        <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+
+        <OAuthButtons />
+
+        <form className="space-y-5" onSubmit={handleSubmit}>
           {error && (
             <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm text-center border border-red-100 font-medium">
               {error}
             </div>
           )}
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>

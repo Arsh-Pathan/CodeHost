@@ -18,6 +18,16 @@ export const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string(),
   MEMORY_LIMIT: z.string().transform(Number).optional(),
   DOMAIN: z.string().default('host.arsh-io.website'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().transform(Number).optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  APP_URL: z.string().default('http://localhost:3000'),
+  API_URL: z.string().default('http://localhost:4000'),
 });
 
 export const env = envSchema.parse(process.env);

@@ -17,7 +17,8 @@ interface Project {
 
 export default function Dashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{ email: string; username: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; username: string; role: string; emailVerified?: boolean } | null>(null);
+  const [resending, setResending] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -62,9 +63,39 @@ export default function Dashboard() {
     );
   }
 
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      await fetchApi('/auth/resend-verification', { method: 'POST' });
+    } catch {
+      // silently fail
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const isUnverified = user && user.emailVerified === false;
+
   return (
     <PanelLayout user={user}>
       <div className="flex flex-col space-y-8">
+        {/* Email Verification Banner */}
+        {isUnverified && (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-lg font-bold">!</div>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Please verify your email</p>
+                <p className="text-xs text-amber-600">Check your inbox or{' '}
+                  <button onClick={handleResendVerification} disabled={resending} className="underline hover:no-underline font-medium">
+                    {resending ? 'sending...' : 'resend verification email'}
+                  </button>. Deployments are restricted until verified.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header Section */}
         <div className="flex items-center justify-between">
           <div>
@@ -74,11 +105,12 @@ export default function Dashboard() {
 
           <Link
             href="/dashboard/new"
-            className={projects.length >= 1 ? "pointer-events-none opacity-50" : ""}
+            className={(projects.length >= 1 || isUnverified) ? "pointer-events-none opacity-50" : ""}
           >
             <button
               type="button"
-              disabled={projects.length >= 1}
+              disabled={projects.length >= 1 || !!isUnverified}
+              title={isUnverified ? 'Verify your email to create projects' : undefined}
               className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all hover:-translate-y-0.5"
             >
               <Plus className="-ml-1 mr-2 h-4 w-4" />
@@ -112,8 +144,8 @@ export default function Dashboard() {
             <p className="text-slate-500 mt-3 max-w-sm text-center font-medium">
               Start your journey by deploying your first project with our one-click wizard.
             </p>
-            <Link href="/dashboard/new" className="mt-8">
-              <button className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold flex items-center shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+            <Link href="/dashboard/new" className={`mt-8 ${isUnverified ? 'pointer-events-none opacity-50' : ''}`}>
+              <button disabled={!!isUnverified} title={isUnverified ? 'Verify your email to create projects' : undefined} className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold flex items-center shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
                 <Plus size={20} className="mr-2 text-white" />
                 Upload Project
               </button>
