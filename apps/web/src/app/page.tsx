@@ -132,7 +132,7 @@ export default function Home() {
       gsap.from(".features-heading", {
         scrollTrigger: {
           trigger: ".features-heading",
-          start: "top 85%",
+          start: "top 100%",
         },
         y: 30,
         opacity: 0,
@@ -233,7 +233,7 @@ export default function Home() {
         <div className="hidden md:flex items-center space-x-8">
           <Link href="#features" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Features</Link>
           <Link href="#pricing" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Pricing</Link>
-          <Link href="#docs" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Docs</Link>
+          <Link href="/docs" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Docs</Link>
         </div>
         <div className="flex items-center space-x-3">
           <Link href="/login" className="text-sm font-medium text-slate-500 hover:text-slate-900 px-4 py-2 transition-colors">Login</Link>
@@ -244,7 +244,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <header ref={heroRef} className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+      <header ref={heroRef} className="relative pt-52 md:pt-56 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
 
           <h1 className="hero-title text-5xl md:text-8xl font-black tracking-tightest leading-[0.95] max-w-4xl mb-10 text-[#0F172A]">
               <span className="block"><SplitText text="Cloud, Made" /></span>
@@ -265,61 +265,98 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Dashboard Preview - Floating mockup matching uploaded image */}
-        <div className="mt-24 dashboard-preview relative max-w-5xl mx-auto w-full group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-[#E53935] via-[#FFB300] to-[#00BFA5] rounded-[2.5rem] blur opacity-20 group-hover:opacity-30 transition-all"></div>
-          <div className="relative bg-[#F8FAFC] rounded-[2.5rem] border border-white shadow-2xl overflow-hidden p-6">
-             <div className="flex items-center space-x-2 mb-8">
-                <div className="w-3 h-3 rounded-full bg-[#E53935]" />
-                <div className="w-3 h-3 rounded-full bg-[#FFB300]" />
-                <div className="w-3 h-3 rounded-full bg-[#00BFA5]" />
-                <div className="flex-1" />
-                <div className="px-4 py-1.5 bg-white/40 backdrop-blur rounded-full border border-white text-[10px] font-bold text-slate-400">
-                  dashboard.codehost.app/arsh/my-website
-                </div>
-             </div>
+        {/* Dashboard Preview - Floating mockup with animated glow border */}
+        <div className="mt-36 md:mt-44 mb-20 md:mb-28 dashboard-preview relative max-w-5xl mx-auto w-full group">
+          <div className="glow-border rounded-[2.5rem]">
+            <div className="relative bg-[#F8FAFC] rounded-[2.5rem] border border-white/80 shadow-2xl overflow-hidden p-6">
+               <div className="flex items-center space-x-2 mb-8">
+                  <div className="w-3 h-3 rounded-full bg-[#E53935]" />
+                  <div className="w-3 h-3 rounded-full bg-[#FFB300]" />
+                  <div className="w-3 h-3 rounded-full bg-[#00BFA5]" />
+                  <div className="flex-1" />
+                  <div className="px-4 py-1.5 bg-white/40 backdrop-blur rounded-full border border-white text-[10px] font-bold text-slate-400">
+                    dashboard.codehost.app/arsh/my-website
+                  </div>
+               </div>
 
-             <div className="grid grid-cols-12 gap-8">
-                <div className="col-span-3 space-y-4">
-                   <div className="h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20" />
-                   {[1,2,3].map(idx => <div key={idx} className="h-12 rounded-2xl bg-white/60 border border-white" /> )}
-                </div>
+               <div className="grid grid-cols-12 gap-8">
+                  <div className="col-span-12 md:col-span-3 space-y-4">
+                     <div className="h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center px-4">
+                        <Activity size={14} className="text-blue-500 mr-2" />
+                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Overview</span>
+                     </div>
+                     {[
+                       { label: "Deployments", icon: <Zap size={14} /> },
+                       { label: "Settings", icon: <Shield size={14} /> },
+                       { label: "Logs", icon: <Terminal size={14} /> },
+                     ].map((item, idx) => (
+                       <div key={idx} className="h-12 rounded-2xl bg-white/60 border border-white flex items-center px-4 hover:bg-white/80 transition-colors cursor-pointer">
+                          <span className="text-slate-400 mr-2">{item.icon}</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
+                       </div>
+                     ))}
+                  </div>
 
-                <div className="col-span-9 bg-white rounded-[2rem] p-10 min-h-[450px] shadow-sm relative border border-white/50">
-                   <div className="flex justify-between items-start mb-12">
-                      <div>
-                         <h4 className="text-2xl font-black text-[#0F172A]">Project Details</h4>
-                         <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Status: Running</p>
-                      </div>
-                      <div className="flex space-x-4">
-                         <div className="px-6 py-2.5 bg-[#0F172A] text-white rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-black transition-all">Restart</div>
-                         <div className="px-6 py-2.5 bg-[#FFEBEE] text-[#E53935] border border-red-50 rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-red-100 transition-all">Stop</div>
-                      </div>
-                   </div>
+                  <div className="col-span-12 md:col-span-9 bg-white rounded-[2rem] p-8 md:p-10 min-h-[450px] shadow-sm relative border border-white/50">
+                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-10">
+                        <div>
+                           <h4 className="text-2xl font-black text-[#0F172A]">Your Project</h4>
+                           <div className="flex items-center mt-2 space-x-2">
+                              <span className="relative flex h-2.5 w-2.5">
+                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                              </span>
+                              <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest">Running</p>
+                           </div>
+                        </div>
+                        <div className="flex space-x-3">
+                           <button className="px-5 py-2.5 bg-[#0F172A] text-white rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-black hover:scale-105 active:scale-95 transition-all">Restart</button>
+                           <button className="px-5 py-2.5 bg-[#FFEBEE] text-[#E53935] border border-red-100 rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-red-100 hover:scale-105 active:scale-95 transition-all">Stop</button>
+                        </div>
+                     </div>
 
-                   <div className="grid grid-cols-2 gap-8 mb-10">
-                      <div className="rounded-3xl bg-slate-50/50 border border-white p-8">
-                         <Activity size={20} className="text-[#2563EB] mb-4" />
-                         <div className="h-2 w-full bg-slate-200/50 rounded-full overflow-hidden">
-                            <div className="h-full bg-[#2563EB] w-3/4 shadow-[0_0_10px_rgba(37,99,235,0.4)]" />
-                         </div>
-                      </div>
-                      <div className="rounded-3xl bg-slate-50/50 border border-white p-8">
-                         <Cpu size={20} className="text-[#8B5CF6] mb-4" />
-                         <div className="h-2 w-full bg-slate-200/50 rounded-full overflow-hidden">
-                            <div className="h-full bg-[#8B5CF6] w-1/4" />
-                         </div>
-                      </div>
-                   </div>
+                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                        <div className="rounded-2xl bg-slate-50/50 border border-slate-100 p-6 hover:shadow-md transition-shadow">
+                           <div className="flex items-center justify-between mb-3">
+                              <Cpu size={18} className="text-[#2563EB]" />
+                              <span className="text-lg font-black text-[#0F172A]">24%</span>
+                           </div>
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">CPU Usage</p>
+                           <div className="h-1.5 w-full bg-slate-200/50 rounded-full overflow-hidden">
+                              <div className="h-full bg-[#2563EB] rounded-full transition-all duration-1000" style={{ width: '24%' }} />
+                           </div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50/50 border border-slate-100 p-6 hover:shadow-md transition-shadow">
+                           <div className="flex items-center justify-between mb-3">
+                              <HardDrive size={18} className="text-[#8B5CF6]" />
+                              <span className="text-lg font-black text-[#0F172A]">68%</span>
+                           </div>
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Memory</p>
+                           <div className="h-1.5 w-full bg-slate-200/50 rounded-full overflow-hidden">
+                              <div className="h-full bg-[#8B5CF6] rounded-full transition-all duration-1000" style={{ width: '68%' }} />
+                           </div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50/50 border border-slate-100 p-6 hover:shadow-md transition-shadow">
+                           <div className="flex items-center justify-between mb-3">
+                              <Activity size={18} className="text-[#00BFA5]" />
+                              <span className="text-lg font-black text-[#0F172A]">100%</span>
+                           </div>
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Build Progress</p>
+                           <div className="h-1.5 w-full bg-slate-200/50 rounded-full overflow-hidden">
+                              <div className="h-full bg-[#00BFA5] rounded-full transition-all duration-1000" style={{ width: '100%' }} />
+                           </div>
+                        </div>
+                     </div>
 
-                   <div className="p-8 bg-[#0F171A] rounded-[2rem] font-mono text-xs text-blue-400 space-y-1.5 shadow-xl">
-                      <p className="opacity-70">&gt; Determining project type...</p>
-                      <p className="text-white">&gt; Detected Node.js (Express)</p>
-                      <p className="opacity-70">&gt; Running build steps...</p>
-                      <p className="text-[#00BFA5]">&gt; Deployment Live: coffee.codehost.app</p>
-                   </div>
-                </div>
-             </div>
+                     <div className="p-6 bg-[#0F171A] rounded-2xl font-mono text-xs text-blue-400 space-y-1.5 shadow-xl">
+                        <p className="opacity-70">&gt; Determining project type...</p>
+                        <p className="text-white">&gt; Detected Node.js (Express)</p>
+                        <p className="opacity-70">&gt; Running build steps...</p>
+                        <p className="text-[#00BFA5]">&gt; Deployment Live: coffee.codehost.app</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
           </div>
         </div>
       </header>
@@ -538,8 +575,9 @@ export default function Home() {
          <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold text-slate-300">
             <p>© 2026 Arsh Pathan. All rights reserved.</p>
             <div className="flex space-x-6">
-               <Link href="#">Terms</Link>
-               <Link href="#">Privacy</Link>
+               <Link href="/terms" className="hover:text-slate-500 transition-colors">Terms</Link>
+               <Link href="/privacy" className="hover:text-slate-500 transition-colors">Privacy</Link>
+               <Link href="/docs" className="hover:text-slate-500 transition-colors">Docs</Link>
             </div>
          </div>
       </footer>

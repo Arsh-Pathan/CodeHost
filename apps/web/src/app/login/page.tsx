@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api';
+import OAuthButtons from '@/components/oauth-buttons';
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const searchParams = useSearchParams();
+  const verified = searchParams.get('verified') === 'true';
+  const oauthError = searchParams.get('error');
+
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(oauthError ? 'OAuth sign-in failed. Please try again.' : '');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,7 +25,7 @@ export default function Login() {
     try {
       const data = await fetchApi('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
       });
 
       localStorage.setItem('token', data.accessToken);
@@ -47,21 +52,31 @@ export default function Login() {
             </Link>
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm text-center">
-              {error}
-            </div>
-          )}
+
+        {verified && (
+          <div className="p-3 bg-emerald-50 text-emerald-700 rounded-md text-sm text-center border border-emerald-100 font-medium">
+            Email verified! You can now access all features.
+          </div>
+        )}
+
+        {error && (
+          <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm text-center">
+            {error}
+          </div>
+        )}
+
+        <OAuthButtons />
+
+        <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email address</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Email or Username</label>
               <input
-                type="email"
+                type="text"
                 required
                 className="relative block w-full rounded-md border-0 py-2.5 px-3 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com or username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
               />
             </div>
             <div>

@@ -9,17 +9,24 @@ datasource db {
 }
 
 model User {
-  id          String    @id @default(uuid())
-  email       String    @unique
-  username    String    @unique
-  name        String?
-  phoneNumber String?
-  password    String
-  role        String    @default("USER") // USER, ADMIN
-  projects    Project[]
-  sessions    Session[]
-  createdAt   DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                      String    @id @default(uuid())
+  email                   String    @unique
+  username                String    @unique
+  name                    String?
+  phoneNumber             String?
+  password                String?
+  role                    String    @default("USER") // USER, ADMIN
+  provider                String?
+  providerId              String?
+  emailVerified           Boolean   @default(false)
+  verificationToken       String?   @unique
+  verificationTokenExpiry DateTime?
+  projects                Project[]
+  sessions                Session[]
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@unique([provider, providerId])
 }
 
 model Session {

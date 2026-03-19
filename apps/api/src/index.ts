@@ -21,12 +21,14 @@ app.use(express.json());
 
 // Routes
 import authRouter from './routes/auth.js';
+import oauthRouter from './routes/oauth.js';
 import projectsRouter from './routes/projects.js';
 import deploymentsRouter from './routes/deployments.js';
 import adminRouter from './routes/admin.js';
 import filesRouter from './routes/files.js';
 import { RunnerService } from './services/runner.js';
 app.use('/auth', authRouter);
+app.use('/auth/oauth', oauthRouter);
 app.use('/projects', projectsRouter);
 app.use('/deployments', deploymentsRouter);
 app.use('/admin', adminRouter);
