@@ -60,10 +60,41 @@ export class BuilderService {
     // 3. Fallback to Heuristics
     else if (files.includes('package.json')) {
       logger.info('Detected Node.js project');
+      let packageJson: any = {};
+      try {
+        packageJson = JSON.parse(await fs.readFile(path.join(sourceDir, 'package.json'), 'utf8'));
+      } catch (e) {
+        logger.warn('Failed to parse package.json, using defaults');
+      }
+
       const buildCmd = project.buildCommand || 'npm install --legacy-peer-deps';
-      const startCmd = project.startCommand || 'npm start';
+      const startCmd = project.startCommand || (packageJson.scripts?.start ? 'npm start' : null);
       
-      dockerfile = `
+      // Heuristic: If it's Astro, Vite, or another known static generator without a start script
+      const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+      const isStaticGenerator = dependencies['astro'] || dependencies['vite'] || dependencies['@sveltejs/kit'];
+
+      if (isStaticGenerator && !startCmd) {
+        logger.info('Static site generator detected, using multi-stage Nginx build');
+        const buildScript = packageJson.scripts?.build ? 'npm run build' : 'echo "No build script"';
+        const distDir = dependencies['astro'] ? 'dist' : (dependencies['vite'] ? 'dist' : 'public');
+
+        dockerfile = `
+# Build Stage
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN ${buildCmd}
+COPY . .
+RUN ${buildScript}
+
+# Serve Stage
+FROM nginx:alpine
+COPY --from=builder /app/${distDir} /usr/share/nginx/html
+EXPOSE 80
+        `;
+      } else {
+        dockerfile = `
 FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
@@ -71,8 +102,9 @@ RUN ${buildCmd}
 COPY . .
 ENV PORT=3000
 EXPOSE 3000
-CMD ${startCmd.includes('[') ? startCmd : `["sh", "-c", "${startCmd}"]`}
-      `;
+CMD ${startCmd ? (startCmd.includes('[') ? startCmd : `["sh", "-c", "${startCmd}"]`) : '["node", "index.js"]'}
+        `;
+      }
     } else if (files.includes('requirements.txt') || files.includes('main.py')) {
       logger.info('Detected Python project');
       const buildCmd = project.buildCommand || (files.includes('requirements.txt') ? 'pip install --no-cache-dir -r requirements.txt' : 'echo "No requirements.txt"');
