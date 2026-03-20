@@ -35,7 +35,7 @@ export class RunnerService {
       
       const username = project?.user?.username || project?.user?.email?.split('@')[0].toLowerCase() || 'user';
       const projectSlug = project?.name.toLowerCase() || projectId;
-      const host = 'host.arsh-io.website';
+      const host = `host.${process.env.DOMAIN || 'codehost.app'}`;
 
       const imageDetail = await docker.getImage(imageName).inspect();
       const exposedPorts = Object.keys(imageDetail.Config?.ExposedPorts || {});
