@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import { prisma } from '@codehost/database';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { logger } from '@codehost/logger';
+import { z } from 'zod';
 import { BuilderService } from '../services/builder.js';
 import { RunnerService } from '../services/runner.js';
 
@@ -83,6 +84,71 @@ router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) 
 
   } catch (error: any) {
     logger.error('Upload error', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Deploy from GitHub repository
+const githubDeploySchema = z.object({
+  repoUrl: z.string().url().refine(
+    (url) => /^https:\/\/github\.com\/[^/]+\/[^/]+/.test(url),
+    'Must be a valid GitHub repository URL'
+  ),
+  branch: z.string().min(1).max(100).default('main'),
+  subdir: z.string().max(200).optional(),
+});
+
+router.post('/:projectId/github', async (req: AuthRequest, res) => {
+  try {
+    const projectId = req.params.projectId;
+    const userId = req.user!.id;
+
+    const { repoUrl, branch, subdir } = githubDeploySchema.parse(req.body);
+
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project || project.userId !== userId) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Save repo info on the project
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { repoUrl, repoBranch: branch, repoSubdir: subdir || null },
+    });
+
+    // Create deployment record
+    const deployment = await prisma.deployment.create({
+      data: {
+        projectId,
+        status: 'queued',
+        source: 'github',
+      },
+    });
+
+    res.status(202).json({
+      message: 'GitHub deployment queued',
+      deploymentId: deployment.id,
+    });
+
+    // Fire and forget pipeline
+    void (async () => {
+      try {
+        const imageName = await BuilderService.buildProject(
+          deployment.id,
+          projectId,
+          undefined,
+          { repoUrl, branch, subdir: subdir || undefined }
+        );
+        await RunnerService.startContainer(projectId, deployment.id, imageName);
+      } catch (err) {
+        logger.error(`GitHub pipeline failed for ${deployment.id}`);
+      }
+    })();
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    logger.error('GitHub deploy error', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });

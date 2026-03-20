@@ -50,6 +50,9 @@ model Project {
   startCommand       String?      @default("")
   dockerfileOverride String?      @default("")
   envVars            Json?        @default("{}")
+  repoUrl            String?
+  repoBranch         String?      @default("main")
+  repoSubdir         String?
   deployments        Deployment[]
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -60,6 +63,7 @@ model Deployment {
   projectId String
   project   Project  @relation(fields: [projectId], references: [id])
   status    String
+  source    String?  @default("zip") // zip, github, files
   logs      String?  @default("")
   createdAt DateTime @default(now())
 }

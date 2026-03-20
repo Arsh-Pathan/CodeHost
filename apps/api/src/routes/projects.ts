@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { prisma } from '@codehost/database';
+import { docker } from '@codehost/docker';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { logger } from '@codehost/logger';
 import { z } from 'zod';
+import { BuilderService } from '../services/builder.js';
+import { RunnerService } from '../services/runner.js';
 
 const router = Router();
 
@@ -107,7 +110,6 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 
     // Stop container first
     try {
-      const { RunnerService } = await import('../services/runner.js');
       await RunnerService.stopContainer(project.id);
     } catch (e) {
       logger.warn(`Failed to stop container for deleted project ${project.id}`);
@@ -145,10 +147,6 @@ router.post('/:id/restart', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'No successful deployment to restart' });
     }
 
-    const { RunnerService } = await import('../services/runner.js');
-    
-    // We can use startContainer by pulling the image name from the last deployment
-    // For now, let's assume the image name is standardized
     const imageName = `codehost-project-${project.id}:${lastDeployment.id}`;
     
     await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
@@ -175,7 +173,6 @@ router.post('/:id/stop', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const { RunnerService } = await import('../services/runner.js');
     await RunnerService.stopContainer(project.id);
 
     await prisma.project.update({
@@ -187,6 +184,86 @@ router.post('/:id/stop', async (req: AuthRequest, res) => {
   } catch (error) {
     logger.error({ error }, 'Stop project error');
     res.status(500).json({ error: 'Failed to stop project' });
+  }
+});
+
+// Redeploy - rebuild from existing source (or re-clone from GitHub)
+router.post('/:id/redeploy', async (req: AuthRequest, res) => {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!project || project.userId !== req.user!.id) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const deployment = await prisma.deployment.create({
+      data: {
+        projectId: project.id,
+        status: 'queued',
+        source: project.repoUrl ? 'github' : 'files',
+      }
+    });
+
+    res.status(202).json({ message: 'Redeploy queued', deploymentId: deployment.id });
+
+    // Background pipeline
+    void (async () => {
+      try {
+        const gitOptions = project.repoUrl
+          ? { repoUrl: project.repoUrl, branch: project.repoBranch || 'main', subdir: project.repoSubdir || undefined }
+          : undefined;
+
+        const imageName = await BuilderService.buildProject(
+          deployment.id,
+          project.id,
+          undefined,
+          gitOptions
+        );
+        await RunnerService.startContainer(project.id, deployment.id, imageName);
+      } catch (err) {
+        logger.error(`Redeploy pipeline failed for ${deployment.id}`);
+      }
+    })();
+  } catch (error) {
+    logger.error({ error }, 'Redeploy error');
+    res.status(500).json({ error: 'Failed to queue redeploy' });
+  }
+});
+
+// Get container logs
+router.get('/:id/logs', async (req: AuthRequest, res) => {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!project || project.userId !== req.user!.id) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    if (!project.containerId) {
+      return res.json({ logs: 'No active container.' });
+    }
+
+    try {
+      const container = docker.getContainer(project.containerId);
+      const logBuffer = await container.logs({
+        stdout: true,
+        stderr: true,
+        tail: 200,
+        timestamps: true,
+      });
+      // Docker logs come with a header per line, strip the 8-byte prefix
+      const logText = logBuffer.toString('utf8').replace(/[\x00-\x08]/g, '');
+      res.json({ logs: logText });
+    } catch {
+      res.json({ logs: 'Container not running.' });
+    }
+  } catch (error) {
+    logger.error({ error }, 'Get logs error');
+    res.status(500).json({ error: 'Failed to fetch logs' });
   }
 });
 

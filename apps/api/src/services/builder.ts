@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
+import { execSync } from 'child_process';
 import AdmZip from 'adm-zip';
 import tar from 'tar-fs';
 import { docker } from '@codehost/docker';
@@ -12,6 +13,27 @@ export class BuilderService {
   private static extractZip(zipPath: string, extractPath: string) {
     const zip = new AdmZip(zipPath);
     zip.extractAllTo(extractPath, true);
+  }
+
+  private static cloneRepo(repoUrl: string, branch: string, targetDir: string, subdir?: string): string {
+    // Sanitize inputs to prevent command injection
+    const sanitizedUrl = repoUrl.replace(/[;&|`$()]/g, '');
+    const sanitizedBranch = branch.replace(/[;&|`$()]/g, '');
+
+    execSync(
+      `git clone --depth 1 --branch "${sanitizedBranch}" "${sanitizedUrl}" "${targetDir}"`,
+      { timeout: 120000, stdio: 'pipe' }
+    );
+
+    // If a subdirectory is specified, return the path to it
+    if (subdir) {
+      const subdirPath = path.join(targetDir, subdir);
+      if (!fs.existsSync(subdirPath)) {
+        throw new Error(`Subdirectory "${subdir}" not found in repository`);
+      }
+      return subdirPath;
+    }
+    return targetDir;
   }
 
   private static async detectAndGenerateDockerfile(sourceDir: string, project: any): Promise<string> {
@@ -84,10 +106,16 @@ EXPOSE 80
     return dockerfile;
   }
 
-  public static async buildProject(deploymentId: string, projectId: string, zipPath?: string) {
+  public static async buildProject(
+    deploymentId: string,
+    projectId: string,
+    zipPath?: string,
+    gitOptions?: { repoUrl: string; branch: string; subdir?: string }
+  ) {
     const storageDir = path.join(process.cwd(), 'storage', 'projects', projectId);
     const sourceDir = path.join(storageDir, 'source');
     const buildTempDir = path.join(process.cwd(), 'tmp', 'builds', deploymentId);
+    const cloneTempDir = path.join(process.cwd(), 'tmp', 'clones', deploymentId);
 
     const emitLog = (message: string) => {
       io.to(`project:${projectId}`).emit('log', {
@@ -113,8 +141,28 @@ EXPOSE 80
       if (zipPath) {
         emitLog('> Reading your code...');
         await fs.ensureDir(sourceDir);
-        await fs.emptyDir(sourceDir); // Clean existing source if uploading new zip
+        await fs.emptyDir(sourceDir);
         this.extractZip(zipPath, sourceDir);
+      } else if (gitOptions) {
+        emitLog(`> Cloning repository from GitHub...`);
+        emitLog(`> Branch: ${gitOptions.branch}${gitOptions.subdir ? `, Directory: ${gitOptions.subdir}` : ''}`);
+        await fs.ensureDir(sourceDir);
+        await fs.emptyDir(sourceDir);
+        await fs.ensureDir(cloneTempDir);
+
+        try {
+          const clonedPath = this.cloneRepo(
+            gitOptions.repoUrl,
+            gitOptions.branch,
+            cloneTempDir,
+            gitOptions.subdir
+          );
+          // Copy cloned content to sourceDir
+          await fs.copy(clonedPath, sourceDir, { overwrite: true });
+          emitLog('> Repository cloned successfully!');
+        } finally {
+          await fs.remove(cloneTempDir).catch(() => {});
+        }
       }
 
       emitLog('> Determining the best way to run your app...');
@@ -160,6 +208,7 @@ EXPOSE 80
       throw error;
     } finally {
       await fs.remove(buildTempDir).catch((e) => logger.warn(`Failed to cleanup buildTempDir ${buildTempDir}`, e));
+      await fs.remove(cloneTempDir).catch(() => {});
     }
   }
 }

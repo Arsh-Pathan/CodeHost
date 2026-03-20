@@ -4,28 +4,31 @@ import { useEffect, useState, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchApi, API_URL } from '@/lib/api';
-import { 
-  ArrowLeft, 
-  Box, 
-  Upload, 
-  Activity, 
-  RefreshCw, 
-  Terminal, 
-  ExternalLink, 
-  Globe, 
-  Loader2, 
-  FileCode, 
-  Network, 
-  Settings, 
-  Trash2, 
-  Play, 
+import {
+  ArrowLeft,
+  Box,
+  Upload,
+  Activity,
+  RefreshCw,
+  Terminal,
+  ExternalLink,
+  Globe,
+  Loader2,
+  FileCode,
+  Network,
+  Settings,
+  Trash2,
+  Play,
   Square,
   ChevronRight,
   HardDrive,
   Cpu,
   Clock,
   History,
-  Save
+  Save,
+  GitBranch,
+  RotateCcw,
+  X
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
@@ -41,40 +44,52 @@ interface Project {
   startCommand?: string;
   dockerfileOverride?: string;
   envVars?: any;
+  repoUrl?: string;
+  repoBranch?: string;
+  repoSubdir?: string;
 }
 
 interface Deployment {
   id: string;
   status: string;
+  source?: string;
   createdAt: string;
 }
 
 type TabType = 'console' | 'files' | 'network' | 'settings' | 'history';
+type DeployMode = 'zip' | 'github';
 
 export default function ProjectDetail({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
-  
+
   const [user, setUser] = useState<{ email: string; username: string; role: string } | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('console');
-  
+
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  
+
+  // GitHub deploy state
+  const [deployMode, setDeployMode] = useState<DeployMode>('zip');
+  const [githubUrl, setGithubUrl] = useState('');
+  const [githubBranch, setGithubBranch] = useState('main');
+  const [githubSubdir, setGithubSubdir] = useState('');
+  const [githubDeploying, setGithubDeploying] = useState(false);
+
   const [settings, setSettings] = useState({
     buildCommand: '',
     startCommand: '',
     dockerfileOverride: '',
     envVars: {}
   });
-  
+
   const [logs, setLogs] = useState<{message: string; timestamp: string; type: string}[]>([]);
   const [stats, setStats] = useState<{cpu: number; memory: {usage: number; limit: number; percent: number}} | null>(null);
 
@@ -85,17 +100,25 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         fetchApi(`/projects/${params.id}`),
         fetchApi(`/deployments/${params.id}`)
       ]);
-      
+
       setUser(meRes.user);
       setProject(projRes.project);
       setDeployments(depRes.deployments);
-      
+
       setSettings({
         buildCommand: projRes.project.buildCommand || '',
         startCommand: projRes.project.startCommand || '',
         dockerfileOverride: projRes.project.dockerfileOverride || '',
         envVars: projRes.project.envVars || {}
       });
+
+      // Pre-fill GitHub fields if project has repo info
+      if (projRes.project.repoUrl) {
+        setGithubUrl(projRes.project.repoUrl);
+        setGithubBranch(projRes.project.repoBranch || 'main');
+        setGithubSubdir(projRes.project.repoSubdir || '');
+        setDeployMode('github');
+      }
     } catch (err) {
       router.push('/dashboard');
     } finally {
@@ -110,16 +133,14 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   }, [params.id, router]);
 
   useEffect(() => {
-    // Robust socket connection using the same URL as API
     const socket = io(API_URL);
-    
+
     socket.on('connect', () => {
-      console.log('Connected to socket');
       socket.emit('join-project-logs', params.id);
     });
 
     socket.on('log', (log: {message: string; timestamp: string; type: string}) => {
-      setLogs((prev) => [...prev, log].slice(-300));
+      setLogs((prev) => [...prev, log].slice(-500));
     });
 
     socket.on('stats', (data: any) => {
@@ -135,18 +156,21 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
     }
   }, [logs, activeTab]);
 
-  const handleAction = async (action: 'restart' | 'stop' | 'delete') => {
+  const handleAction = async (action: 'restart' | 'stop' | 'delete' | 'redeploy') => {
     if (action === 'delete' && !confirm('Are you sure you want to delete this project? This cannot be undone.')) return;
-    
+
     setActionLoading(action);
     setError('');
-    
+
     try {
       if (action === 'delete') {
         await fetchApi(`/projects/${params.id}`, { method: 'DELETE' });
         router.push('/dashboard');
       } else {
         await fetchApi(`/projects/${params.id}/${action}`, { method: 'POST' });
+        if (action === 'redeploy') {
+          setActiveTab('console');
+        }
         await fetchProjectData();
       }
     } catch (err: any) {
@@ -209,7 +233,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
           fetchProjectData();
           setUploadProgress(0);
           setUploading(false);
-          setActiveTab('console'); // Switch to console to see build
+          setActiveTab('console');
           if (fileInputRef.current) fileInputRef.current.value = '';
         } else {
           try {
@@ -228,6 +252,33 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
       setUploading(false);
+    }
+  };
+
+  const handleGithubDeploy = async () => {
+    if (!githubUrl) {
+      setError('Please enter a GitHub repository URL.');
+      return;
+    }
+
+    setGithubDeploying(true);
+    setError('');
+
+    try {
+      await fetchApi(`/deployments/${params.id}/github`, {
+        method: 'POST',
+        body: JSON.stringify({
+          repoUrl: githubUrl,
+          branch: githubBranch || 'main',
+          subdir: githubSubdir || undefined,
+        }),
+      });
+      setActiveTab('console');
+      await fetchProjectData();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setGithubDeploying(false);
     }
   };
 
@@ -257,7 +308,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   return (
     <PanelLayout user={user} projectName={project.name}>
       <div className="flex flex-col space-y-8">
-        
+
         {/* Project Header + Actions */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center space-x-4">
@@ -279,8 +330,16 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
              </div>
           </div>
 
-          <div className="flex items-center space-x-3">
-             <button 
+          <div className="flex items-center space-x-2 flex-wrap gap-y-2">
+             <button
+                onClick={() => handleAction('redeploy')}
+                disabled={actionLoading !== null || project.status === 'building'}
+                className="flex items-center px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm disabled:opacity-50"
+             >
+                {actionLoading === 'redeploy' ? <Loader2 size={16} className="animate-spin mr-2" /> : <RotateCcw size={16} className="mr-2 text-purple-500" />}
+                Redeploy
+             </button>
+             <button
                 onClick={() => handleAction('restart')}
                 disabled={actionLoading !== null || project.status === 'building'}
                 className="flex items-center px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm disabled:opacity-50"
@@ -288,15 +347,15 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                 {actionLoading === 'restart' ? <Loader2 size={16} className="animate-spin mr-2" /> : <RefreshCw size={16} className="mr-2 text-blue-500" />}
                 {project.status === 'running' ? 'Restart' : 'Start'}
              </button>
-             <button 
+             <button
                 onClick={() => handleAction('stop')}
-                disabled={actionLoading !== null || project.status === 'stopped' || project.status === 'building'}
+                disabled={actionLoading !== null || project.status === 'stopped' || project.status === 'idle' || project.status === 'building'}
                 className="flex items-center px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm disabled:opacity-50"
              >
                 {actionLoading === 'stop' ? <Loader2 size={16} className="animate-spin mr-2" /> : <Square size={16} className="mr-2 text-red-500" />}
                 Stop
              </button>
-             <a 
+             <a
                 href={`http://host.arsh-io.website/${user?.username}/${project.name.toLowerCase()}`}
                 target="_blank"
                 className="flex items-center px-5 py-2.5 bg-blue-600 rounded-xl text-sm font-bold text-white hover:bg-blue-500 transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-500/20"
@@ -308,7 +367,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center space-x-1 p-1 bg-slate-200/50 rounded-2xl w-fit">
+        <div className="flex items-center space-x-1 p-1 bg-slate-200/50 rounded-2xl w-fit overflow-x-auto">
            {[
              { id: 'console', label: 'Console', icon: Terminal },
              { id: 'files', label: 'File Manager', icon: FileCode },
@@ -320,9 +379,9 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
                 className={`
-                  flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all
-                  ${activeTab === tab.id 
-                    ? 'bg-white text-blue-600 shadow-sm' 
+                  flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap
+                  ${activeTab === tab.id
+                    ? 'bg-white text-blue-600 shadow-sm'
                     : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}
                 `}
              >
@@ -334,9 +393,14 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
 
         {/* Error Alert */}
         {error && (
-          <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm font-bold flex items-center">
-             <div className="w-2 h-2 rounded-full bg-red-500 mr-3 animate-pulse" />
-             {error}
+          <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm font-bold flex items-center justify-between">
+             <div className="flex items-center">
+               <div className="w-2 h-2 rounded-full bg-red-500 mr-3 animate-pulse" />
+               {error}
+             </div>
+             <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">
+               <X size={16} />
+             </button>
           </div>
         )}
 
@@ -352,7 +416,13 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                        <Terminal className="w-5 h-5 text-slate-400" />
                        <span className="text-xs font-black text-slate-200 uppercase tracking-widest">Live Terminal</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-3">
+                       <button
+                         onClick={() => setLogs([])}
+                         className="text-[8px] font-black uppercase tracking-tighter text-slate-500 hover:text-slate-300 border border-[#30363d] px-2 py-0.5 rounded hover:border-slate-500 transition-all"
+                       >
+                         Clear
+                       </button>
                        <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
                           {project.status === 'running' ? 'Connected' : 'Offline'}
                        </div>
@@ -370,10 +440,11 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                           <span className="text-slate-600 shrink-0 select-none opacity-40 group-hover:opacity-100 transition-opacity">
                             {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
                           </span>
-                          <span className={`whitespace-pre-wrap ${
-                            log.message.includes('[ERROR]') ? 'text-red-400' : 
-                            log.message.includes('[notice]') ? 'text-blue-400' : 
-                            log.message.includes('Success!') ? 'text-emerald-400' :
+                          <span className={`whitespace-pre-wrap break-all ${
+                            log.message.includes('[ERROR]') ? 'text-red-400' :
+                            log.message.includes('[notice]') ? 'text-blue-400' :
+                            log.message.includes('Success!') || log.message.includes('> Your app is now live!') ? 'text-emerald-400' :
+                            log.message.startsWith('>') ? 'text-cyan-400' :
                             'text-slate-300'
                           }`}>
                             {log.message}
@@ -388,82 +459,163 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
 
               {/* Side Panels */}
               <div className="flex flex-col space-y-6">
-                {/* Deployment Panel */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Uploader</h3>
+                {/* Deploy Panel */}
+                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Deploy</h3>
                     <Upload size={18} className="text-blue-600" />
                   </div>
-                  
-                  <div 
-                    onClick={() => !uploading && fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer ${
-                      uploading || project.status === 'building' 
-                        ? 'border-blue-400 bg-blue-50/50' 
-                        : 'border-slate-200 hover:border-blue-500 hover:bg-blue-50/30'
-                    }`}
-                  >
-                    <input type="file" accept=".zip" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
 
-                    {uploading ? (
-                      <div className="flex flex-col items-center">
-                        <Loader2 className="h-10 w-10 text-blue-600 animate-spin mb-4" />
-                        <h4 className="text-sm font-bold text-slate-900">Uploading {uploadProgress}%</h4>
-                        <div className="w-full mt-4 bg-slate-100 rounded-full h-2 overflow-hidden">
-                          <div className="bg-blue-600 h-full transition-all duration-500" style={{ width: `${uploadProgress}%` }}></div>
-                        </div>
-                      </div>
-                    ) : project.status === 'building' ? (
-                      <div className="flex flex-col items-center">
-                        <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mb-4" />
-                        <h4 className="text-sm font-bold text-slate-900 italic">Synthesizing App...</h4>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center">
-                        <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                          <Upload size={24} />
-                        </div>
-                        <h4 className="text-sm font-bold text-slate-900">Deploy Zip</h4>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Node.js / Static Site</p>
-                      </div>
-                    )}
+                  {/* Deploy Mode Toggle */}
+                  <div className="flex items-center space-x-1 p-1 bg-slate-100 rounded-xl mb-4">
+                    <button
+                      onClick={() => setDeployMode('zip')}
+                      className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                        deployMode === 'zip' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <Upload size={12} />
+                      <span>ZIP Upload</span>
+                    </button>
+                    <button
+                      onClick={() => setDeployMode('github')}
+                      className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                        deployMode === 'github' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <GitBranch size={12} />
+                      <span>GitHub</span>
+                    </button>
                   </div>
+
+                  {deployMode === 'zip' ? (
+                    <div
+                      onClick={() => !uploading && project.status !== 'building' && fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer ${
+                        uploading || project.status === 'building'
+                          ? 'border-blue-400 bg-blue-50/50'
+                          : 'border-slate-200 hover:border-blue-500 hover:bg-blue-50/30'
+                      }`}
+                    >
+                      <input type="file" accept=".zip" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+
+                      {uploading ? (
+                        <div className="flex flex-col items-center">
+                          <Loader2 className="h-8 w-8 text-blue-600 animate-spin mb-3" />
+                          <h4 className="text-sm font-bold text-slate-900">Uploading {uploadProgress}%</h4>
+                          <div className="w-full mt-3 bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <div className="bg-blue-600 h-full transition-all duration-500" style={{ width: `${uploadProgress}%` }}></div>
+                          </div>
+                        </div>
+                      ) : project.status === 'building' ? (
+                        <div className="flex flex-col items-center">
+                          <RefreshCw className="h-8 w-8 text-blue-600 animate-spin mb-3" />
+                          <h4 className="text-sm font-bold text-slate-900 italic">Building...</h4>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3">
+                            <Upload size={20} />
+                          </div>
+                          <h4 className="text-sm font-bold text-slate-900">Drop ZIP here</h4>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Node.js / Python / Static</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">Repository URL</label>
+                        <input
+                          type="url"
+                          placeholder="https://github.com/user/repo"
+                          className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          value={githubUrl}
+                          onChange={(e) => setGithubUrl(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">Branch</label>
+                          <input
+                            type="text"
+                            placeholder="main"
+                            className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            value={githubBranch}
+                            onChange={(e) => setGithubBranch(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">Subdirectory</label>
+                          <input
+                            type="text"
+                            placeholder="(optional)"
+                            className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            value={githubSubdir}
+                            onChange={(e) => setGithubSubdir(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleGithubDeploy}
+                        disabled={githubDeploying || !githubUrl || project.status === 'building'}
+                        className="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center space-x-2"
+                      >
+                        {githubDeploying ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <>
+                            <GitBranch size={14} />
+                            <span>Deploy from GitHub</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Status Stats */}
-                <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-xl shadow-slate-900/10 flex flex-col space-y-6">
+                <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl shadow-slate-900/10 flex flex-col space-y-5">
                    <div className="flex items-center justify-between">
                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Live Resources</span>
                      <Activity size={14} className={project.status === 'running' ? 'text-emerald-500 animate-pulse' : 'text-slate-600'} />
                    </div>
-                   
-                   <div className="space-y-4">
+
+                   <div className="space-y-3">
                       <div className="flex justify-between items-end">
-                         <span className="text-xs font-bold text-slate-400">CPU Usage</span>
+                         <span className="text-xs font-bold text-slate-400 flex items-center"><Cpu size={12} className="mr-1.5" />CPU</span>
                          <span className="text-xs font-black">{stats?.cpu || 0}%</span>
                       </div>
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                         <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${stats?.cpu || 0}%` }} />
+                         <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${Math.min(stats?.cpu || 0, 100)}%` }} />
                       </div>
                    </div>
 
-                   <div className="space-y-4">
+                   <div className="space-y-3">
                       <div className="flex justify-between items-end">
-                         <span className="text-xs font-bold text-slate-400">Memory (RAM)</span>
+                         <span className="text-xs font-bold text-slate-400 flex items-center"><HardDrive size={12} className="mr-1.5" />Memory</span>
                          <span className="text-xs font-black">
                            {stats ? `${Math.round(stats.memory.usage / 1024 / 1024)}MB / ${Math.round(stats.memory.limit / 1024 / 1024)}MB` : '0MB / 128MB'}
                          </span>
                       </div>
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                         <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${stats?.memory.percent || 0}%` }} />
+                         <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${Math.min(stats?.memory.percent || 0, 100)}%` }} />
                       </div>
                    </div>
-                   
-                   <div className="pt-2 border-t border-white/5">
+
+                   <div className="pt-3 border-t border-white/5 space-y-2">
                       <div className="flex justify-between items-center">
-                         <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Node Engine</span>
-                         <span className="text-[10px] font-black text-slate-300">v20.x LTS</span>
+                         <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Status</span>
+                         <span className={`text-[10px] font-black ${project.status === 'running' ? 'text-emerald-400' : 'text-slate-400'}`}>
+                           {project.status.toUpperCase()}
+                         </span>
                       </div>
+                      {project.port && (
+                        <div className="flex justify-between items-center">
+                           <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Port</span>
+                           <span className="text-[10px] font-black text-slate-300">{project.port}</span>
+                        </div>
+                      )}
                    </div>
                 </div>
               </div>
@@ -482,7 +634,11 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                     Public Access
                   </h3>
                   <div className="space-y-6">
-                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-blue-200 transition-all">
+                    <a
+                      href={`http://host.arsh-io.website/${user?.username}/${project.name.toLowerCase()}`}
+                      target="_blank"
+                      className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-blue-200 transition-all block"
+                    >
                       <div className="flex flex-col">
                         <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Subdomain URL</span>
                         <span className="font-mono text-sm font-bold text-slate-900">
@@ -490,8 +646,19 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                         </span>
                       </div>
                       <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500 transform group-hover:translate-x-1 transition-all" />
-                    </div>
-                    
+                    </a>
+
+                    {project.repoUrl && (
+                      <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">GitHub Repository</span>
+                          <span className="font-mono text-sm font-bold text-slate-900 break-all">{project.repoUrl}</span>
+                          <span className="text-[10px] text-slate-400 mt-1">Branch: {project.repoBranch || 'main'}</span>
+                        </div>
+                        <GitBranch size={18} className="text-slate-300 shrink-0 ml-2" />
+                      </div>
+                    )}
+
                     <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between opacity-50">
                       <div className="flex flex-col">
                         <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Custom Domain</span>
@@ -516,9 +683,13 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                        <span className="text-xs font-bold text-slate-500">Protocol</span>
                        <span className="font-mono text-xs font-black text-slate-900 uppercase">HTTP/1.1</span>
                     </div>
-                    <div className="flex justify-between items-center py-2">
+                    <div className="flex justify-between items-center py-2 border-b border-slate-100">
                        <span className="text-xs font-bold text-slate-500">Gateway Port</span>
                        <span className="font-mono text-xs font-black text-blue-600">{project.port || 'Auto'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                       <span className="text-xs font-bold text-slate-500">Container ID</span>
+                       <span className="font-mono text-xs font-black text-slate-400 truncate max-w-[150px]">{project.containerId || 'N/A'}</span>
                     </div>
                   </div>
                </div>
@@ -539,17 +710,24 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                      <div className="flex items-center space-x-4">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                           dep.status === 'success' ? 'bg-emerald-50 text-emerald-600' :
-                          dep.status === 'failed' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                          dep.status === 'failed' ? 'bg-red-50 text-red-600' :
+                          dep.status === 'building' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-600'
                         }`}>
-                           <History size={20} />
+                           {dep.source === 'github' ? <GitBranch size={20} /> : <History size={20} />}
                         </div>
                         <div>
                            <div className="flex items-center space-x-2">
                               <span className="text-sm font-bold text-slate-900">Build #{dep.id.slice(0, 8)}</span>
                               <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest ${
                                 dep.status === 'success' ? 'bg-emerald-100 text-emerald-700' :
-                                dep.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                dep.status === 'failed' ? 'bg-red-100 text-red-700' :
+                                dep.status === 'building' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
                               }`}>{dep.status}</span>
+                              {dep.source && dep.source !== 'zip' && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-widest">
+                                  {dep.source}
+                                </span>
+                              )}
                            </div>
                            <p className="text-xs text-slate-500 font-medium mt-0.5 flex items-center">
                               <Clock size={12} className="mr-1.5" />
@@ -557,10 +735,6 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                            </p>
                         </div>
                      </div>
-                     <button className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 flex items-center group">
-                        Inspect Logs
-                        <ChevronRight size={14} className="ml-1 transform group-hover:translate-x-1 transition-all" />
-                     </button>
                    </div>
                  ))}
                  {deployments.length === 0 && (
@@ -621,7 +795,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                     <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Custom Run Configuration</h3>
                     <p className="text-xs font-medium text-slate-500 mt-1">Control how your app builds and starts.</p>
                   </div>
-                  <button 
+                  <button
                     onClick={handleSaveSettings}
                     disabled={actionLoading !== null}
                     className="px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 disabled:opacity-50 transition-all flex items-center space-x-2"
@@ -631,74 +805,71 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 gap-8">
-                   <div className="space-y-4">
-                      <div className="space-y-2">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Build Command</label>
-                         <input 
-                            type="text" 
-                            placeholder="npm install"
-                            className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                            value={settings.buildCommand}
-                            onChange={(e) => setSettings({ ...settings, buildCommand: e.target.value })}
-                         />
-                         <p className="text-[10px] text-slate-400 italic px-1">Defaults to 'npm install' or 'pip install' based on detection.</p>
-                      </div>
+                <div className="grid grid-cols-1 gap-6">
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Build Command</label>
+                      <input
+                         type="text"
+                         placeholder="npm install"
+                         className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                         value={settings.buildCommand}
+                         onChange={(e) => setSettings({ ...settings, buildCommand: e.target.value })}
+                      />
+                      <p className="text-[10px] text-slate-400 italic px-1">Defaults to &apos;npm install&apos; or &apos;pip install&apos; based on detection.</p>
+                   </div>
 
-                      <div className="space-y-2">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Start Command</label>
-                         <input 
-                            type="text" 
-                            placeholder="npm start"
-                            className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                            value={settings.startCommand}
-                            onChange={(e) => setSettings({ ...settings, startCommand: e.target.value })}
-                         />
-                         <p className="text-[10px] text-slate-400 italic px-1">Command to launch your app. Note: Must listen on PORT.</p>
-                      </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Start Command</label>
+                      <input
+                         type="text"
+                         placeholder="npm start"
+                         className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                         value={settings.startCommand}
+                         onChange={(e) => setSettings({ ...settings, startCommand: e.target.value })}
+                      />
+                      <p className="text-[10px] text-slate-400 italic px-1">Command to launch your app. Must listen on PORT.</p>
+                   </div>
 
-                      <div className="space-y-2">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Environment Variables (JSON)</label>
-                         <textarea 
-                            rows={3}
-                            placeholder='{ "API_KEY": "123", "GREETING": "Hello CodeHost!" }'
-                            className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                            value={typeof settings.envVars === 'string' ? settings.envVars : JSON.stringify(settings.envVars, null, 2)}
-                            onChange={(e) => {
-                              try {
-                                const val = e.target.value;
-                                if (!val) setSettings({ ...settings, envVars: {} });
-                                else {
-                                  // We keep it as string while editing to avoid parser errors while typing
-                                  setSettings({ ...settings, envVars: val });
-                                }
-                              } catch(e) {}
-                            }}
-                            onBlur={(e) => {
-                              try {
-                                if (typeof settings.envVars === 'string') {
-                                   const parsed = JSON.parse(settings.envVars);
-                                   setSettings({ ...settings, envVars: parsed });
-                                }
-                              } catch(e) {
-                                alert('Invalid JSON in Environment Variables');
-                              }
-                            }}
-                         />
-                         <p className="text-[10px] text-slate-400 italic px-1">Format: JSON object.</p>
-                      </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Environment Variables (JSON)</label>
+                      <textarea
+                         rows={3}
+                         placeholder='{ "API_KEY": "123", "GREETING": "Hello CodeHost!" }'
+                         className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                         value={typeof settings.envVars === 'string' ? settings.envVars : JSON.stringify(settings.envVars, null, 2)}
+                         onChange={(e) => {
+                           try {
+                             const val = e.target.value;
+                             if (!val) setSettings({ ...settings, envVars: {} });
+                             else {
+                               setSettings({ ...settings, envVars: val });
+                             }
+                           } catch(e) {}
+                         }}
+                         onBlur={() => {
+                           try {
+                             if (typeof settings.envVars === 'string') {
+                                const parsed = JSON.parse(settings.envVars);
+                                setSettings({ ...settings, envVars: parsed });
+                             }
+                           } catch(e) {
+                             alert('Invalid JSON in Environment Variables');
+                           }
+                         }}
+                      />
+                      <p className="text-[10px] text-slate-400 italic px-1">Format: JSON object.</p>
+                   </div>
 
-                      <div className="pt-4 border-t border-slate-100">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-900 px-1 block mb-3">Power User: Dockerfile Override</label>
-                        <textarea 
-                          rows={6}
-                          placeholder="FROM node:18-alpine ..."
-                          className="w-full p-6 bg-[#0d1117] text-slate-300 rounded-2xl border border-[#30363d] font-mono text-xs focus:outline-none scrollbar-thin scrollbar-thumb-slate-800"
-                          value={settings.dockerfileOverride}
-                          onChange={(e) => setSettings({ ...settings, dockerfileOverride: e.target.value })}
-                        />
-                        <p className="text-[10px] text-slate-500 italic px-1 mt-2">Entering anything here will bypass all automatic detections.</p>
-                      </div>
+                   <div className="pt-4 border-t border-slate-100">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-900 px-1 block mb-3">Power User: Dockerfile Override</label>
+                     <textarea
+                       rows={6}
+                       placeholder="FROM node:18-alpine ..."
+                       className="w-full p-6 bg-[#0d1117] text-slate-300 rounded-2xl border border-[#30363d] font-mono text-xs focus:outline-none scrollbar-thin scrollbar-thumb-slate-800"
+                       value={settings.dockerfileOverride}
+                       onChange={(e) => setSettings({ ...settings, dockerfileOverride: e.target.value })}
+                     />
+                     <p className="text-[10px] text-slate-500 italic px-1 mt-2">Entering anything here will bypass all automatic detections.</p>
                    </div>
                 </div>
               </div>
@@ -706,16 +877,16 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
               <div className="bg-white rounded-3xl border border-red-200 p-8 shadow-sm">
                  <h3 className="text-sm font-black uppercase tracking-widest text-red-600 mb-2">Danger Zone</h3>
                  <p className="text-xs font-medium text-slate-500 mb-8">Irreversible actions that will permanently affect your app.</p>
-                 
+
                  <div className="p-6 bg-red-50 rounded-2xl border border-red-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
                       <h4 className="text-sm font-black text-red-900">Delete Project</h4>
                       <p className="text-xs font-medium text-red-700/70 mt-1">Stop the app, remove the container, and delete all deployment history.</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleAction('delete')}
                       disabled={actionLoading !== null}
-                      className="px-6 py-3 bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-red-500/20 hover:bg-red-500 transition-all hover:-translate-y-1 flex items-center justify-center space-x-2"
+                      className="px-6 py-3 bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-red-500/20 hover:bg-red-500 transition-all hover:-translate-y-1 flex items-center justify-center space-x-2 shrink-0"
                     >
                       {actionLoading === 'delete' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                       <span>Purge Server</span>
