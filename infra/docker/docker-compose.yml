@@ -64,7 +64,7 @@ services:
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-supersecret}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-superrefreshsecret}
-      DOMAIN: ${DOMAIN:-host.arsh-io.website}
+      DOMAIN: ${DOMAIN:-code-host.online}
       PORT: 4000
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
@@ -80,7 +80,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:rw"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`api.arsh-io.website`)"
+      - "traefik.http.routers.api.rule=Host(`api.code-host.online`)"
       - "traefik.http.routers.api.entrypoints=web"
       - "traefik.http.services.api.loadbalancer.server.port=4000"
 
@@ -89,7 +89,7 @@ services:
       context: ../../
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://api.arsh-io.website
+        NEXT_PUBLIC_API_URL: https://api.code-host.online
     container_name: codehost-web
     ports:
       - "3000:3000" # Map Web directly
@@ -99,7 +99,7 @@ services:
       NODE_ENV: production
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.web.rule=Host(`host.arsh-io.website`)"
+      - "traefik.http.routers.web.rule=Host(`code-host.online`)"
       - "traefik.http.routers.web.entrypoints=web"
       - "traefik.http.services.web.loadbalancer.server.port=3000"
 

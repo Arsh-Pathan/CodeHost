@@ -17,7 +17,7 @@ export const envSchema = z.object({
   JWT_SECRET: z.string(),
   JWT_REFRESH_SECRET: z.string(),
   MEMORY_LIMIT: z.string().transform(Number).optional(),
-  DOMAIN: z.string().default('host.arsh-io.website'),
+  DOMAIN: z.string().default('code-host.online'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),

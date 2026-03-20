@@ -1,9 +1,9 @@
 const getApiUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
   if (typeof window !== 'undefined') {
-    // If we're on host.arsh-io.website, the API is at api.arsh-io.website
-    if (window.location.hostname.endsWith('arsh-io.website')) {
-      return `https://api.arsh-io.website`;
+    // If we're on code-host.online, the API is at api.code-host.online
+    if (window.location.hostname.endsWith('code-host.online')) {
+      return `https://api.code-host.online`;
     }
   }
   return 'http://localhost:4000';
