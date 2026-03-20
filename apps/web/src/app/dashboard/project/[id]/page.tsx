@@ -39,6 +39,7 @@ interface Project {
   name: string;
   status: string;
   port?: number;
+  containerId?: string;
   user?: { email: string; username: string };
   buildCommand?: string;
   startCommand?: string;
