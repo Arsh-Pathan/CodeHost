@@ -60,11 +60,11 @@ export class BuilderService {
     // 3. Fallback to Heuristics
     else if (files.includes('package.json')) {
       logger.info('Detected Node.js project');
-      const buildCmd = project.buildCommand || 'npm install';
+      const buildCmd = project.buildCommand || 'npm install --legacy-peer-deps';
       const startCmd = project.startCommand || 'npm start';
       
       dockerfile = `
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN ${buildCmd}
@@ -189,10 +189,21 @@ EXPOSE 80
       await new Promise((resolve, reject) => {
         docker.modem.followProgress(
           stream,
-          (err, res) => err ? reject(err) : resolve(res),
+          (err, res) => {
+            if (err) return reject(err);
+            // Check the last result in the stream for internal build errors
+            const lastMessage = Array.isArray(res) ? res[res.length - 1] : res;
+            if (lastMessage && lastMessage.error) {
+              return reject(new Error(lastMessage.error));
+            }
+            resolve(res);
+          },
           (progress) => {
             if (progress.stream) {
               emitLog(progress.stream);
+            }
+            if (progress.error) {
+              emitLog(`> Error during build: ${progress.error}`);
             }
           }
         );
