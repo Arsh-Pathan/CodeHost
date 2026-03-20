@@ -20,10 +20,17 @@ export class BuilderService {
     const sanitizedUrl = repoUrl.replace(/[;&|`$()]/g, '');
     const sanitizedBranch = branch.replace(/[;&|`$()]/g, '');
 
-    execSync(
-      `git clone --depth 1 --branch "${sanitizedBranch}" "${sanitizedUrl}" "${targetDir}"`,
-      { timeout: 120000, stdio: 'pipe' }
-    );
+    try {
+      execSync(
+        `git clone --depth 1 --branch "${sanitizedBranch}" "${sanitizedUrl}" "${targetDir}"`,
+        { timeout: 120000, stdio: 'pipe' }
+      );
+    } catch (error: any) {
+      if (error.message && (error.message.includes('not found') || error.message.includes('ENOENT'))) {
+        throw new Error('Git is not installed in the deployment environment. Please contact support.');
+      }
+      throw new Error(`Failed to clone repository: ${error.stderr?.toString() || error.message}`);
+    }
 
     // If a subdirectory is specified, return the path to it
     if (subdir) {

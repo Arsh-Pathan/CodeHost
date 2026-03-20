@@ -1,7 +1,7 @@
 # --- Stage 1: Build ---
 FROM node:20-alpine AS builder
 
-RUN apk add --no-cache openssl libc6-compat
+RUN apk add --no-cache openssl libc6-compat git
 
 WORKDIR /app
 
@@ -33,7 +33,7 @@ RUN turbo run build --filter=@codehost/api
 # --- Stage 2: Runtime ---
 FROM node:20-alpine AS runner
 
-RUN apk add --no-cache openssl libc6-compat
+RUN apk add --no-cache openssl libc6-compat git
 
 WORKDIR /app
 

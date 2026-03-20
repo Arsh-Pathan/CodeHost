@@ -1,24 +1,33 @@
 <svg
-  viewBox="0 0 1024 1024"
-  xmlns="http://www.w3.org/2000/svg"
-  fill="none"
-  stroke-width="70"
-  stroke-linecap="round"
-  stroke-linejoin="round"
+        viewBox="0 0 1024 1024"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        stroke-width="70"
+        stroke-linecap="round"
+        stroke-linejoin="round"
 >
-  <polygon
-    points="512,520 820,730 512,920 204,730"
-    stroke="#4D96FF"
-    fill="#ffffff"
-  />
-  <polygon
-    points="512,320 820,530 512,720 204,530"
-    stroke="#4D96FF"
-    fill="#ffffff"
-  />
-  <polygon
-    points="512,120 820,320 512,520 204,320"
-    stroke="#4D96FF"
-    fill="#ffffff"
-  />
+    <circle
+            cx="512"
+            cy="512"
+            r="480"
+            stroke="white"
+            fill="white"
+            stroke-width="40"
+    />
+
+    <polygon
+            points="512,520 820,730 512,920 204,730"
+            stroke="#4D96FF"
+            fill="#ffffff"
+    />
+    <polygon
+            points="512,320 820,530 512,720 204,530"
+            stroke="#4D96FF"
+            fill="#ffffff"
+    />
+    <polygon
+            points="512,120 820,320 512,520 204,320"
+            stroke="#4D96FF"
+            fill="#ffffff"
+    />
 </svg>
