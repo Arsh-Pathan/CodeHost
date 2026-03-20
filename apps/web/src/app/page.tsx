@@ -16,8 +16,8 @@ import {
   CheckCircle2, 
   Github, 
   Twitter, 
-  Linkedin 
-} from 'lucide-react';
+  Linkedin,
+  MessageSquare} from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { fetchApi } from '@/lib/api';
@@ -234,6 +234,7 @@ export default function Home() {
           <Link href="#features" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Features</Link>
           <Link href="#pricing" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Pricing</Link>
           <Link href="/docs" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Docs</Link>
+          <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="text-sm font-medium text-[#5865F2] hover:text-[#4752C4] transition-colors">Discord</Link>
         </div>
         <div className="flex items-center space-x-3">
           <Link href="/login" className="text-sm font-medium text-slate-500 hover:text-slate-900 px-4 py-2 transition-colors">Login</Link>
@@ -567,6 +568,9 @@ export default function Home() {
             </div>
 
             <div className="flex items-center space-x-6">
+               <Link href="https://discord.gg/gsh2qpEXT4" target="_blank">
+                  <MessageSquare className="hover:text-[#5865F2] transition-colors cursor-pointer" />
+               </Link>
                <Twitter className="hover:text-blue-400 transition-colors cursor-pointer" />
                <Github className="hover:text-slate-900 transition-colors cursor-pointer" />
                <Linkedin className="hover:text-blue-700 transition-colors cursor-pointer" />
