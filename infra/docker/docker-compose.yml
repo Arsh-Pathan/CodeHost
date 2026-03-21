@@ -100,6 +100,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.web.rule=Host(`code-host.online`)"
+      - "traefik.http.routers.web.priority=1"
       - "traefik.http.routers.web.entrypoints=web"
       - "traefik.http.services.web.loadbalancer.server.port=3000"
 

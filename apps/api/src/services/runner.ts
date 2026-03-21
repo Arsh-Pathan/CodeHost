@@ -35,7 +35,8 @@ export class RunnerService {
       
       const username = project?.user?.username || project?.user?.email?.split('@')[0].toLowerCase() || 'user';
       const projectSlug = project?.name.toLowerCase() || projectId;
-      const host = `host.${process.env.DOMAIN || 'codehost.app'}`;
+      const domain = process.env.DOMAIN || 'code-host.online';
+      const host = domain;
 
       const imageDetail = await docker.getImage(imageName).inspect();
       const exposedPorts = Object.keys(imageDetail.Config?.ExposedPorts || {});
@@ -54,6 +55,7 @@ export class RunnerService {
           'traefik.enable': 'true',
           // Rule: host.arsh-io.website/username/project
           [`traefik.http.routers.${containerName}.rule`]: `Host(\`${host}\`) && (PathPrefix(\`/${username}/${projectSlug}/\`) || Path(\`/${username}/${projectSlug}\`))`,
+          [`traefik.http.routers.${containerName}.priority`]: '100',
           [`traefik.http.routers.${containerName}.entrypoints`]: 'web',
           
           [`traefik.http.services.${containerName}.loadbalancer.server.port`]: containerPort,
