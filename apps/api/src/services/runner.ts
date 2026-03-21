@@ -53,8 +53,8 @@ export class RunnerService {
         },
         Labels: {
           'traefik.enable': 'true',
-          // Rule: host.arsh-io.website/username/project
-          [`traefik.http.routers.${containerName}.rule`]: `Host(\`${host}\`) && (PathPrefix(\`/${username}/${projectSlug}/\`) || Path(\`/${username}/${projectSlug}\`))`,
+          // Match both the root domain and the legacy host subdomain
+          [`traefik.http.routers.${containerName}.rule`]: `(Host(\`${host}\`) || Host(\`host.arsh-io.website\`)) && (PathPrefix(\`/${username}/${projectSlug}/\`) || Path(\`/${username}/${projectSlug}\`))`,
           [`traefik.http.routers.${containerName}.priority`]: '100',
           [`traefik.http.routers.${containerName}.entrypoints`]: 'web',
           

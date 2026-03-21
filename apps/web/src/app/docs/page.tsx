@@ -153,7 +153,7 @@ export default function DocsPage() {
                     Once the build succeeds, your project is automatically deployed and accessible at:
                   </p>
                   <div className="mt-3">
-                    <CodeBlock>{`host.arsh-io.website/{your-username}/{project-name}`}</CodeBlock>
+                    <CodeBlock>{`code-host.online/{your-username}/{project-name}`}</CodeBlock>
                   </div>
                 </StepCard>
               </div>

@@ -326,7 +326,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                </div>
                <p className="text-slate-500 font-medium mt-1 flex items-center">
                  <Globe size={14} className="mr-2" />
-                 host.arsh-io.website/{user?.username}/{project.name.toLowerCase()}
+                 code-host.online/{user?.username}/{project.name.toLowerCase()}
                </p>
              </div>
           </div>
@@ -357,7 +357,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                 Stop
              </button>
              <a
-                href={`http://host.arsh-io.website/${user?.username}/${project.name.toLowerCase()}`}
+                href={`https://code-host.online/${user?.username}/${project.name.toLowerCase()}`}
                 target="_blank"
                 className="flex items-center px-5 py-2.5 bg-blue-600 rounded-xl text-sm font-bold text-white hover:bg-blue-500 transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-500/20"
              >
@@ -636,14 +636,14 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                   </h3>
                   <div className="space-y-6">
                     <a
-                      href={`http://host.arsh-io.website/${user?.username}/${project.name.toLowerCase()}`}
+                      href={`https://code-host.online/${user?.username}/${project.name.toLowerCase()}`}
                       target="_blank"
                       className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-blue-200 transition-all block"
                     >
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Subdomain URL</span>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Project URL</span>
                         <span className="font-mono text-sm font-bold text-slate-900">
-                           host.arsh-io.website/{user?.username}/{project.name.toLowerCase()}
+                           code-host.online/{user?.username}/{project.name.toLowerCase()}
                         </span>
                       </div>
                       <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500 transform group-hover:translate-x-1 transition-all" />

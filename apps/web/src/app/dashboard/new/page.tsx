@@ -100,7 +100,7 @@ export default function NewProject() {
                       Public Preview URL
                     </p>
                     <p className="font-mono text-sm text-blue-900 font-bold break-all">
-                      host.arsh-io.website/{user?.username || 'user'}/{name}
+                      code-host.online/{user?.username || 'user'}/{name}
                     </p>
                   </div>
                 )}
