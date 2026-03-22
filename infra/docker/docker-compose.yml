@@ -76,8 +76,7 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
-    env_file:
-      - ../../.env
+
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:rw"
     labels:
