@@ -84,6 +84,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`api.code-host.online`)"
       - "traefik.http.routers.api.entrypoints=web"
+      - "traefik.http.routers.api.priority=300"
       - "traefik.http.services.api.loadbalancer.server.port=4000"
 
   web:
@@ -105,7 +106,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.web.rule=Host(`code-host.online`)"
-      - "traefik.http.routers.web.priority=1"
+      - "traefik.http.routers.web.priority=300"
       - "traefik.http.routers.web.entrypoints=web"
       - "traefik.http.services.web.loadbalancer.server.port=3000"
 
