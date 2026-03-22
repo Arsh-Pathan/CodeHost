@@ -27,11 +27,24 @@ function verifyStateToken(token: string, expectedState: string): boolean {
   }
 }
 
-async function generateUniqueUsername(base: string): Promise<string> {
-  const sanitized = base.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 20) || 'user';
+async function generateUniqueUsername(email: string, name: string | null): Promise<string> {
+  // Use name if available and NOT an email address, else fallback to email prefix
+  const emailPrefix = email.split('@')[0] || 'user';
+  let base = (name && !name.includes('@') ? name : emailPrefix)
+    .toLowerCase()
+    .replace(/\s+/g, '-') 
+    .replace(/[^a-z0-9_-]/g, '');
+
+  // fallback if base is empty or very short
+  if (base.length < 2) base = emailPrefix.replace(/[^a-z0-9_-]/g, '') || 'user';
+
+  const sanitized = base.slice(0, 20) || 'user';
+  
+  // Check if taken
   const existing = await prisma.user.findUnique({ where: { username: sanitized } });
   if (!existing) return sanitized;
-  // Add random suffix
+
+  // Add random suffix to avoid collision
   const suffix = crypto.randomBytes(3).toString('hex');
   return `${sanitized.slice(0, 14)}-${suffix}`;
 }
@@ -59,7 +72,7 @@ async function findOrCreateOAuthUser(
   }
 
   // 3. Create new user
-  const username = await generateUniqueUsername(email.split('@')[0]!);
+  const username = await generateUniqueUsername(email, name);
   user = await prisma.user.create({
     data: {
       email,
