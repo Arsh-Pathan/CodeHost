@@ -14,7 +14,7 @@
 - **GitHub Integration**: Deploy directly from any public GitHub repository with branch and subdirectory support.
 - **Auto-Detection**: Automatically detects project types (Node.js, Python, or Static HTML) with smart build heuristics.
 - **Modern Build Stack**: Supports Node.js 20+ and handles modern React peer dependency conflicts automatically using `--legacy-peer-deps`.
-- **Path-Based Hosting**: Projects are hosted at `host.yourdomain.com/{username}/{project}`.
+- **Subdomain Hosting**: Projects are hosted at `{project}.yourdomain.com` (legacy path-based hosting also supported).
 - **Real-time Logs**: Stream build and runtime logs directly to your browser via WebSockets.
 - **Safe by Default**: Sandboxed container isolation with strict resource limits (128MB RAM).
 - **Admin Console**: Enhanced panel for monitoring platform health, users, and detailed deployment stats.

@@ -153,7 +153,7 @@ export default function DocsPage() {
                     Once the build succeeds, your project is automatically deployed and accessible at:
                   </p>
                   <div className="mt-3">
-                    <CodeBlock>{`code-host.online/{your-username}/{project-name}`}</CodeBlock>
+                    <CodeBlock>{`{project-name}.code-host.online`}</CodeBlock>
                   </div>
                 </StepCard>
               </div>

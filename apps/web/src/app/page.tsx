@@ -276,7 +276,7 @@ export default function Home() {
                   <div className="w-3 h-3 rounded-full bg-[#00BFA5]" />
                   <div className="flex-1" />
                   <div className="px-4 py-1.5 bg-white/40 backdrop-blur rounded-full border border-white text-[10px] font-bold text-slate-400">
-                    dashboard.codehost.app/arsh/my-website
+                    my-website.code-host.online
                   </div>
                </div>
 
@@ -353,7 +353,7 @@ export default function Home() {
                         <p className="opacity-70">&gt; Determining project type...</p>
                         <p className="text-white">&gt; Detected Node.js (Express)</p>
                         <p className="opacity-70">&gt; Running build steps...</p>
-                        <p className="text-[#00BFA5]">&gt; Deployment Live: coffee.codehost.app</p>
+                        <p className="text-[#00BFA5]">&gt; Deployment Live: coffee.code-host.online</p>
                      </div>
                   </div>
                </div>
@@ -394,7 +394,7 @@ export default function Home() {
               {
                 icon: <Globe size={24} />,
                 title: "Custom Subdomains",
-                desc: "Every project gets a free your-app.codehost.app domain with automatic SSL encryption.",
+                desc: "Every project gets a free your-app.code-host.online domain with automatic SSL encryption.",
                 color: "#E53935"
               },
               {

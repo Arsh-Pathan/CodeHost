@@ -267,6 +267,18 @@ router.get('/:id/logs', async (req: AuthRequest, res) => {
   }
 });
 
+router.get('/check-name/:name', async (req: AuthRequest, res) => {
+  try {
+    const { name } = req.params;
+    const project = await prisma.project.findFirst({
+      where: { name: name.toLowerCase() }
+    });
+    res.json({ available: !project });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.put('/:id', async (req: AuthRequest, res) => {
   try {
     const project = await prisma.project.findUnique({
@@ -277,7 +289,32 @@ router.put('/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const { buildCommand, startCommand, dockerfileOverride, envVars } = req.body;
+    const { name, buildCommand, startCommand, dockerfileOverride, envVars } = req.body;
+
+    // Handle Rename (Subdomain Change)
+    if (name && name.toLowerCase() !== project.name.toLowerCase()) {
+      const nameLower = name.toLowerCase().trim();
+      
+      // Validation
+      if (!/^[a-z0-9-]+$/.test(nameLower) || nameLower.length < 3 || nameLower.length > 50) {
+        return res.status(400).json({ error: 'Invalid name format' });
+      }
+
+      const existingProject = await prisma.project.findFirst({
+        where: { name: nameLower }
+      });
+
+      if (existingProject) {
+        return res.status(400).json({ error: 'Subdomain already taken across the platform' });
+      }
+
+      await prisma.project.update({
+        where: { id: project.id },
+        data: { name: nameLower }
+      });
+      
+      logger.info(`Project name updated for ${project.id}: ${project.name} -> ${nameLower}`);
+    }
 
     const updated = await prisma.project.update({
       where: { id: project.id },

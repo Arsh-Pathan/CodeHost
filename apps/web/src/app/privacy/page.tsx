@@ -135,7 +135,7 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-black text-[#0F172A] mb-4">Contact</h2>
             <p>
               If you have questions or concerns about this Privacy Policy, reach out to us at{' '}
-              <a href="mailto:support@codehost.app" className="text-[#2563EB] font-semibold hover:underline">support@codehost.app</a>.
+              <a href="mailto:support@code-host.online" className="text-[#2563EB] font-semibold hover:underline">support@code-host.online</a>.
             </p>
           </section>
         </div>

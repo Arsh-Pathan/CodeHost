@@ -174,7 +174,7 @@ export default function Dashboard() {
                     
                     <div className="flex items-center text-sm font-medium text-slate-400 mt-2 truncate">
                       <Globe size={14} className="mr-2" />
-                      {project.status === 'running' ? `code-host.online/${user?.username}/${project.name.toLowerCase()}` : 'Provisioning...'}
+                      {project.status === 'running' ? `${project.name.toLowerCase()}.code-host.online` : 'Provisioning...'}
                     </div>
 
                     <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-400">

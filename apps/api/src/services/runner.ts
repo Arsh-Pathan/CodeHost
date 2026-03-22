@@ -53,22 +53,26 @@ export class RunnerService {
         },
         Labels: {
           'traefik.enable': 'true',
-          // Match both the root domain and the legacy host subdomain
-          [`traefik.http.routers.${containerName}.rule`]: `(Host(\`${host}\`) || Host(\`host.arsh-io.website\`)) && (PathPrefix(\`/${username}/${projectSlug}/\`) || Path(\`/${username}/${projectSlug}\`))`,
-          [`traefik.http.routers.${containerName}.priority`]: '100',
-          [`traefik.http.routers.${containerName}.entrypoints`]: 'web',
+          
+          // 1. Subdomain-based router (New: projectname.code-host.online)
+          [`traefik.http.routers.${containerName}-subdomain.rule`]: `Host(\`${projectSlug}.${host}\`)`,
+          [`traefik.http.routers.${containerName}-subdomain.priority`]: '200',
+          [`traefik.http.routers.${containerName}-subdomain.entrypoints`]: 'web',
+          [`traefik.http.routers.${containerName}-subdomain.service`]: containerName,
+
+          // 2. Path-based router (Legacy: host.com/user/project)
+          [`traefik.http.routers.${containerName}-path.rule`]: `(Host(\`${host}\`) || Host(\`host.arsh-io.website\`)) && (PathPrefix(\`/${username}/${projectSlug}/\`) || Path(\`/${username}/${projectSlug}\`))`,
+          [`traefik.http.routers.${containerName}-path.priority`]: '100',
+          [`traefik.http.routers.${containerName}-path.entrypoints`]: 'web',
+          [`traefik.http.routers.${containerName}-path.middlewares`]: `${containerName}-slash,${containerName}-strip`,
+          [`traefik.http.routers.${containerName}-path.service`]: containerName,
           
           [`traefik.http.services.${containerName}.loadbalancer.server.port`]: containerPort,
           
-          // Stripping the /username/project prefix
+          // Middlewares for path-based routing
           [`traefik.http.middlewares.${containerName}-strip.stripprefix.prefixes`]: `/${username}/${projectSlug}`,
-          
-          // Redirect /username/project to /username/project/ so relative links work
-          // IMPORTANT: Must happen before stripping
           [`traefik.http.middlewares.${containerName}-slash.redirectregex.regex`]: `^(https?://[^/]+/${username}/${projectSlug})$`,
           [`traefik.http.middlewares.${containerName}-slash.redirectregex.replacement`]: `$1/`,
-
-          [`traefik.http.routers.${containerName}.middlewares`]: `${containerName}-slash,${containerName}-strip`,
         }
       });
 

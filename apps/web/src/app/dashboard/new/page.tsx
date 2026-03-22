@@ -100,7 +100,7 @@ export default function NewProject() {
                       Public Preview URL
                     </p>
                     <p className="font-mono text-sm text-blue-900 font-bold break-all">
-                      code-host.online/{user?.username || 'user'}/{name}
+                      {name || 'my-app'}.code-host.online
                     </p>
                   </div>
                 )}

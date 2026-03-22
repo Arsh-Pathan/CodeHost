@@ -28,7 +28,8 @@ import {
   Save,
   GitBranch,
   RotateCcw,
-  X
+  X,
+  Check
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
@@ -93,6 +94,26 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
 
   const [logs, setLogs] = useState<{message: string; timestamp: string; type: string}[]>([]);
   const [stats, setStats] = useState<{cpu: number; memory: {usage: number; limit: number; percent: number}} | null>(null);
+
+  // Subdomain change state
+  const [newName, setNewName] = useState('');
+  const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
+  const [checkingName, setCheckingName] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (newName.length >= 3 && newName !== project?.name) {
+        setCheckingName(true);
+        fetchApi(`/projects/check-name/${newName}`)
+          .then(res => setNameAvailable(res.available))
+          .catch(() => setNameAvailable(false))
+          .finally(() => setCheckingName(false));
+      } else {
+        setNameAvailable(null);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [newName, project?.name]);
 
   const fetchProjectData = async () => {
     try {
@@ -326,7 +347,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                </div>
                <p className="text-slate-500 font-medium mt-1 flex items-center">
                  <Globe size={14} className="mr-2" />
-                 code-host.online/{user?.username}/{project.name.toLowerCase()}
+                 {project.name.toLowerCase()}.code-host.online
                </p>
              </div>
           </div>
@@ -357,7 +378,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                 Stop
              </button>
              <a
-                href={`https://code-host.online/${user?.username}/${project.name.toLowerCase()}`}
+                href={`https://${project.name.toLowerCase()}.code-host.online`}
                 target="_blank"
                 className="flex items-center px-5 py-2.5 bg-blue-600 rounded-xl text-sm font-bold text-white hover:bg-blue-500 transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-500/20"
              >
@@ -636,14 +657,14 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                   </h3>
                   <div className="space-y-6">
                     <a
-                      href={`https://code-host.online/${user?.username}/${project.name.toLowerCase()}`}
+                      href={`https://${project.name.toLowerCase()}.code-host.online`}
                       target="_blank"
                       className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-blue-200 transition-all block"
                     >
                       <div className="flex flex-col">
                         <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Project URL</span>
                         <span className="font-mono text-sm font-bold text-slate-900">
-                           code-host.online/{user?.username}/{project.name.toLowerCase()}
+                           {project.name.toLowerCase()}.code-host.online
                         </span>
                       </div>
                       <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500 transform group-hover:translate-x-1 transition-all" />
@@ -750,6 +771,71 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
 
           {activeTab === 'settings' && (
             <div className="max-w-4xl space-y-8">
+              {/* Subdomain Change */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-8 flex items-center">
+                  <Globe size={18} className="mr-3 text-blue-600" />
+                  Subdomain Settings
+                </h3>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Project Subdomain</label>
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="relative flex-1 group">
+                        <input
+                          type="text"
+                          placeholder={project.name}
+                          className={`w-full p-4 bg-slate-50 rounded-2xl border-2 transition-all font-bold text-slate-900 focus:outline-none focus:ring-0 ${
+                            nameAvailable === true ? 'border-emerald-500 bg-emerald-50/10' :
+                            nameAvailable === false ? 'border-red-500 bg-red-50/10' :
+                            'border-slate-100 focus:border-blue-600'
+                          }`}
+                          value={newName}
+                          onChange={(e) => {
+                            const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                            setNewName(val);
+                          }}
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                          {checkingName && <Loader2 size={16} className="animate-spin text-blue-600" />}
+                          {nameAvailable === true && <Check size={16} className="text-emerald-500" />}
+                          {nameAvailable === false && <X size={16} className="text-red-500" />}
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!nameAvailable) return;
+                          setActionLoading('rename');
+                          try {
+                            await fetchApi(`/projects/${params.id}`, {
+                              method: 'PUT',
+                              body: JSON.stringify({ name: newName })
+                            });
+                            await fetchProjectData();
+                            setNewName('');
+                            setNameAvailable(null);
+                            alert('Subdomain updated! Please redeploy to apply changes to the live URL.');
+                          } catch (err: any) {
+                            setError(err.message);
+                          } finally {
+                            setActionLoading(null);
+                          }
+                        }}
+                        disabled={!nameAvailable || actionLoading !== null}
+                        className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-30 transition-all flex items-center justify-center space-x-2"
+                      >
+                        {actionLoading === 'rename' ? <Loader2 size={16} className="animate-spin" /> : <Save size={14} />}
+                        <span>Change Subdomain</span>
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-medium px-1">
+                      Current: <span className="text-slate-900 font-black">{project.name}.code-host.online</span>. 
+                      Changes will take effect after you <span className="text-blue-600 font-black">redeploy</span> or <span className="text-blue-600 font-black">restart</span> the app.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-8">General Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -779,7 +865,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">SFTP Access</span>
-                       <p className="text-xs font-bold text-slate-900 mb-1">sftp.codehost.app</p>
+                       <p className="text-xs font-bold text-slate-900 mb-1">sftp.code-host.online</p>
                        <p className="text-[10px] text-slate-400">Use your dashboard credentials.</p>
                     </div>
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
