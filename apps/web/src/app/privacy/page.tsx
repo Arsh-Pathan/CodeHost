@@ -47,6 +47,7 @@ export default function PrivacyPage() {
               <li><strong>Usage data:</strong> Pages visited, features used, deployment frequency, and session duration.</li>
               <li><strong>Build & runtime logs:</strong> Console output generated during project builds and execution.</li>
               <li><strong>Device information:</strong> Browser type, operating system, and IP address for security and analytics.</li>
+              <li><strong>Payment Information:</strong> When you purchase credits, our third-party payment processor (Razorpay) collects your payment details. We only receive and store transaction metadata, including Razorpay Order IDs, Payment IDs, and the amount of credits purchased. We do not store full credit card numbers or other sensitive financial credentials.</li>
             </ul>
           </section>
 
@@ -99,6 +100,7 @@ export default function PrivacyPage() {
               <li><strong>Redis:</strong> Used for caching, session management, and real-time event handling.</li>
               <li><strong>Google OAuth:</strong> If you choose to sign in with Google, we exchange an authorization code with Google&apos;s servers to receive your name, email address, and Google user ID. We do not store your Google password or access token beyond the initial sign-in.</li>
               <li><strong>GitHub OAuth:</strong> If you choose to sign in with GitHub, we exchange an authorization code with GitHub&apos;s servers to receive your name, email address, and GitHub user ID. We do not store your GitHub password or access token beyond the initial sign-in.</li>
+              <li><strong>Razorpay (Payments):</strong> We use Razorpay to process your credit purchases. Razorpay collects your payment information directly. You can find their privacy policy at <a href="https://razorpay.com/privacy/" target="_blank" className="text-[#2563EB] font-semibold hover:underline">razorpay.com/privacy</a>.</li>
               <li><strong>SMTP (Email):</strong> We use an email delivery service to send verification emails. Only your email address and the verification link are transmitted.</li>
             </ul>
             <p className="mt-4">

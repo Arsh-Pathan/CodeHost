@@ -19,6 +19,7 @@
 - **Safe by Default**: Sandboxed container isolation with strict resource limits (128MB RAM).
 - **Admin Console**: Enhanced panel for monitoring platform health, users, and detailed deployment stats.
 - **Multi-Provider Auth**: Sign in with email/password, Google, or GitHub. Email verification included.
+- **Prepaid Billing**: Comprehensive system with Razorpay integration, wallet credits, and tiered resource allocation.
 
 ---
 
@@ -85,6 +86,11 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
+
+# Payments (https://dashboard.razorpay.com/app/keys)
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+RAZORPAY_WEBHOOK_SECRET=
 ```
 
 ### 3. OAuth Provider Setup
@@ -146,12 +152,35 @@ sudo ufw allow 443/tcp
 
 ---
 
-## Administrative Access
+## Billing & Resource Tiers
+
+| Tier | RAM | CPU | Storage | Credits/Month |
+|------|-----|-----|---------|---------------|
+| **Free** | 128MB | 0.5 | 1GB | ₹0 |
+| **Basic** | 256MB | 1.0 | 2GB | ₹100 |
+| **Pro** | 512MB | 2.0 | 5GB | ₹300 |
+| **Business** | 1GB | 4.0 | 10GB | ₹800 |
+
+- **Prepaid Model**: Buy credits (1 credit = ₹2), then select a tier for each project.
+- **Auto-stop**: If your wallet balance is insufficient for a monthly charge, the project container is automatically stopped to avoid negative balances.
+- **Payment Methods**: Seamless integration with Razorpay (UPI, Google Pay, Cards, Netbanking).
+
+---
+
+## Administrative Actions
 
 To promote a user to Admin:
 
 ```bash
 docker exec -it codehost-db psql -U ${DB_USER:-codehost} -d ${DB_NAME:-codehost} -c "UPDATE \"User\" SET role = 'ADMIN' WHERE email = 'your@email.com';"
+```
+
+### Wallet Management (Admin)
+Admins can manually adjust user balances or grant credits via the database if necessary:
+
+```bash
+# Add 500 credits to a user
+docker exec -it codehost-db psql -U ${DB_USER:-codehost} -d ${DB_NAME:-codehost} -c "UPDATE \"Wallet\" SET balance = balance + 500 WHERE \"userId\" = 'user-uuid';"
 ```
 
 ---

@@ -38,7 +38,7 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
     { name: 'Explore Templates', icon: Compass, href: '#', disabled: true },
-    { name: 'Billing', icon: CreditCard, href: '#', disabled: true },
+    { name: 'Billing', icon: CreditCard, href: '/dashboard/billing' },
     { name: 'Project Settings', icon: Settings, href: '#', disabled: true },
   ];
 

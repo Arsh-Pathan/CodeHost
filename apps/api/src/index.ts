@@ -26,13 +26,16 @@ import projectsRouter from './routes/projects.js';
 import deploymentsRouter from './routes/deployments.js';
 import adminRouter from './routes/admin.js';
 import filesRouter from './routes/files.js';
+import billingRouter from './routes/billing.js';
 import { RunnerService } from './services/runner.js';
+import { RESOURCE_TIERS } from './config/tiers.js';
 app.use('/auth', authRouter);
 app.use('/auth/oauth', oauthRouter);
 app.use('/projects', projectsRouter);
 app.use('/deployments', deploymentsRouter);
 app.use('/admin', adminRouter);
 app.use('/files', filesRouter);
+app.use('/billing', billingRouter);
 
 // Public Stats (for landing page)
 app.get('/stats/public', async (req, res) => {
@@ -90,6 +93,67 @@ setInterval(async () => {
     }
   }
 }, 5000);
+
+// Billing cron: check every 24h for monthly tier charges
+setInterval(async () => {
+  try {
+    const paidProjects = await prisma.project.findMany({
+      where: { tier: { not: 'free' }, status: 'running' },
+      include: { user: true },
+    });
+
+    for (const project of paidProjects) {
+      const tierConfig = RESOURCE_TIERS[project.tier];
+      if (!tierConfig || tierConfig.creditsPerMonth === 0) continue;
+
+      const wallet = await prisma.wallet.findUnique({ where: { userId: project.userId } });
+      if (!wallet) continue;
+
+      // Check last tier_charge for this project
+      const lastCharge = await prisma.transaction.findFirst({
+        where: { walletId: wallet.id, type: 'tier_charge', projectId: project.id },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      if (lastCharge && lastCharge.createdAt > thirtyDaysAgo) continue;
+
+      // Deduct credits
+      if (wallet.balance >= tierConfig.creditsPerMonth) {
+        await prisma.$transaction(async (tx) => {
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: { decrement: tierConfig.creditsPerMonth } },
+          });
+          await tx.transaction.create({
+            data: {
+              walletId: wallet.id,
+              amount: -tierConfig.creditsPerMonth,
+              type: 'tier_charge',
+              description: `Monthly charge for ${project.name} (${tierConfig.label} tier)`,
+              projectId: project.id,
+            },
+          });
+        });
+        logger.info(`Charged ${tierConfig.creditsPerMonth} credits for project ${project.id}`);
+      } else {
+        // Insufficient balance: stop container
+        try {
+          await RunnerService.stopContainer(project.id);
+          await prisma.project.update({
+            where: { id: project.id },
+            data: { status: 'stopped' },
+          });
+          logger.info(`Stopped project ${project.id} due to insufficient credits`);
+        } catch (err) {
+          logger.error({ error: err }, `Failed to stop project ${project.id} for billing`);
+        }
+      }
+    }
+  } catch (error) {
+    logger.error({ error }, 'Billing cron error');
+  }
+}, 24 * 60 * 60 * 1000);
 
 const PORT = env.PORT || 4000;
 

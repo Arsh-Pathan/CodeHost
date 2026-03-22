@@ -429,14 +429,15 @@ export default function Home() {
           <div className="pricing-heading text-center mb-20">
             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-blue-600 mb-4">Transparent Pricing</h2>
             <h3 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900">Choose your scale.</h3>
+            <p className="mt-4 text-slate-500 font-medium max-w-xl mx-auto">Prepaid credits model. Buy credits, pick a tier for each project. 1 credit = ₹2.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
              {/* Free Tier */}
              <div className="pricing-card bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div>
-                   <h4 className="text-lg font-black text-slate-900 mb-2">Student Free</h4>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">For individuals</p>
+                   <h4 className="text-lg font-black text-slate-900 mb-2">Free</h4>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">For students</p>
                    <div className="flex items-baseline space-x-1 mb-10">
                       <span className="text-5xl font-black text-slate-900">₹0</span>
                       <span className="text-slate-400 font-bold">/forever</span>
@@ -448,20 +449,53 @@ export default function Home() {
                       </li>
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
                          <CheckCircle2 size={18} className="text-blue-600" />
-                         <span>128MB RAM</span>
+                         <span>128MB RAM · 0.5 CPU</span>
                       </li>
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
                          <CheckCircle2 size={18} className="text-blue-600" />
-                         <span>CodeHost Shared Subdomain</span>
+                         <span>1GB Storage</span>
                       </li>
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
                          <CheckCircle2 size={18} className="text-blue-600" />
-                         <span>Live Build Console</span>
+                         <span>Free Subdomain</span>
                       </li>
                    </ul>
                 </div>
                 <Link href="/signup" className="w-full py-4 bg-slate-100 text-slate-900 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center">
                    Get Started Free
+                </Link>
+             </div>
+
+             {/* Basic Tier */}
+             <div className="pricing-card bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                   <h4 className="text-lg font-black text-slate-900 mb-2">Basic</h4>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">For hobbyists</p>
+                   <div className="flex items-baseline space-x-1 mb-10">
+                      <span className="text-5xl font-black text-slate-900">₹100</span>
+                      <span className="text-slate-400 font-bold">/month</span>
+                   </div>
+                   <ul className="space-y-4 mb-10">
+                      <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
+                         <CheckCircle2 size={18} className="text-blue-600" />
+                         <span>3 Active Projects</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
+                         <CheckCircle2 size={18} className="text-blue-600" />
+                         <span>256MB RAM · 1 CPU</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
+                         <CheckCircle2 size={18} className="text-blue-600" />
+                         <span>2GB Storage</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
+                         <CheckCircle2 size={18} className="text-blue-600" />
+                         <span>50 credits/month</span>
+                      </li>
+                   </ul>
+                </div>
+                <Link href="/signup" className="w-full py-4 bg-slate-100 text-slate-900 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center">
+                   Get Started
                 </Link>
              </div>
 
@@ -471,28 +505,28 @@ export default function Home() {
                    Best Deal
                 </div>
                 <div>
-                   <h4 className="text-lg font-black text-white mb-2">Power User</h4>
+                   <h4 className="text-lg font-black text-white mb-2">Pro</h4>
                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-8">For serious builders</p>
                    <div className="flex items-baseline space-x-1 mb-10 text-white">
-                      <span className="text-5xl font-black">₹50</span>
+                      <span className="text-5xl font-black">₹300</span>
                       <span className="text-slate-500 font-bold">/month</span>
                    </div>
                    <ul className="space-y-4 mb-10">
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-300">
                          <CheckCircle2 size={18} className="text-blue-500" />
-                         <span>Unlimted Projects</span>
+                         <span>5 Active Projects</span>
                       </li>
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-300">
                          <CheckCircle2 size={18} className="text-blue-500" />
-                         <span>1GB RAM per container</span>
+                         <span>512MB RAM · 2 CPUs</span>
                       </li>
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-300">
                          <CheckCircle2 size={18} className="text-blue-500" />
-                         <span>Custom Domain Mapping</span>
+                         <span>5GB Storage</span>
                       </li>
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-300">
                          <CheckCircle2 size={18} className="text-blue-500" />
-                         <span>Always-On Hosting</span>
+                         <span>150 credits/month</span>
                       </li>
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-300">
                          <CheckCircle2 size={18} className="text-blue-500" />
@@ -500,42 +534,42 @@ export default function Home() {
                       </li>
                    </ul>
                 </div>
-                <button className="w-full py-5 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/40">
-                   Coming Soon
-                </button>
+                <Link href="/signup" className="w-full py-5 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/40 text-center">
+                   Get Started
+                </Link>
              </div>
 
-             {/* Teams Tier */}
+             {/* Business Tier */}
              <div className="pricing-card bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div>
-                   <h4 className="text-lg font-black text-slate-900 mb-2">Teams</h4>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">Collaborative scaling</p>
+                   <h4 className="text-lg font-black text-slate-900 mb-2">Business</h4>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">For teams</p>
                    <div className="flex items-baseline space-x-1 mb-10">
-                      <span className="text-5xl font-black text-slate-900">₹100</span>
+                      <span className="text-5xl font-black text-slate-900">₹800</span>
                       <span className="text-slate-400 font-bold">/month</span>
                    </div>
                    <ul className="space-y-4 mb-10">
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
                          <CheckCircle2 size={18} className="text-blue-600" />
-                         <span>Shared Workspaces</span>
+                         <span>10 Active Projects</span>
                       </li>
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
                          <CheckCircle2 size={18} className="text-blue-600" />
-                         <span>RBAC Permissions</span>
+                         <span>1GB RAM · 4 CPUs</span>
                       </li>
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
                          <CheckCircle2 size={18} className="text-blue-600" />
-                         <span>Dedicated VPS Nodes</span>
+                         <span>10GB Storage</span>
                       </li>
                       <li className="flex items-center space-x-3 text-sm font-medium text-slate-600">
                          <CheckCircle2 size={18} className="text-blue-600" />
-                         <span>Audit Logs</span>
+                         <span>400 credits/month</span>
                       </li>
                    </ul>
                 </div>
-                <button className="w-full py-4 bg-slate-100 text-slate-900 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center">
-                   Coming Soon
-                </button>
+                <Link href="/signup" className="w-full py-4 bg-slate-100 text-slate-900 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center">
+                   Get Started
+                </Link>
              </div>
           </div>
         </div>

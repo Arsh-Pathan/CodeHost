@@ -88,6 +88,7 @@ export default function DocsPage() {
 
           <div className="space-y-2">
             <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-3">Help</p>
+            <SidebarLink href="#billing-pricing">Billing & Pricing</SidebarLink>
             <SidebarLink href="#deployment-status">Deployment Status</SidebarLink>
             <SidebarLink href="#troubleshooting">Troubleshooting</SidebarLink>
             <SidebarLink href="#limits">Limits & Quotas</SidebarLink>
@@ -649,6 +650,56 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
               </p>
             </section>
 
+            {/* Billing & Pricing */}
+            <section id="billing-pricing">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center">
+                  <Globe size={20} className="text-blue-600" />
+                </div>
+                <h2 className="text-2xl font-black text-[#0F172A]">Billing & Pricing</h2>
+              </div>
+              <p className="text-slate-600 leading-relaxed mb-6">
+                CodeHost uses a <strong>prepaid credits model</strong>. You buy credits in packages, and then assign a resource tier to each of your projects. 1 credit = ₹2.
+              </p>
+
+              <h3 className="text-lg font-black text-[#0F172A] mb-3">How it Works</h3>
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                  <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg flex-shrink-0">1. Buy Credits</span>
+                  <p className="text-sm text-slate-600">Purchase credit packages via Razorpay (supports UPI, Cards, Netbanking). Credits are added to your account wallet instantly.</p>
+                </div>
+                <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                  <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg flex-shrink-0">2. Pick a Tier</span>
+                  <p className="text-sm text-slate-600">When creating a project or in project settings, chose a resource tier (Free, Basic, Pro, or Business). Each tier has different RAM, CPU, and storage limits.</p>
+                </div>
+                <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
+                  <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg flex-shrink-0">3. Monthly Charge</span>
+                  <p className="text-sm text-slate-600">Credits are deducted from your wallet monthly for each active paid project. If your balance hits zero, your project will be automatically stopped.</p>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-black text-[#0F172A] mb-3">Credit Packages</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Starter</p>
+                  <p className="text-xl font-black text-slate-900">100 Credits</p>
+                  <p className="text-sm font-bold text-blue-600 mt-2">₹200</p>
+                </div>
+                <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/30 shadow-sm relative overflow-hidden">
+                   <div className="absolute top-0 right-0 px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black uppercase tracking-tighter">Save 17%</div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Growth</p>
+                  <p className="text-xl font-black text-slate-900">300 Credits</p>
+                  <p className="text-sm font-bold text-blue-600 mt-2">₹500</p>
+                </div>
+                <div className="p-4 rounded-xl border border-slate-100 bg-white shadow-sm relative overflow-hidden">
+                   <div className="absolute top-0 right-0 px-2 py-0.5 bg-emerald-600 text-white text-[8px] font-black uppercase tracking-tighter">Save 25%</div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Team</p>
+                  <p className="text-xl font-black text-slate-900">600 Credits</p>
+                  <p className="text-sm font-bold text-blue-600 mt-2">₹900</p>
+                </div>
+              </div>
+            </section>
+
             {/* Deployment Status */}
             <section id="deployment-status">
               <div className="flex items-center space-x-3 mb-6">
@@ -775,33 +826,51 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
                   <thead>
                     <tr className="text-left border-b border-slate-200">
                       <th className="py-3 pr-4 text-[10px] font-black text-slate-900 uppercase tracking-widest">Resource</th>
-                      <th className="py-3 text-[10px] font-black text-slate-900 uppercase tracking-widest">Free Tier</th>
+                      <th className="py-3 pr-4 text-[10px] font-black text-slate-900 uppercase tracking-widest">Free</th>
+                      <th className="py-3 pr-4 text-[10px] font-black text-slate-900 uppercase tracking-widest">Basic</th>
+                      <th className="py-3 pr-4 text-[10px] font-black text-slate-900 uppercase tracking-widest">Pro</th>
+                      <th className="py-3 text-[10px] font-black text-slate-900 uppercase tracking-widest">Business</th>
                     </tr>
                   </thead>
                   <tbody className="text-slate-600">
                     <tr className="border-b border-slate-50">
-                      <td className="py-3 pr-4 font-semibold">Projects</td>
-                      <td className="py-3">1 active project</td>
+                      <td className="py-3 pr-4 font-semibold">Max Projects</td>
+                      <td className="py-3 pr-4">1</td>
+                      <td className="py-3 pr-4">3</td>
+                      <td className="py-3 pr-4">5</td>
+                      <td className="py-3">10</td>
                     </tr>
                     <tr className="border-b border-slate-50">
                       <td className="py-3 pr-4 font-semibold">Memory (RAM)</td>
-                      <td className="py-3">128MB per container</td>
+                      <td className="py-3 pr-4">128MB</td>
+                      <td className="py-3 pr-4">256MB</td>
+                      <td className="py-3 pr-4">512MB</td>
+                      <td className="py-3">1GB</td>
                     </tr>
                     <tr className="border-b border-slate-50">
-                      <td className="py-3 pr-4 font-semibold">Upload Size</td>
-                      <td className="py-3">50MB max per zip</td>
+                      <td className="py-3 pr-4 font-semibold">CPU Cores</td>
+                      <td className="py-3 pr-4">0.5</td>
+                      <td className="py-3 pr-4">1.0</td>
+                      <td className="py-3 pr-4">2.0</td>
+                      <td className="py-3">4.0</td>
                     </tr>
                     <tr className="border-b border-slate-50">
-                      <td className="py-3 pr-4 font-semibold">Deployment History</td>
-                      <td className="py-3">Last 10 deployments stored</td>
+                      <td className="py-3 pr-4 font-semibold">Storage</td>
+                      <td className="py-3 pr-4">1GB</td>
+                      <td className="py-3 pr-4">2GB</td>
+                      <td className="py-3 pr-4">5GB</td>
+                      <td className="py-3">10GB</td>
                     </tr>
                     <tr className="border-b border-slate-50">
-                      <td className="py-3 pr-4 font-semibold">Subdomain</td>
-                      <td className="py-3">Shared CodeHost subdomain</td>
+                      <td className="py-3 pr-4 font-semibold">Credits/Month</td>
+                      <td className="py-3 pr-4">0</td>
+                      <td className="py-3 pr-4">50</td>
+                      <td className="py-3 pr-4">150</td>
+                      <td className="py-3">400</td>
                     </tr>
                     <tr>
-                      <td className="py-3 pr-4 font-semibold">SSL</td>
-                      <td className="py-3">Automatic via Traefik</td>
+                      <td className="py-3 pr-4 font-semibold">Upload Size</td>
+                      <td className="py-3" colSpan={4}>50MB max per zip</td>
                     </tr>
                   </tbody>
                 </table>

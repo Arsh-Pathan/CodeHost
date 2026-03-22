@@ -5,6 +5,7 @@ import { logger } from '@codehost/logger';
 import { prisma } from '@codehost/database';
 import { env } from '@codehost/config';
 import { io } from '../index.js';
+import { RESOURCE_TIERS } from '../config/tiers.js';
 
 export class RunnerService {
   public static async startContainer(projectId: string, deploymentId: string, imageName: string) {
@@ -44,13 +45,19 @@ export class RunnerService {
       // Priority: Dockerfile EXPOSE → nginx.conf listen → image ExposedPorts → default 80
       const containerPort = await this.detectPort(projectId, imageName);
 
+      // Look up tier-based resource limits
+      const tierConfig = RESOURCE_TIERS[project?.tier || 'free'] || RESOURCE_TIERS['free'];
+      const memoryLimit = tierConfig.memory;
+      const nanoCpus = tierConfig.cpus * 1e9;
+
       let container = await docker.createContainer({
         Image: imageName,
         name: containerName,
         HostConfig: {
           PublishAllPorts: true,
-          Memory: env.MEMORY_LIMIT || 128 * 1024 * 1024,
-          MemorySwap: env.MEMORY_LIMIT || 128 * 1024 * 1024,
+          Memory: memoryLimit,
+          MemorySwap: memoryLimit,
+          NanoCpus: nanoCpus,
           NetworkMode: 'docker_default', // Connect to the Brain's network
         },
         Labels: {
@@ -124,8 +131,9 @@ export class RunnerService {
           name: containerName,
           HostConfig: {
             PublishAllPorts: true,
-            Memory: env.MEMORY_LIMIT || 128 * 1024 * 1024,
-            MemorySwap: env.MEMORY_LIMIT || 128 * 1024 * 1024,
+            Memory: memoryLimit,
+            MemorySwap: memoryLimit,
+            NanoCpus: nanoCpus,
             NetworkMode: 'docker_default',
           },
           Labels: {
