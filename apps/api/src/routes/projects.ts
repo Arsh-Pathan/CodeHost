@@ -330,7 +330,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
               await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
               logger.info(`Auto-restarted container for project ${project.id} after subdomain change`);
             } catch (err) {
-              logger.error(`Failed to auto-restart container after rename for ${project.id}`, err);
+              logger.error({ error: err }, `Failed to auto-restart container after rename for ${project.id}`);
             }
           })();
         }
