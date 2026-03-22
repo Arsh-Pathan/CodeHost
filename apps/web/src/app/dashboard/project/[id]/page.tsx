@@ -807,14 +807,18 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                           if (!nameAvailable) return;
                           setActionLoading('rename');
                           try {
-                            await fetchApi(`/projects/${params.id}`, {
+                            const result = await fetchApi(`/projects/${params.id}`, {
                               method: 'PUT',
                               body: JSON.stringify({ name: newName })
                             });
                             await fetchProjectData();
                             setNewName('');
                             setNameAvailable(null);
-                            alert('Subdomain updated! Please redeploy to apply changes to the live URL.');
+                            if (result.restarting) {
+                              setError('');
+                            } else {
+                              setError('');
+                            }
                           } catch (err: any) {
                             setError(err.message);
                           } finally {
@@ -829,8 +833,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                       </button>
                     </div>
                     <p className="text-[10px] text-slate-400 font-medium px-1">
-                      Current: <span className="text-slate-900 font-black">{project.name}.code-host.online</span>. 
-                      Changes will take effect after you <span className="text-blue-600 font-black">redeploy</span> or <span className="text-blue-600 font-black">restart</span> the app.
+                      Current: <span className="text-slate-900 font-black">{project.name}.code-host.online</span>.
+                      If the app is running, it will be <span className="text-blue-600 font-black">automatically restarted</span> on the new subdomain.
                     </p>
                   </div>
                 </div>

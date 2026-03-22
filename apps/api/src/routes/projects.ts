@@ -312,8 +312,29 @@ router.put('/:id', async (req: AuthRequest, res) => {
         where: { id: project.id },
         data: { name: nameLower }
       });
-      
+
       logger.info(`Project name updated for ${project.id}: ${project.name} -> ${nameLower}`);
+
+      // Auto-redeploy if the project has a running container so the new subdomain takes effect
+      if (project.status === 'running' || project.containerId) {
+        const lastDeployment = await prisma.deployment.findFirst({
+          where: { projectId: project.id, status: 'success' },
+          orderBy: { createdAt: 'desc' }
+        });
+
+        if (lastDeployment) {
+          const imageName = `codehost-project-${project.id}:${lastDeployment.id}`;
+          // Fire-and-forget: restart container with updated Traefik labels
+          void (async () => {
+            try {
+              await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
+              logger.info(`Auto-restarted container for project ${project.id} after subdomain change`);
+            } catch (err) {
+              logger.error(`Failed to auto-restart container after rename for ${project.id}`, err);
+            }
+          })();
+        }
+      }
     }
 
     const updated = await prisma.project.update({
@@ -326,7 +347,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
       }
     });
 
-    res.json({ project: updated });
+    res.json({ project: updated, restarting: !!(name && name.toLowerCase() !== project.name.toLowerCase() && (project.status === 'running' || project.containerId)) });
   } catch (error) {
     logger.error({ error }, 'Update project error');
     res.status(500).json({ error: 'Failed to update project settings' });

@@ -59,25 +59,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://${DB_USER:-user}:${DB_PASS:-pass}@postgres:5432/codehost
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-supersecret}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-superrefreshsecret}
-      DOMAIN: ${DOMAIN:-code-host.online}
-      PORT: 4000
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
-      APP_URL: ${APP_URL:-http://localhost:3000}
-      API_URL: ${API_URL:-http://localhost:4000}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
     env_file:
       - ../../.env
+    environment:
+      PORT: 4000
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:rw"
     labels:
@@ -108,7 +93,7 @@ services:
       - "traefik.http.routers.web.rule=Host(\"code-host.online\") || Host(\"www.code-host.online\")"
       - "traefik.http.routers.web.priority=300"
       - "traefik.http.routers.web.entrypoints=web"
-      - "traefik.http.services.web.loadbalancer.server.port=3000"
+      - "traefik.http.services.web.loadbalancer.server.port=80"
 
 volumes:
   postgres_data:
