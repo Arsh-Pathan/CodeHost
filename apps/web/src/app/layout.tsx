@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "CodeHost | The Simplest Cloud Platform for Students",
-  description: "Deploy Node.js, Python, and Static projects in one click. No Linux, no Docker, no terminals. Just code and host.",
+  description: "Deploy Next.js, Python, Go, Rust, Java, and 20+ frameworks in one click. No Linux, no Docker, no terminals. Just code and host.",
   keywords: ["CodeHost", "Cloud Hosting", "Student Developer", "One-click Deployment", "Website Hosting"],
   authors: [{ name: "Arsh Pathan" }],
   openGraph: {

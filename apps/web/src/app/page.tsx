@@ -351,8 +351,9 @@ export default function Home() {
 
                      <div className="p-6 bg-[#0F171A] rounded-2xl font-mono text-xs text-blue-400 space-y-1.5 shadow-xl">
                         <p className="opacity-70">&gt; Determining project type...</p>
-                        <p className="text-white">&gt; Detected Node.js (Express)</p>
-                        <p className="opacity-70">&gt; Running build steps...</p>
+                        <p className="text-white">&gt; Detected Next.js project</p>
+                        <p className="opacity-70">&gt; Building your app...</p>
+                        <p className="opacity-70">&gt; npm run build</p>
                         <p className="text-[#00BFA5]">&gt; Deployment Live: coffee.code-host.online</p>
                      </div>
                   </div>
@@ -382,7 +383,7 @@ export default function Home() {
               {
                 icon: <Terminal size={24} />,
                 title: "Auto Detection",
-                desc: "Node.js, Python, or Static HTML. We detect your framework and configure the environment automatically.",
+                desc: "Next.js, Django, Go, Rust, and 20+ more. We detect your framework and configure the environment automatically.",
                 color: "#FFB300"
               },
               {

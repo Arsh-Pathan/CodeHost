@@ -12,8 +12,8 @@
 
 - **One-Click Deployment**: Upload a `.zip` file or connect a **GitHub Repository** to get a live URL in seconds.
 - **GitHub Integration**: Deploy directly from any public GitHub repository with branch and subdirectory support.
-- **Auto-Detection**: Automatically detects project types (Node.js, Python, or Static HTML) with smart build heuristics.
-- **Modern Build Stack**: Supports Node.js 20+ and handles modern React peer dependency conflicts automatically using `--legacy-peer-deps`.
+- **Auto-Detection**: Automatically detects 20+ frameworks and languages including Next.js, Nuxt, Angular, SvelteKit, Astro, Django, FastAPI, Flask, Go, Rust, Java (Maven/Gradle), Ruby on Rails, PHP/Laravel, Deno, Bun, .NET, and more.
+- **Modern Build Stack**: Supports Node.js 20+, smart package manager detection (npm/yarn/pnpm), and optimized multi-stage Docker builds for each framework.
 - **Subdomain Hosting**: Projects are hosted at `{project}.yourdomain.com` (legacy path-based hosting also supported).
 - **Real-time Logs**: Stream build and runtime logs directly to your browser via WebSockets.
 - **Safe by Default**: Sandboxed container isolation with strict resource limits (128MB RAM).

@@ -219,7 +219,7 @@ export default function DocsPage() {
                 </div>
                 <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
                   <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg flex-shrink-0">2. Detect</span>
-                  <p className="text-sm text-slate-600">CodeHost inspects your project files and auto-detects the project type: Node.js, Python, or Static HTML.</p>
+                  <p className="text-sm text-slate-600">CodeHost inspects your project files and auto-detects the framework and language from 20+ supported technologies.</p>
                 </div>
                 <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
                   <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg flex-shrink-0">3. Build</span>
@@ -260,15 +260,55 @@ export default function DocsPage() {
                     <tr className="border-b border-slate-50">
                       <td className="py-3 pr-4 font-semibold">3</td>
                       <td className="py-3 pr-4"><InlineCode>package.json</InlineCode> found</td>
-                      <td className="py-3">Node.js project (<InlineCode>node:18-alpine</InlineCode>)</td>
+                      <td className="py-3">Auto-detects framework: Next.js, Nuxt, Remix, Angular, SvelteKit, Astro, Gatsby, Vite, NestJS, Express, and more</td>
                     </tr>
                     <tr className="border-b border-slate-50">
                       <td className="py-3 pr-4 font-semibold">4</td>
-                      <td className="py-3 pr-4"><InlineCode>requirements.txt</InlineCode> or <InlineCode>main.py</InlineCode> found</td>
-                      <td className="py-3">Python project (<InlineCode>python:3.11-slim</InlineCode>)</td>
+                      <td className="py-3 pr-4"><InlineCode>bun.lockb</InlineCode> or <InlineCode>bunfig.toml</InlineCode></td>
+                      <td className="py-3">Bun project (<InlineCode>oven/bun:latest</InlineCode>)</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">5</td>
+                      <td className="py-3 pr-4"><InlineCode>deno.json</InlineCode> or <InlineCode>deno.jsonc</InlineCode></td>
+                      <td className="py-3">Deno project (<InlineCode>denoland/deno:latest</InlineCode>)</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">6</td>
+                      <td className="py-3 pr-4"><InlineCode>requirements.txt</InlineCode>, <InlineCode>pyproject.toml</InlineCode>, or <InlineCode>manage.py</InlineCode></td>
+                      <td className="py-3">Auto-detects framework: Django, FastAPI, Flask, Streamlit, or generic Python</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">7</td>
+                      <td className="py-3 pr-4"><InlineCode>go.mod</InlineCode></td>
+                      <td className="py-3">Go project (multi-stage <InlineCode>golang:1.22-alpine</InlineCode>)</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">8</td>
+                      <td className="py-3 pr-4"><InlineCode>Cargo.toml</InlineCode></td>
+                      <td className="py-3">Rust project (multi-stage <InlineCode>rust:1.77-alpine</InlineCode>)</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">9</td>
+                      <td className="py-3 pr-4"><InlineCode>pom.xml</InlineCode> or <InlineCode>build.gradle</InlineCode></td>
+                      <td className="py-3">Java project (Maven or Gradle with <InlineCode>eclipse-temurin:21</InlineCode>)</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">10</td>
+                      <td className="py-3 pr-4"><InlineCode>Gemfile</InlineCode></td>
+                      <td className="py-3">Ruby project, auto-detects Rails (<InlineCode>ruby:3.3-slim</InlineCode>)</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">11</td>
+                      <td className="py-3 pr-4"><InlineCode>composer.json</InlineCode></td>
+                      <td className="py-3">PHP project, auto-detects Laravel (<InlineCode>php:8.3</InlineCode>)</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">12</td>
+                      <td className="py-3 pr-4"><InlineCode>.csproj</InlineCode> or <InlineCode>.sln</InlineCode></td>
+                      <td className="py-3">.NET / C# project (<InlineCode>dotnet/sdk:8.0</InlineCode>)</td>
                     </tr>
                     <tr>
-                      <td className="py-3 pr-4 font-semibold">5</td>
+                      <td className="py-3 pr-4 font-semibold">13</td>
                       <td className="py-3 pr-4">None of the above</td>
                       <td className="py-3">Static site (<InlineCode>nginx:alpine</InlineCode>)</td>
                     </tr>
@@ -286,49 +326,162 @@ export default function DocsPage() {
                 <h2 className="text-2xl font-black text-[#0F172A]">Supported Technologies</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {/* Node.js */}
+              <h3 className="text-lg font-black text-[#0F172A] mb-4">JavaScript / TypeScript</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-                    <span className="text-lg font-black text-emerald-600">JS</span>
-                  </div>
-                  <h4 className="text-base font-black text-[#0F172A] mb-2">Node.js</h4>
-                  <p className="text-sm text-slate-500 mb-3">Express, Fastify, Next.js, and any Node.js server.</p>
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Next.js</h4>
+                  <p className="text-sm text-slate-500 mb-3">Standalone output mode with optimized multi-stage build.</p>
                   <div className="space-y-1 text-xs text-slate-400 font-mono">
-                    <p>Base: <InlineCode>node:18-alpine</InlineCode></p>
+                    <p>Base: <InlineCode>node:20-alpine</InlineCode></p>
                     <p>Port: <InlineCode>3000</InlineCode></p>
-                    <p>Build: <InlineCode>npm install</InlineCode></p>
-                    <p>Start: <InlineCode>npm start</InlineCode></p>
                   </div>
                 </div>
-
-                {/* Python */}
                 <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
-                    <span className="text-lg font-black text-blue-600">PY</span>
-                  </div>
-                  <h4 className="text-base font-black text-[#0F172A] mb-2">Python</h4>
-                  <p className="text-sm text-slate-500 mb-3">Flask, FastAPI, Django, or any Python application.</p>
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Nuxt</h4>
+                  <p className="text-sm text-slate-500 mb-3">Server-side rendered Vue with Nitro output.</p>
                   <div className="space-y-1 text-xs text-slate-400 font-mono">
-                    <p>Base: <InlineCode>python:3.11-slim</InlineCode></p>
-                    <p>Port: <InlineCode>8080</InlineCode></p>
-                    <p>Build: <InlineCode>pip install -r requirements.txt</InlineCode></p>
-                    <p>Start: <InlineCode>python main.py</InlineCode></p>
+                    <p>Base: <InlineCode>node:20-alpine</InlineCode></p>
+                    <p>Port: <InlineCode>3000</InlineCode></p>
                   </div>
                 </div>
-
-                {/* Static */}
                 <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4">
-                    <span className="text-lg font-black text-amber-600">{"<>"}</span>
-                  </div>
-                  <h4 className="text-base font-black text-[#0F172A] mb-2">Static HTML</h4>
-                  <p className="text-sm text-slate-500 mb-3">Plain HTML/CSS/JS sites, portfolios, and landing pages.</p>
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Vite / React / Vue</h4>
+                  <p className="text-sm text-slate-500 mb-3">Static build served via Nginx. Also supports CRA and Gatsby.</p>
                   <div className="space-y-1 text-xs text-slate-400 font-mono">
                     <p>Base: <InlineCode>nginx:alpine</InlineCode></p>
                     <p>Port: <InlineCode>80</InlineCode></p>
-                    <p>Build: none</p>
-                    <p>Served by Nginx</p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Angular</h4>
+                  <p className="text-sm text-slate-500 mb-3">Production build with automatic dist detection.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>nginx:alpine</InlineCode></p>
+                    <p>Port: <InlineCode>80</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">SvelteKit / Astro</h4>
+                  <p className="text-sm text-slate-500 mb-3">Supports both static and SSR modes with smart adapter detection.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>node:20-alpine</InlineCode></p>
+                    <p>Port: <InlineCode>3000</InlineCode> / <InlineCode>80</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Express / NestJS / Fastify</h4>
+                  <p className="text-sm text-slate-500 mb-3">Node.js server frameworks with auto package manager detection.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>node:20-alpine</InlineCode></p>
+                    <p>Port: <InlineCode>3000</InlineCode></p>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-black text-[#0F172A] mb-4">Python</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Django</h4>
+                  <p className="text-sm text-slate-500 mb-3">Auto collectstatic, gunicorn-ready.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>python:3.11-slim</InlineCode></p>
+                    <p>Port: <InlineCode>8000</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">FastAPI</h4>
+                  <p className="text-sm text-slate-500 mb-3">Uvicorn auto-configured with main module detection.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>python:3.11-slim</InlineCode></p>
+                    <p>Port: <InlineCode>8000</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Flask / Streamlit</h4>
+                  <p className="text-sm text-slate-500 mb-3">Flask with auto FLASK_APP, Streamlit with server config.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>python:3.11-slim</InlineCode></p>
+                    <p>Port: <InlineCode>5000</InlineCode> / <InlineCode>8501</InlineCode></p>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-black text-[#0F172A] mb-4">Other Languages</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Go</h4>
+                  <p className="text-sm text-slate-500 mb-3">Multi-stage build, compiled binary on Alpine.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>golang:1.22-alpine</InlineCode></p>
+                    <p>Port: <InlineCode>8080</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Rust</h4>
+                  <p className="text-sm text-slate-500 mb-3">Multi-stage release build on Alpine.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>rust:1.77-alpine</InlineCode></p>
+                    <p>Port: <InlineCode>8080</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Java</h4>
+                  <p className="text-sm text-slate-500 mb-3">Maven or Gradle with Eclipse Temurin JDK 21.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>eclipse-temurin:21</InlineCode></p>
+                    <p>Port: <InlineCode>8080</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Ruby / Rails</h4>
+                  <p className="text-sm text-slate-500 mb-3">Auto Rails detection with asset precompile.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>ruby:3.3-slim</InlineCode></p>
+                    <p>Port: <InlineCode>3000</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">PHP / Laravel</h4>
+                  <p className="text-sm text-slate-500 mb-3">Apache for static PHP, artisan serve for Laravel.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>php:8.3</InlineCode></p>
+                    <p>Port: <InlineCode>80</InlineCode> / <InlineCode>8000</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">.NET / C#</h4>
+                  <p className="text-sm text-slate-500 mb-3">Multi-stage SDK build with ASP.NET runtime.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>dotnet/sdk:8.0</InlineCode></p>
+                    <p>Port: <InlineCode>8080</InlineCode></p>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-black text-[#0F172A] mb-4">Alternative Runtimes & Static</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Deno</h4>
+                  <p className="text-sm text-slate-500 mb-3">Auto entry file detection (main.ts, mod.ts, server.ts).</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>denoland/deno:latest</InlineCode></p>
+                    <p>Port: <InlineCode>8000</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Bun</h4>
+                  <p className="text-sm text-slate-500 mb-3">Native Bun runtime with bun install.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>oven/bun:latest</InlineCode></p>
+                    <p>Port: <InlineCode>3000</InlineCode></p>
+                  </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-slate-100 bg-white hover:shadow-lg hover:shadow-blue-500/5 transition-all">
+                  <h4 className="text-base font-black text-[#0F172A] mb-2">Static HTML</h4>
+                  <p className="text-sm text-slate-500 mb-3">Plain HTML/CSS/JS, portfolios, landing pages.</p>
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Base: <InlineCode>nginx:alpine</InlineCode></p>
+                    <p>Port: <InlineCode>80</InlineCode></p>
                   </div>
                 </div>
               </div>
@@ -350,14 +503,15 @@ export default function DocsPage() {
                 <li>Your project files should be at the root of the zip — not nested inside a subfolder.</li>
               </ul>
 
-              <h3 className="text-lg font-black text-[#0F172A] mb-3">Node.js Projects</h3>
+              <h3 className="text-lg font-black text-[#0F172A] mb-3">Node.js / JavaScript Projects</h3>
               <ul className="list-disc pl-6 space-y-2 text-slate-600 leading-relaxed mb-8">
                 <li>Must include a <InlineCode>package.json</InlineCode> at the root.</li>
-                <li>The <InlineCode>start</InlineCode> script in your package.json should start your server.</li>
-                <li>Your server <strong>must listen on the <InlineCode>PORT</InlineCode> environment variable</strong> or default to port 3000.</li>
-                <li>Do <strong>not</strong> include <InlineCode>node_modules</InlineCode> in your zip. CodeHost runs <InlineCode>npm install</InlineCode> for you.</li>
+                <li>CodeHost auto-detects your framework (Next.js, Nuxt, Angular, Vite, etc.) and generates an optimized Dockerfile.</li>
+                <li>For server apps, include a <InlineCode>start</InlineCode> script. Your server <strong>must listen on the <InlineCode>PORT</InlineCode> environment variable</strong> or default to port 3000.</li>
+                <li>Lock files are auto-detected: <InlineCode>yarn.lock</InlineCode> uses Yarn, <InlineCode>pnpm-lock.yaml</InlineCode> uses pnpm, otherwise npm.</li>
+                <li>Do <strong>not</strong> include <InlineCode>node_modules</InlineCode> in your zip.</li>
               </ul>
-              <CodeBlock>{`// Example: server.js
+              <CodeBlock>{`// Example: server.js (Express)
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -367,9 +521,40 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
 
               <h3 className="text-lg font-black text-[#0F172A] mt-8 mb-3">Python Projects</h3>
               <ul className="list-disc pl-6 space-y-2 text-slate-600 leading-relaxed mb-8">
-                <li>Include a <InlineCode>requirements.txt</InlineCode> for dependencies, or at minimum a <InlineCode>main.py</InlineCode> entry point.</li>
-                <li>Your app should listen on port <strong>8080</strong> by default.</li>
-                <li>The default start command is <InlineCode>python main.py</InlineCode> — you can override this in Settings.</li>
+                <li>Include a <InlineCode>requirements.txt</InlineCode> or <InlineCode>pyproject.toml</InlineCode> for dependencies.</li>
+                <li>CodeHost auto-detects Django (<InlineCode>manage.py</InlineCode>), FastAPI, Flask, and Streamlit from your dependencies.</li>
+                <li>Default ports: Django <strong>8000</strong>, FastAPI <strong>8000</strong>, Flask <strong>5000</strong>, Streamlit <strong>8501</strong>, generic <strong>8080</strong>.</li>
+                <li>You can override the start command in Settings.</li>
+              </ul>
+
+              <h3 className="text-lg font-black text-[#0F172A] mt-8 mb-3">Go Projects</h3>
+              <ul className="list-disc pl-6 space-y-2 text-slate-600 leading-relaxed mb-8">
+                <li>Include a <InlineCode>go.mod</InlineCode> at the root.</li>
+                <li>CodeHost builds with <InlineCode>CGO_ENABLED=0</InlineCode> for a static binary and runs on Alpine.</li>
+                <li>Default port: <strong>8080</strong>. Listen on <InlineCode>0.0.0.0</InlineCode>.</li>
+              </ul>
+
+              <h3 className="text-lg font-black text-[#0F172A] mt-8 mb-3">Rust Projects</h3>
+              <ul className="list-disc pl-6 space-y-2 text-slate-600 leading-relaxed mb-8">
+                <li>Include <InlineCode>Cargo.toml</InlineCode> and a <InlineCode>src/</InlineCode> directory.</li>
+                <li>CodeHost builds in release mode with a multi-stage Docker build.</li>
+                <li>Default port: <strong>8080</strong>.</li>
+              </ul>
+
+              <h3 className="text-lg font-black text-[#0F172A] mt-8 mb-3">Java Projects</h3>
+              <ul className="list-disc pl-6 space-y-2 text-slate-600 leading-relaxed mb-8">
+                <li>Maven: include <InlineCode>pom.xml</InlineCode>. Gradle: include <InlineCode>build.gradle</InlineCode> (wrapper supported).</li>
+                <li>Built with JDK 21, runs on <InlineCode>eclipse-temurin:21-jre-alpine</InlineCode>.</li>
+                <li>Default port: <strong>8080</strong>.</li>
+              </ul>
+
+              <h3 className="text-lg font-black text-[#0F172A] mt-8 mb-3">Ruby, PHP, .NET, Deno, Bun</h3>
+              <ul className="list-disc pl-6 space-y-2 text-slate-600 leading-relaxed mb-8">
+                <li><strong>Ruby</strong>: Include a <InlineCode>Gemfile</InlineCode>. Rails is auto-detected with asset precompilation.</li>
+                <li><strong>PHP</strong>: Include a <InlineCode>composer.json</InlineCode>. Laravel is auto-detected. Plain PHP uses Apache.</li>
+                <li><strong>.NET</strong>: Include a <InlineCode>.csproj</InlineCode> or <InlineCode>.sln</InlineCode> file. Built with .NET SDK 8.0.</li>
+                <li><strong>Deno</strong>: Include <InlineCode>deno.json</InlineCode>. Entry file auto-detected (main.ts, mod.ts, server.ts).</li>
+                <li><strong>Bun</strong>: Detected via <InlineCode>bun.lockb</InlineCode> when no <InlineCode>package.json</InlineCode> is present.</li>
               </ul>
 
               <h3 className="text-lg font-black text-[#0F172A] mb-3">Static Sites</h3>
@@ -513,9 +698,10 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
               </p>
               <CodeBlock>{`> Reading your code...
 > Determining the best way to run your app...
-> Detected Node.js (Express)
+> Detected Next.js project
 > Building your app...
-> npm install: added 58 packages in 4s
+> npm install: added 142 packages in 6s
+> npm run build
 > Success! Preparing to launch...
 > Your app is now live!`}</CodeBlock>
             </section>
@@ -543,7 +729,7 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
                   <h3 className="text-base font-black text-[#0F172A] mb-2">App starts but is unreachable</h3>
                   <ul className="list-disc pl-6 space-y-2 text-slate-600 text-sm">
                     <li>Your server must listen on <InlineCode>0.0.0.0</InlineCode>, not <InlineCode>127.0.0.1</InlineCode> or <InlineCode>localhost</InlineCode>.</li>
-                    <li>Use the <InlineCode>PORT</InlineCode> environment variable: Node.js should listen on port 3000, Python on 8080.</li>
+                    <li>Use the <InlineCode>PORT</InlineCode> environment variable. Default ports vary by framework (3000 for Node.js, 8000 for Django/FastAPI, 8080 for Go/Rust/Java).</li>
                     <li>Check the Network tab for your project&apos;s correct URL.</li>
                   </ul>
                 </div>
