@@ -39,6 +39,7 @@ interface Project {
   id: string;
   name: string;
   status: string;
+  tier?: string;
   port?: number;
   containerId?: string;
   user?: { email: string; username: string };
@@ -49,6 +50,17 @@ interface Project {
   repoUrl?: string;
   repoBranch?: string;
   repoSubdir?: string;
+}
+
+interface TierInfo {
+  id: string;
+  label: string;
+  memory: number;
+  cpus: number;
+  storage: number;
+  creditsPerMonth: number;
+  maxProjects: number;
+  priceInr: number;
 }
 
 interface Deployment {
@@ -95,6 +107,11 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   const [logs, setLogs] = useState<{message: string; timestamp: string; type: string}[]>([]);
   const [stats, setStats] = useState<{cpu: number; memory: {usage: number; limit: number; percent: number}} | null>(null);
 
+  // Tier state
+  const [tiers, setTiers] = useState<TierInfo[]>([]);
+  const [selectedTier, setSelectedTier] = useState('');
+  const [tierLoading, setTierLoading] = useState(false);
+
   // Subdomain change state
   const [newName, setNewName] = useState('');
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
@@ -117,15 +134,18 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
 
   const fetchProjectData = async () => {
     try {
-      const [meRes, projRes, depRes] = await Promise.all([
+      const [meRes, projRes, depRes, tierRes] = await Promise.all([
         fetchApi('/auth/me'),
         fetchApi(`/projects/${params.id}`),
-        fetchApi(`/deployments/${params.id}`)
+        fetchApi(`/deployments/${params.id}`),
+        fetchApi('/billing/tiers'),
       ]);
 
       setUser(meRes.user);
       setProject(projRes.project);
       setDeployments(depRes.deployments);
+      setTiers(tierRes.tiers);
+      if (!selectedTier) setSelectedTier(projRes.project.tier || 'free');
 
       setSettings({
         buildCommand: projRes.project.buildCommand || '',
@@ -838,6 +858,65 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Resource Tier */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4 flex items-center">
+                  <Cpu size={18} className="mr-3 text-purple-600" />
+                  Resource Tier
+                </h3>
+                <p className="text-xs text-slate-500 mb-6">Current: <span className="font-black text-slate-900">{tiers.find(t => t.id === project.tier)?.label || 'Free'}</span></p>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                  {tiers.map((t) => {
+                    const isCurrent = t.id === project.tier;
+                    const isSelected = t.id === selectedTier;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelectedTier(t.id)}
+                        className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                          isSelected ? 'border-blue-600 bg-blue-50/50' : 'border-slate-100 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-black text-slate-900">{t.label}</span>
+                          {isCurrent && <span className="text-[8px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Current</span>}
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          {(t.memory / (1024 * 1024)).toFixed(0)}MB RAM · {t.cpus} {t.cpus === 1 ? 'core' : 'cores'}
+                        </p>
+                        {t.creditsPerMonth > 0 && (
+                          <p className="text-[10px] text-slate-400 mt-1">{t.creditsPerMonth} credits/mo</p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedTier !== project.tier && (
+                  <button
+                    onClick={async () => {
+                      setTierLoading(true);
+                      setError('');
+                      try {
+                        await fetchApi(`/projects/${params.id}`, {
+                          method: 'PUT',
+                          body: JSON.stringify({ tier: selectedTier }),
+                        });
+                        await fetchProjectData();
+                      } catch (err: any) {
+                        setError(err.message);
+                      } finally {
+                        setTierLoading(false);
+                      }
+                    }}
+                    disabled={tierLoading}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 disabled:opacity-50 transition-all flex items-center space-x-2"
+                  >
+                    {tierLoading ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                    <span>Apply Tier Change</span>
+                  </button>
+                )}
               </div>
 
               <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">

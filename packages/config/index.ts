@@ -28,6 +28,9 @@ export const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   APP_URL: z.string().default('http://localhost:3000'),
   API_URL: z.string().default('http://localhost:4000'),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

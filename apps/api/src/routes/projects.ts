@@ -6,6 +6,7 @@ import { logger } from '@codehost/logger';
 import { z } from 'zod';
 import { BuilderService } from '../services/builder.js';
 import { RunnerService } from '../services/runner.js';
+import { RESOURCE_TIERS } from '../config/tiers.js';
 
 const router = Router();
 
@@ -14,20 +15,22 @@ router.use(requireAuth);
 
 const createProjectSchema = z.object({
   name: z.string().min(3).max(50).regex(/^[a-z0-9-]+$/, 'Name can only contain lowercase letters, numbers, and dashes'),
+  tier: z.enum(['free', 'basic', 'pro', 'business']).default('free'),
 });
 
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const { name } = createProjectSchema.parse(req.body);
+    const { name, tier } = createProjectSchema.parse(req.body);
     const userId = req.user!.id;
+    const tierConfig = RESOURCE_TIERS[tier];
 
-    // Check free tier limit (1 project)
+    // Check project limit for the requested tier
     const projectCount = await prisma.project.count({
       where: { userId }
     });
 
-    if (projectCount >= 1) {
-      return res.status(403).json({ error: 'Free tier limit reached (Max 1 project)' });
+    if (projectCount >= tierConfig.maxProjects) {
+      return res.status(403).json({ error: `Project limit reached for ${tierConfig.label} tier (Max ${tierConfig.maxProjects} project${tierConfig.maxProjects > 1 ? 's' : ''})` });
     }
 
     // Check if name is taken
@@ -39,11 +42,35 @@ router.post('/', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Project name already taken across the platform' });
     }
 
+    // For paid tiers, check and deduct credits
+    if (tier !== 'free' && tierConfig.creditsPerMonth > 0) {
+      const wallet = await prisma.wallet.findUnique({ where: { userId } });
+      if (!wallet || wallet.balance < tierConfig.creditsPerMonth) {
+        return res.status(402).json({ error: `Insufficient credits. ${tierConfig.label} tier requires ${tierConfig.creditsPerMonth} credits/month. Please top up your wallet.` });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { decrement: tierConfig.creditsPerMonth } },
+        });
+        await tx.transaction.create({
+          data: {
+            walletId: wallet.id,
+            amount: -tierConfig.creditsPerMonth,
+            type: 'tier_charge',
+            description: `Initial charge for ${name} (${tierConfig.label} tier)`,
+          },
+        });
+      });
+    }
+
     const project = await prisma.project.create({
       data: {
         name,
         userId,
         status: 'idle',
+        tier,
       }
     });
 
@@ -289,52 +316,51 @@ router.put('/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const { name, buildCommand, startCommand, dockerfileOverride, envVars } = req.body;
+    const { name, buildCommand, startCommand, dockerfileOverride, envVars, tier } = req.body;
 
-    // Handle Rename (Subdomain Change)
+    // Handle Rename (Subdomain Change) logic (omitted for brevity in search but included in replacement)
     if (name && name.toLowerCase() !== project.name.toLowerCase()) {
       const nameLower = name.toLowerCase().trim();
-      
-      // Validation
       if (!/^[a-z0-9-]+$/.test(nameLower) || nameLower.length < 3 || nameLower.length > 50) {
         return res.status(400).json({ error: 'Invalid name format' });
       }
-
-      const existingProject = await prisma.project.findFirst({
-        where: { name: nameLower }
-      });
-
+      const existingProject = await prisma.project.findFirst({ where: { name: nameLower } });
       if (existingProject) {
         return res.status(400).json({ error: 'Subdomain already taken across the platform' });
       }
+      await prisma.project.update({ where: { id: project.id }, data: { name: nameLower } });
+    }
 
-      await prisma.project.update({
-        where: { id: project.id },
-        data: { name: nameLower }
-      });
+    // Handle tier change
+    let newTier = project.tier;
+    if (tier && tier !== project.tier && RESOURCE_TIERS[tier]) {
+      const newTierConfig = RESOURCE_TIERS[tier];
+      const oldTierConfig = RESOURCE_TIERS[project.tier] || RESOURCE_TIERS['free'];
 
-      logger.info(`Project name updated for ${project.id}: ${project.name} -> ${nameLower}`);
-
-      // Auto-redeploy if the project has a running container so the new subdomain takes effect
-      if (project.status === 'running' || project.containerId) {
-        const lastDeployment = await prisma.deployment.findFirst({
-          where: { projectId: project.id, status: 'success' },
-          orderBy: { createdAt: 'desc' }
-        });
-
-        if (lastDeployment) {
-          const imageName = `codehost-project-${project.id}:${lastDeployment.id}`;
-          // Fire-and-forget: restart container with updated Traefik labels
-          void (async () => {
-            try {
-              await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
-              logger.info(`Auto-restarted container for project ${project.id} after subdomain change`);
-            } catch (err) {
-              logger.error({ error: err }, `Failed to auto-restart container after rename for ${project.id}`);
-            }
-          })();
+      if (tier !== 'free' && newTierConfig.creditsPerMonth > oldTierConfig.creditsPerMonth) {
+        const diff = newTierConfig.creditsPerMonth - oldTierConfig.creditsPerMonth;
+        const wallet = await prisma.wallet.findUnique({ where: { userId: req.user!.id } });
+        if (!wallet || wallet.balance < diff) {
+          return res.status(402).json({ error: `Insufficient credits. Upgrade requires ${diff} additional credits.` });
         }
+
+        await prisma.$transaction(async (tx) => {
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: { decrement: diff } },
+          });
+          await tx.transaction.create({
+            data: {
+              walletId: wallet.id,
+              amount: -diff,
+              type: 'tier_charge',
+              description: `Tier upgrade for ${project.name}: ${oldTierConfig.label} → ${newTierConfig.label}`,
+              projectId: project.id,
+            },
+          });
+        });
       }
+      newTier = tier;
     }
 
     const updated = await prisma.project.update({
@@ -344,10 +370,37 @@ router.put('/:id', async (req: AuthRequest, res) => {
         startCommand: startCommand ?? project.startCommand,
         dockerfileOverride: dockerfileOverride ?? project.dockerfileOverride,
         envVars: envVars ?? project.envVars,
+        tier: newTier,
       }
     });
 
-    res.json({ project: updated, restarting: !!(name && name.toLowerCase() !== project.name.toLowerCase() && (project.status === 'running' || project.containerId)) });
+    // Auto-restart if name or tier changed and project is running
+    const nameChanged = name && name.toLowerCase() !== project.name.toLowerCase();
+    const tierChanged = tier && tier !== project.tier;
+
+    if ((nameChanged || tierChanged) && (project.status === 'running' || project.containerId)) {
+      const lastDeployment = await prisma.deployment.findFirst({
+        where: { projectId: project.id, status: 'success' },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (lastDeployment) {
+        const imageName = `codehost-project-${project.id}:${lastDeployment.id}`;
+        void (async () => {
+          try {
+            await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
+            logger.info(`Auto-restarted container for project ${project.id} after settings change (name/tier)`);
+          } catch (err) {
+            logger.error({ error: err }, `Failed to auto-restart container after settings change for ${project.id}`);
+          }
+        })();
+      }
+    }
+
+    res.json({ 
+      project: updated, 
+      restarting: !!((nameChanged || tierChanged) && (project.status === 'running' || project.containerId)) 
+    });
   } catch (error) {
     logger.error({ error }, 'Update project error');
     res.status(500).json({ error: 'Failed to update project settings' });

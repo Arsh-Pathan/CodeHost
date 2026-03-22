@@ -98,32 +98,87 @@ export default function TermsPage() {
             </p>
           </section>
 
-          {/* 5 */}
+          {/* 6 */}
           <section>
-            <h2 className="text-xl font-black text-[#0F172A] mb-4">6. Account Suspension & Termination</h2>
+            <h2 className="text-xl font-black text-[#0F172A] mb-4">6. Payments, Credits, and Tiers</h2>
+            <p className="mb-4">
+              CodeHost operates on a prepaid credit model (&quot;Credits&quot;). By using paid resource tiers, you agree to the following:
+            </p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li><strong>Credit Value:</strong> 1 Credit is currently valued at ₹2 INR. This value is subject to change with 30 days&apos; notice.</li>
+              <li><strong>Resource Tiers:</strong> Each project is assigned a tier (Free, Basic, Pro, or Business). Paid tiers trigger a monthly deduction from your wallet balance.</li>
+              <li><strong>Initial Charge:</strong> When you create a project on a paid tier or upgrade an existing project, the first month&apos;s credits are deducted immediately.</li>
+              <li><strong>Recurring Charges:</strong> A recurring monthly charge is applied exactly 30 days after the last successful charge for each project.</li>
+              <li><strong>Tier Changes:</strong> Upgrading a tier requires a payment of the credit difference. Downgrading a tier takes effect on the next billing cycle; no partial refunds are provided for current-month downgrades.</li>
+            </ul>
+          </section>
+
+          {/* 7 */}
+          <section>
+            <h2 className="text-xl font-black text-[#0F172A] mb-4">7. Razorpay & Payment Processing</h2>
+            <p className="mb-4">
+              We use <strong>Razorpay</strong> as our third-party payment processor. By purchasing credits, you also agree to Razorpay&apos;s terms and conditions.
+            </p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>CodeHost does not store your full credit card details, UPI PINs, or net-banking credentials. This data is handled exclusively by Razorpay.</li>
+              <li>We only store payment metadata (Razorpay Order ID, Payment ID) to verify and record your credit purchases.</li>
+              <li>You are responsible for any fees charged by your bank or payment provider during the transaction.</li>
+            </ul>
+          </section>
+
+          {/* 8 */}
+          <section>
+            <h2 className="text-xl font-black text-[#0F172A] mb-4">8. Refunds and Expiration</h2>
+            <p className="mb-4">
+              All credit purchases are <strong>final and non-refundable</strong>.
+            </p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Credits do not expire as long as your account remains active.</li>
+              <li>If you delete a project mid-month, no pro-rated refund of credits is provided for the remaining days of that cycle.</li>
+              <li>Refunds are only issued in exceptional cases where a technical error prevented the delivery of purchased credits, or as required by law.</li>
+            </ul>
+          </section>
+
+          {/* 9 */}
+          <section>
+            <h2 className="text-xl font-black text-[#0F172A] mb-4">9. Insufficient Balance & Project Suspension</h2>
+            <p className="mb-4">
+              It is your responsibility to maintain a sufficient credit balance for your paid projects.
+            </p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>If your wallet balance is insufficient to cover a project&apos;s recurring monthly charge, the project container will be <strong>automatically stopped</strong>.</li>
+              <li>Your project data and configuration will remain intact. You can restart the project at any time after topping up your wallet balance.</li>
+              <li>CodeHost is not liable for any downtime, data loss, or business impact caused by project suspension due to insufficient balance.</li>
+            </ul>
+          </section>
+
+          {/* 10 */}
+          <section>
+            <h2 className="text-xl font-black text-[#0F172A] mb-4">10. Account Suspension & Termination</h2>
             <p className="mb-4">We may suspend or permanently terminate your account if you:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Violate these Terms of Service or the Acceptable Use policy.</li>
               <li>Attempt to exploit, attack, or reverse-engineer the platform.</li>
               <li>Use excessive resources that degrade service for other users.</li>
-              <li>Create multiple accounts to circumvent platform limits.</li>
+              <li>Create multiple accounts to circumvent platform limits or free-tier quotas.</li>
+              <li>Initiate unauthorized chargebacks or payment disputes with Razorpay.</li>
             </ul>
             <p className="mt-4">
-              Upon termination, all your deployed projects will be stopped and your data will be deleted within 30 days. You will be notified via email before any permanent action is taken, except in cases of severe policy violations.
+              Upon termination, all your deployed projects will be stopped and your data will be deleted within 30 days. Unused credits are non-refundable upon account termination.
             </p>
           </section>
 
-          {/* 6 */}
+          {/* 11 */}
           <section>
-            <h2 className="text-xl font-black text-[#0F172A] mb-4">7. Limitation of Liability</h2>
+            <h2 className="text-xl font-black text-[#0F172A] mb-4">11. Limitation of Liability</h2>
             <p>
               To the maximum extent permitted by law, CodeHost and its operator shall not be liable for any indirect, incidental, special, consequential, or punitive damages — including but not limited to loss of data, revenue, or profits — arising from your use of the platform. Our total liability for any claim shall not exceed the amount you have paid to CodeHost in the 12 months preceding the claim. This limitation applies whether the claim is based on warranty, contract, tort, or any other legal theory.
             </p>
           </section>
 
-          {/* 7 */}
+          {/* 12 */}
           <section>
-            <h2 className="text-xl font-black text-[#0F172A] mb-4">8. Changes to Terms</h2>
+            <h2 className="text-xl font-black text-[#0F172A] mb-4">12. Changes to Terms</h2>
             <p>
               We may update these Terms of Service from time to time. When we do, we will revise the &ldquo;Last updated&rdquo; date at the top of this page. Continued use of the platform after changes are posted constitutes your acceptance of the revised terms. For significant changes, we may notify you via email or a banner on the dashboard.
             </p>
