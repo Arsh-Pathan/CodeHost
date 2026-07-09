@@ -62,6 +62,7 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:rw"
       - "../data/api_tmp:/app/tmp"
+      - "../data/api_storage:/app/storage"
     restart: unless-stopped
     networks:
       - default
