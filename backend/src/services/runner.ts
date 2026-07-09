@@ -59,6 +59,13 @@ export class RunnerService {
       let container = await docker.createContainer({
         Image: imageName,
         name: containerName,
+        Env: [
+          `VIRTUAL_HOST=${projectSlug}.${host}`,
+          `VIRTUAL_PORT=${containerPort}`,
+          `LETSENCRYPT_HOST=${projectSlug}.${host}`,
+          `LETSENCRYPT_EMAIL=admin@${host}`,
+          `VIRTUAL_NETWORK=proxy`
+        ],
         HostConfig: {
           PublishAllPorts: true,
           Memory: memoryLimit,
@@ -135,6 +142,13 @@ export class RunnerService {
         const fixedContainer = await docker.createContainer({
           Image: imageName,
           name: containerName,
+          Env: [
+            `VIRTUAL_HOST=${projectSlug}.${host}`,
+            `VIRTUAL_PORT=${actualPort}`,
+            `LETSENCRYPT_HOST=${projectSlug}.${host}`,
+            `LETSENCRYPT_EMAIL=admin@${host}`,
+            `VIRTUAL_NETWORK=proxy`
+          ],
           HostConfig: {
             PublishAllPorts: true,
             Memory: memoryLimit,
