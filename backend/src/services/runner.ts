@@ -22,10 +22,16 @@ export class RunnerService {
 
       try {
         const existing = docker.getContainer(containerName);
-        await existing.stop();
-        await existing.remove();
-        logger.info(`Removed old container ${containerName}`);
-      } catch (e) {
+        const info = await existing.inspect().catch(() => null);
+        if (info) {
+          if (info.State.Running) {
+            await existing.stop();
+          }
+          await existing.remove({ force: true });
+          logger.info(`Removed old container ${containerName}`);
+        }
+      } catch (e: any) {
+        logger.warn(`Failed to remove old container: ${e.message}`);
       }
 
       emitLog('> Preparing your app...');
