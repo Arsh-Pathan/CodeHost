@@ -121,7 +121,7 @@ RAZORPAY_WEBHOOK_SECRET=
 ### 4. Launch
 
 ```bash
-docker compose --env-file .env -f infra/docker/docker-compose.yml up --build -d
+docker compose --env-file infra/.env -f infra/docker-compose.yml up --build -d
 ```
 
 ### 5. Run Database Migration
@@ -148,7 +148,7 @@ sudo ufw allow 443/tcp
 - `apps/api`: Express backend managing the deployment lifecycle and authentication.
 - `apps/web`: Next.js frontend and Admin Console.
 - `packages/`: Shared logic for database, docker, logger, and config.
-- `infra/docker`: Deployment orchestration and proxy configuration.
+- `infra/`: Deployment orchestration and proxy configuration.
 
 ---
 
