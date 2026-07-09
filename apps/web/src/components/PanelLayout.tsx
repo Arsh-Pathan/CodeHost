@@ -108,6 +108,13 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
                 </button>
               </div>
             </div>
+            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col items-center justify-center space-y-2 opacity-60 hover:opacity-100 transition-opacity">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Core hosted powered by</span>
+              <div className="flex items-center space-x-1.5">
+                <img src="/csky-logo.png" alt="CSky Developments" className="h-4 w-auto object-contain" />
+                <span className="text-[10px] font-black text-slate-500 tracking-tight">CSky Developments</span>
+              </div>
+            </div>
           ) : (
             <div className="flex flex-col items-center space-y-6">
               <button onClick={handleLogout} className="p-2 text-slate-300 hover:text-[#E53935] transition-all">

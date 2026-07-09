@@ -612,7 +612,15 @@ export default function Home() {
             </div>
          </div>
          <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold text-slate-300">
-            <p>© 2026 Arsh Pathan. All rights reserved.</p>
+            <div className="flex flex-col md:flex-row items-center gap-4">
+               <p>© 2026 Arsh Pathan. All rights reserved.</p>
+               <div className="hidden md:block w-px h-4 bg-slate-200"></div>
+               <div className="flex items-center space-x-1.5 text-slate-400">
+                  <span>Core hosted powered by</span>
+                  <img src="/csky-logo.png" alt="CSky Developments" className="h-4 w-auto inline-block object-contain" />
+                  <span className="font-bold text-slate-500">CSky Developments</span>
+               </div>
+            </div>
             <div className="flex space-x-6">
                <Link href="/terms" className="hover:text-slate-500 transition-colors">Terms</Link>
                <Link href="/privacy" className="hover:text-slate-500 transition-colors">Privacy</Link>
