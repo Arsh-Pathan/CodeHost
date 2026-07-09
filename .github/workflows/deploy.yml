@@ -78,7 +78,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /srv/services/codehost/infra
+            cd /srv/services/code-host/infra
             git pull
             docker compose pull
             docker compose up -d
