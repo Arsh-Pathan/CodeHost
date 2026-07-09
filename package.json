@@ -4,7 +4,9 @@
   "packageManager": "npm@10.9.0",
   "workspaces": [
     "frontend",
-    "backend",`r`n    "billing",
+    "backend",
+    "billing",
+    "database",
     "packages/*"
   ],
   "scripts": {

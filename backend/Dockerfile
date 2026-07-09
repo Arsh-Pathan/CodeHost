@@ -12,7 +12,7 @@ RUN npm install -g turbo
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/config/package.json ./packages/config/
-COPY packages/database/package.json ./packages/database/
+COPY database/package.json ./database/
 COPY packages/docker/package.json ./packages/docker/
 COPY packages/logger/package.json ./packages/logger/
 COPY packages/redis/package.json ./packages/redis/
@@ -25,7 +25,7 @@ RUN npm ci
 COPY . .
 
 # Generate Prisma Client
-RUN cd packages/database && npx prisma generate
+RUN cd database && npx prisma generate
 
 # Build the project
 RUN turbo run build --filter=@codehost/api
@@ -44,7 +44,7 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/config/package.json ./packages/config/
-COPY packages/database/package.json ./packages/database/
+COPY database/package.json ./database/
 COPY packages/docker/package.json ./packages/docker/
 COPY packages/logger/package.json ./packages/logger/
 COPY packages/redis/package.json ./packages/redis/
@@ -55,8 +55,8 @@ RUN npm ci --omit=dev
 # Copy built assets and prisma client
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/config/dist ./packages/config/dist
-COPY --from=builder /app/packages/database/dist ./packages/database/dist
-COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
+COPY --from=builder /app/database/dist ./database/dist
+COPY --from=builder /app/database/prisma ./database/prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/packages/docker/dist ./packages/docker/dist
 COPY --from=builder /app/packages/logger/dist ./packages/logger/dist
