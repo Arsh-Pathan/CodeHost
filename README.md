@@ -121,7 +121,10 @@ RAZORPAY_WEBHOOK_SECRET=
 ### 4. Launch
 
 ```bash
-docker compose --env-file infra/.env -f infra/docker-compose.yml up --build -d
+docker network create codehost_internal
+docker compose --env-file infra/.env -f infra/docker-compose.db.yml up -d
+docker compose --env-file infra/.env -f infra/docker-compose.backend.yml up --build -d
+docker compose --env-file infra/.env -f infra/docker-compose.frontend.yml up --build -d
 ```
 
 ### 5. Run Database Migration
