@@ -68,7 +68,7 @@ services:
   api:
     build:
       context: ../
-      dockerfile: apps/api/Dockerfile
+      dockerfile: backend/Dockerfile
     container_name: codehost-api
     user: "${PUID}:${PGID}"
     depends_on:
@@ -98,7 +98,7 @@ services:
   web:
     build:
       context: ../
-      dockerfile: apps/web/Dockerfile
+      dockerfile: frontend/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${API_URL:-https://api.code-host.online}
     container_name: codehost-web
