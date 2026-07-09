@@ -79,6 +79,8 @@ services:
       - api
     environment:
       NODE_ENV: production
+      HOSTNAME: "0.0.0.0"
+      PORT: 3000
       NEXT_PUBLIC_API_URL: ${API_URL:-https://api.code-host.online}
       VIRTUAL_HOST: code-host.online,www.code-host.online
       VIRTUAL_PORT: 3000
