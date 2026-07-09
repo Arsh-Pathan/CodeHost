@@ -43,6 +43,8 @@ services:
     image: ghcr.io/arsh-pathan/codehost-api:latest
     container_name: codehost-api
     user: "${PUID}:${PGID}"
+    group_add:
+      - "${DOCKER_GID:-999}"
     depends_on:
       postgres:
         condition: service_healthy
