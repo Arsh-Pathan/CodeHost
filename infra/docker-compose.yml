@@ -52,6 +52,7 @@ services:
       - .env
     environment:
       PORT: 4000
+      DATABASE_URL: postgresql://${DB_USER:-codehost}:${DB_PASS:-securepass}@postgres:5432/${DB_NAME:-codehost}?schema=public
       VIRTUAL_HOST: api.code-host.online
       VIRTUAL_PORT: 4000
       LETSENCRYPT_HOST: api.code-host.online
