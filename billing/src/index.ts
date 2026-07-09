@@ -1,15 +1,16 @@
-import { Router } from 'express';
+import express from 'express';
+import cors from 'cors';
 import { prisma } from '@codehost/database';
 import { logger } from '@codehost/logger';
-import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { RESOURCE_TIERS, CREDIT_PACKAGES, CREDIT_PRICE_INR } from '../config/tiers.js';
-import { createOrder, verifySignature, verifyWebhookSignature } from '../services/razorpay.js';
-import express from 'express';
+import { requireAuth, AuthRequest } from './middleware/auth.js';
+import { RESOURCE_TIERS, CREDIT_PACKAGES, CREDIT_PRICE_INR } from '@codehost/config';
+import { createOrder, verifySignature, verifyWebhookSignature } from './services/razorpay.js';
 
-const router = Router();
+const app = express();
+app.use(cors({ origin: '*' }));
 
 // All routes except webhook require auth
-router.get('/wallet', requireAuth, async (req: AuthRequest, res) => {
+app.get('/wallet', requireAuth, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.id;
     let wallet = await prisma.wallet.findUnique({ where: { userId } });
@@ -23,7 +24,7 @@ router.get('/wallet', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.get('/transactions', requireAuth, async (req: AuthRequest, res) => {
+app.get('/transactions', requireAuth, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.id;
     const page = parseInt(req.query.page as string) || 1;
@@ -51,7 +52,7 @@ router.get('/transactions', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.get('/tiers', requireAuth, async (_req: AuthRequest, res) => {
+app.get('/tiers', requireAuth, async (_req: AuthRequest, res) => {
   const tiers = Object.entries(RESOURCE_TIERS).map(([key, t]) => ({
     id: key,
     label: t.label,
@@ -65,7 +66,7 @@ router.get('/tiers', requireAuth, async (_req: AuthRequest, res) => {
   res.json({ tiers, creditPackages: CREDIT_PACKAGES, creditPriceInr: CREDIT_PRICE_INR });
 });
 
-router.post('/purchase', requireAuth, async (req: AuthRequest, res) => {
+app.post('/purchase', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { credits } = req.body;
     const pkg = CREDIT_PACKAGES.find((p) => p.credits === credits);
@@ -85,7 +86,7 @@ router.post('/purchase', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/verify', requireAuth, async (req: AuthRequest, res) => {
+app.post('/verify', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
 
@@ -144,7 +145,7 @@ router.post('/verify', requireAuth, async (req: AuthRequest, res) => {
 });
 
 // Webhook — no auth, raw body, signature verification
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     const signature = req.headers['x-razorpay-signature'] as string;
     const body = req.body.toString();
@@ -208,4 +209,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   }
 });
 
-export default router;
+const port = process.env.PORT || 4001;
+app.listen(port, () => {
+  logger.info(`Billing service listening on port ${port}`);
+});

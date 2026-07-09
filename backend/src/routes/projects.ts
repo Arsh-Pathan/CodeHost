@@ -6,7 +6,7 @@ import { logger } from '@codehost/logger';
 import { z } from 'zod';
 import { BuilderService } from '../services/builder.js';
 import { RunnerService } from '../services/runner.js';
-import { RESOURCE_TIERS } from '../config/tiers.js';
+import { RESOURCE_TIERS } from '@codehost/config';
 
 const router = Router();
 

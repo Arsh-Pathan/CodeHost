@@ -5,7 +5,7 @@ import { logger } from '@codehost/logger';
 import { prisma } from '@codehost/database';
 import { env } from '@codehost/config';
 import { io } from '../index.js';
-import { RESOURCE_TIERS } from '../config/tiers.js';
+import { RESOURCE_TIERS } from '@codehost/config';
 
 export class RunnerService {
   public static async startContainer(projectId: string, deploymentId: string, imageName: string) {

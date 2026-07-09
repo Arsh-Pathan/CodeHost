@@ -26,16 +26,14 @@ import projectsRouter from './routes/projects.js';
 import deploymentsRouter from './routes/deployments.js';
 import adminRouter from './routes/admin.js';
 import filesRouter from './routes/files.js';
-import billingRouter from './routes/billing.js';
 import { RunnerService } from './services/runner.js';
-import { RESOURCE_TIERS } from './config/tiers.js';
+import { RESOURCE_TIERS } from '@codehost/config';
 app.use('/auth', authRouter);
 app.use('/auth/oauth', oauthRouter);
 app.use('/projects', projectsRouter);
 app.use('/deployments', deploymentsRouter);
 app.use('/admin', adminRouter);
 app.use('/files', filesRouter);
-app.use('/billing', billingRouter);
 
 // Public Stats (for landing page)
 app.get('/stats/public', async (req, res) => {

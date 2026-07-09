@@ -1,0 +1,26 @@
+{
+  "name": "@codehost/billing",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --esm src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@codehost/config": "*",
+    "@codehost/database": "*",
+    "@codehost/logger": "*",
+    "cors": "^2.8.6",
+    "express": "^4.22.1",
+    "razorpay": "^2.9.6",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.3.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.0"
+  }
+}
