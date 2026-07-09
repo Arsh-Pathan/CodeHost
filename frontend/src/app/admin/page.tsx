@@ -37,6 +37,7 @@ interface AdminUser {
   email: string;
   username: string;
   role: string;
+  serverLimit: number;
   emailVerified: boolean;
   provider: string | null;
   createdAt: string;
@@ -70,6 +71,10 @@ export default function AdminDashboard() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const [activeSection, setActiveSection] = useState<'overview' | 'users' | 'projects'>('overview');
+  
+  // Create User state
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUser, setNewUser] = useState({ email: '', username: '', password: '', role: 'USER', serverLimit: 1 });
 
   const fetchAdminData = async () => {
     try {
@@ -137,6 +142,47 @@ export default function AdminDashboard() {
     setActionLoading(`kill-${projectId}`);
     try {
       await fetchApi(`/admin/projects/${projectId}/kill`, { method: 'POST' });
+      await fetchAdminData();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUpdateLimit = async (userId: string, currentLimit: number) => {
+    const newLimit = prompt('Enter new server limit for this user:', currentLimit.toString());
+    if (newLimit === null) return;
+    const limitNum = parseInt(newLimit, 10);
+    if (isNaN(limitNum) || limitNum < 0) {
+      alert('Invalid limit');
+      return;
+    }
+    
+    setActionLoading(`limit-${userId}`);
+    try {
+      await fetchApi(`/admin/users/${userId}/limit`, {
+        method: 'PUT',
+        body: JSON.stringify({ serverLimit: limitNum })
+      });
+      await fetchAdminData();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading('create-user');
+    try {
+      await fetchApi('/admin/users', {
+        method: 'POST',
+        body: JSON.stringify(newUser)
+      });
+      setShowCreateUser(false);
+      setNewUser({ email: '', username: '', password: '', role: 'USER', serverLimit: 1 });
       await fetchAdminData();
     } catch (err: any) {
       alert(err.message);
@@ -343,11 +389,57 @@ export default function AdminDashboard() {
         {activeSection === 'users' && (
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">All Users</h3>
-              <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                {users.length} users
-              </span>
+              <div className="flex items-center space-x-4">
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">All Users</h3>
+                <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  {users.length} users
+                </span>
+              </div>
+              <button 
+                onClick={() => setShowCreateUser(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center"
+              >
+                <Users size={14} className="mr-2" /> Create New User
+              </button>
             </div>
+
+            {showCreateUser && (
+              <div className="p-6 bg-slate-50 border-b border-slate-200">
+                <h4 className="text-sm font-bold text-slate-900 mb-4">Create New Account (Admin Override)</h4>
+                <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Email</label>
+                    <input type="email" required value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full text-sm font-medium px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="admin@example.com" />
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Username</label>
+                    <input type="text" required value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} className="w-full text-sm font-medium px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="admin" />
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Password</label>
+                    <input type="password" required minLength={6} value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full text-sm font-medium px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="******" />
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Role & Limit</label>
+                    <div className="flex space-x-2">
+                      <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-1/2 text-sm font-medium px-2 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="USER">USER</option>
+                        <option value="ADMIN">ADMIN</option>
+                      </select>
+                      <input type="number" min="0" value={newUser.serverLimit} onChange={e => setNewUser({...newUser, serverLimit: parseInt(e.target.value) || 0})} className="w-1/2 text-sm font-medium px-2 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Limit" />
+                    </div>
+                  </div>
+                  <div className="md:col-span-1 flex space-x-2">
+                    <button type="submit" disabled={actionLoading === 'create-user'} className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 flex justify-center">
+                      {actionLoading === 'create-user' ? <Loader2 size={16} className="animate-spin" /> : 'Create'}
+                    </button>
+                    <button type="button" onClick={() => setShowCreateUser(false)} className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-colors">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -357,6 +449,7 @@ export default function AdminDashboard() {
                     <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Role</th>
                     <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Provider</th>
                     <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Projects</th>
+                    <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Max Limit</th>
                     <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Joined</th>
                     <th className="text-right px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
                   </tr>
@@ -390,6 +483,14 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-sm font-bold text-slate-700">{u._count.projects}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button 
+                          onClick={() => handleUpdateLimit(u.id, u.serverLimit || 1)}
+                          className="px-2 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-700 text-xs font-black rounded transition-colors group flex items-center"
+                        >
+                          {u.serverLimit || 1} Servers <Database size={12} className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-xs text-slate-400">{new Date(u.createdAt).toLocaleDateString()}</span>

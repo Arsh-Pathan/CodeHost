@@ -17,7 +17,7 @@ interface Project {
 
 export default function Dashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{ email: string; username: string; role: string; emailVerified?: boolean } | null>(null);
+  const [user, setUser] = useState<{ email: string; username: string; role: string; serverLimit: number; emailVerified?: boolean } | null>(null);
   const [resending, setResending] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,34 +105,38 @@ export default function Dashboard() {
 
           <Link
             href="/dashboard/new"
-            className={(projects.length >= 1 || isUnverified) ? "pointer-events-none opacity-50" : ""}
+            className={(projects.length >= (user?.serverLimit || 1) || isUnverified) ? "pointer-events-none opacity-50" : ""}
           >
             <button
               type="button"
-              disabled={projects.length >= 1 || !!isUnverified}
+              disabled={projects.length >= (user?.serverLimit || 1) || !!isUnverified}
               title={isUnverified ? 'Verify your email to create projects' : undefined}
               className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all hover:-translate-y-0.5"
             >
               <Plus className="-ml-1 mr-2 h-4 w-4" />
-              New Project
+              New Server
             </button>
           </Link>
         </div>
 
-        {/* Limit Warning */}
-        {projects.length >= 1 && (
-          <div className="rounded-xl bg-blue-600 p-6 text-white shadow-xl shadow-blue-500/10 flex items-center justify-between border border-white/10">
-            <div className="flex items-center space-x-4 text-white">
-              <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center text-white backdrop-blur-sm">
-                 <Activity size={24} />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">One Project Limit (Free Tier)</h3>
-                <p className="text-blue-100/80 text-sm font-medium">You've reached your limit. Delete your current app to deploy another one.</p>
-              </div>
+        {/* Limit Display */}
+        <div className={`rounded-xl p-6 shadow-xl flex items-center justify-between border ${projects.length >= (user?.serverLimit || 1) ? 'bg-red-600 shadow-red-500/10 border-white/10 text-white' : 'bg-white shadow-sm border-slate-200'}`}>
+          <div className="flex items-center space-x-4">
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${projects.length >= (user?.serverLimit || 1) ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
+               <Activity size={24} />
+            </div>
+            <div>
+              <h3 className={`font-bold text-lg ${projects.length >= (user?.serverLimit || 1) ? 'text-white' : 'text-slate-900'}`}>
+                {projects.length} / {user?.serverLimit || 1} Servers Active
+              </h3>
+              <p className={`text-sm font-medium ${projects.length >= (user?.serverLimit || 1) ? 'text-red-100/80' : 'text-slate-500'}`}>
+                {projects.length >= (user?.serverLimit || 1) 
+                  ? "You've reached your account limit. Delete a server to deploy another, or upgrade your capacity from Time-Man." 
+                  : "You have available capacity to deploy more servers."}
+              </p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Project Grid */}
         {projects.length === 0 ? (
@@ -186,7 +190,7 @@ export default function Dashboard() {
                       </div>
                       <div className="flex flex-col space-y-1 items-end">
                          <span>Plan</span>
-                         <span className="text-blue-600">Free Tier</span>
+                         <span className="text-blue-600">{(project as any).tier?.toUpperCase() || 'FREE'}</span>
                       </div>
                     </div>
                   </div>

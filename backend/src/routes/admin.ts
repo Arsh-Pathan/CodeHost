@@ -176,6 +176,7 @@ router.get('/users', async (req: AuthRequest, res) => {
         email: true,
         username: true,
         role: true,
+        serverLimit: true,
         emailVerified: true,
         provider: true,
         createdAt: true,
@@ -250,6 +251,76 @@ router.delete('/users/:id', async (req: AuthRequest, res) => {
   } catch (error) {
     logger.error({ error }, 'Admin delete user error');
     res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// Update user server limit
+router.put('/users/:id/limit', async (req: AuthRequest, res) => {
+  try {
+    const { serverLimit } = req.body;
+    if (typeof serverLimit !== 'number' || serverLimit < 0) {
+      return res.status(400).json({ error: 'Invalid server limit' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const updated = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { serverLimit },
+      select: { id: true, email: true, username: true, role: true, serverLimit: true }
+    });
+
+    logger.info(`Admin ${req.user!.email} updated server limit for ${updated.email} to ${serverLimit}`);
+    res.json({ user: updated });
+  } catch (error) {
+    logger.error({ error }, 'Admin update limit error');
+    res.status(500).json({ error: 'Failed to update server limit' });
+  }
+});
+
+import bcrypt from 'bcryptjs';
+
+// Create a new user from Admin Panel
+router.post('/users', async (req: AuthRequest, res) => {
+  try {
+    const { email, username, password, serverLimit, role } = req.body;
+    
+    if (!email || !username || !password) {
+      return res.status(400).json({ error: 'Email, username, and password are required' });
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email },
+          { username: username.toLowerCase() }
+        ]
+      }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email or username already in use' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        username: username.toLowerCase(),
+        password: hashedPassword,
+        serverLimit: typeof serverLimit === 'number' ? serverLimit : 1,
+        role: role === 'ADMIN' ? 'ADMIN' : 'USER',
+        emailVerified: true, // Auto-verify admin created users
+      }
+    });
+
+    logger.info(`Admin ${req.user!.email} manually created user ${newUser.email}`);
+    res.json({ success: true, user: { id: newUser.id, email: newUser.email, username: newUser.username } });
+  } catch (error) {
+    logger.error({ error }, 'Admin create user error');
+    res.status(500).json({ error: 'Failed to create user' });
   }
 });
 

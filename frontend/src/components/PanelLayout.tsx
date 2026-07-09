@@ -84,37 +84,39 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
 
         <div className="p-4 border-t border-slate-100 mt-auto">
           {isSidebarOpen ? (
-            <div className="flex flex-col space-y-4">
-              <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-black text-xs ring-4 ring-blue-500/5">
-                  {user?.username ? user.username[0] : user?.email[0]}
+            <>
+              <div className="flex flex-col space-y-4">
+                <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-black text-xs ring-4 ring-blue-500/5">
+                    {user?.username ? user.username[0] : user?.email[0]}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-black text-[#0F172A] truncate">{user?.username || 'User'}</span>
+                    <span className="text-[10px] font-bold text-slate-400 truncate tracking-tight">{user?.email}</span>
+                  </div>
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-black text-[#0F172A] truncate">{user?.username || 'User'}</span>
-                  <span className="text-[10px] font-bold text-slate-400 truncate tracking-tight">{user?.email}</span>
+                <div className="flex flex-col space-y-1">
+                   <button className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-[#0F172A] transition-all text-xs font-bold">
+                      <LifeBuoy size={16} />
+                      <span>Support</span>
+                   </button>
+                   <button 
+                    onClick={handleLogout}
+                    className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-[#E53935] hover:bg-red-50 transition-all text-xs font-bold"
+                  >
+                    <LogOut size={16} />
+                    <span>Logout</span>
+                  </button>
                 </div>
               </div>
-              <div className="flex flex-col space-y-1">
-                 <button className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-[#0F172A] transition-all text-xs font-bold">
-                    <LifeBuoy size={16} />
-                    <span>Support</span>
-                 </button>
-                 <button 
-                  onClick={handleLogout}
-                  className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-[#E53935] hover:bg-red-50 transition-all text-xs font-bold"
-                >
-                  <LogOut size={16} />
-                  <span>Logout</span>
-                </button>
+              <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col items-center justify-center space-y-2 opacity-60 hover:opacity-100 transition-opacity">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Core hosted powered by</span>
+                <div className="flex items-center space-x-1.5">
+                  <img src="/csky-logo.png" alt="CSky Developments" className="h-4 w-auto object-contain" />
+                  <span className="text-[10px] font-black text-slate-500 tracking-tight">CSky Developments</span>
+                </div>
               </div>
-            </div>
-            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col items-center justify-center space-y-2 opacity-60 hover:opacity-100 transition-opacity">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Core hosted powered by</span>
-              <div className="flex items-center space-x-1.5">
-                <img src="/csky-logo.png" alt="CSky Developments" className="h-4 w-auto object-contain" />
-                <span className="text-[10px] font-black text-slate-500 tracking-tight">CSky Developments</span>
-              </div>
-            </div>
+            </>
           ) : (
             <div className="flex flex-col items-center space-y-6">
               <button onClick={handleLogout} className="p-2 text-slate-300 hover:text-[#E53935] transition-all">

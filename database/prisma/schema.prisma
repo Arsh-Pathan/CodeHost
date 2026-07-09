@@ -16,6 +16,7 @@ model User {
   phoneNumber             String?
   password                String?
   role                    String    @default("USER") // USER, ADMIN
+  serverLimit             Int       @default(1)
   provider                String?
   providerId              String?
   emailVerified           Boolean   @default(false)

@@ -24,13 +24,15 @@ router.post('/', async (req: AuthRequest, res) => {
     const userId = req.user!.id;
     const tierConfig = RESOURCE_TIERS[tier];
 
-    // Check project limit for the requested tier
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
     const projectCount = await prisma.project.count({
       where: { userId }
     });
 
-    if (projectCount >= tierConfig.maxProjects) {
-      return res.status(403).json({ error: `Project limit reached for ${tierConfig.label} tier (Max ${tierConfig.maxProjects} project${tierConfig.maxProjects > 1 ? 's' : ''})` });
+    if (projectCount >= user.serverLimit) {
+      return res.status(403).json({ error: `Server limit reached. Your account is limited to ${user.serverLimit} server(s). Please contact an administrator to increase your capacity.` });
     }
 
     // Check if name is taken
