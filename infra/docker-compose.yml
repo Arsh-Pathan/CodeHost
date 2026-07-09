@@ -52,7 +52,7 @@ services:
       - .env
     environment:
       PORT: 4000
-      DATABASE_URL: postgresql://${DB_USER:-codehost}:${DB_PASS:-securepass}@postgres:5432/${DB_NAME:-codehost}?schema=public
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${DB_USER:-codehost}:${DB_PASS:-securepass}@postgres:5432/${DB_NAME:-codehost}?schema=public}
       REDIS_URL: redis://redis:6379
       VIRTUAL_HOST: api.code-host.online
       VIRTUAL_PORT: 4000
