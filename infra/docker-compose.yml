@@ -60,6 +60,7 @@ services:
       LETSENCRYPT_EMAIL: admin@code-host.online
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:rw"
+      - "../data/api_tmp:/app/tmp"
     restart: unless-stopped
     networks:
       - default
