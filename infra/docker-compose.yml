@@ -5,7 +5,6 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: codehost-db
-    user: "${PUID}:${PGID}"
     environment:
       POSTGRES_USER: ${DB_USER:-user}
       POSTGRES_PASSWORD: ${DB_PASS:-pass}
@@ -26,7 +25,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: codehost-redis
-    user: "${PUID}:${PGID}"
     volumes:
       - ../data/redis:/data
     healthcheck:
