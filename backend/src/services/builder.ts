@@ -26,10 +26,11 @@ export class BuilderService {
         { timeout: 120000, stdio: 'pipe' }
       );
     } catch (error: any) {
-      if (error.message && (error.message.includes('not found') || error.message.includes('ENOENT'))) {
-        throw new Error('Git is not installed in the deployment environment. Please contact support.');
+      const errorMsg = error.stderr?.toString() || error.message || 'Unknown error';
+      if (errorMsg.includes('not found') && !errorMsg.includes('git')) {
+        throw new Error(`Repository not found or is private. Please check the URL and ensure it's public. Error: ${errorMsg}`);
       }
-      throw new Error(`Failed to clone repository: ${error.stderr?.toString() || error.message}`);
+      throw new Error(`Failed to clone repository: ${errorMsg}`);
     }
 
     // If a subdirectory is specified, return the path to it
