@@ -47,6 +47,7 @@ interface AdminProject {
   id: string;
   name: string;
   status: string;
+  tier: string;
   containerId: string | null;
   userId: string;
   createdAt: string;
@@ -167,6 +168,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleUpdateTier = async (projectId: string, newTier: string) => {
+    if (!confirm(`Change capacity tier to ${newTier.toUpperCase()}? This will restart the server if running.`)) return;
+    setActionLoading(`tier-${projectId}`);
+    try {
+      await fetchApi(`/admin/projects/${projectId}/tier`, {
+        method: 'PUT',
+        body: JSON.stringify({ tier: newTier }),
+      });
+      await fetchAdminData();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#f6f8fa] space-y-4">
@@ -199,7 +216,7 @@ export default function AdminDashboard() {
               <ShieldAlert size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Admin Console</h1>
+              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Time-Man Console</h1>
               <p className="text-xs text-slate-500 font-medium">Platform management and monitoring</p>
             </div>
           </div>
@@ -429,6 +446,7 @@ export default function AdminDashboard() {
                     <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Project</th>
                     <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Owner</th>
                     <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                    <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Capacity</th>
                     <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Deploys</th>
                     <th className="text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Created</th>
                     <th className="text-right px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
@@ -455,6 +473,18 @@ export default function AdminDashboard() {
                         <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest ${getStatusColor(proj.status)}`}>
                           {proj.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          value={proj.tier || 'free'}
+                          onChange={(e) => handleUpdateTier(proj.id, e.target.value)}
+                          disabled={actionLoading === `tier-${proj.id}`}
+                          className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                        >
+                          <option value="free">FREE</option>
+                          <option value="pro">PRO</option>
+                          <option value="elite">ELITE</option>
+                        </select>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-sm font-bold text-slate-700">{proj._count.deployments}</span>

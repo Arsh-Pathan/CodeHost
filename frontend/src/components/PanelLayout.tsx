@@ -148,7 +148,7 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
             {user?.role === 'ADMIN' && (
               <Link href="/admin">
                 <button className="text-[10px] font-black uppercase tracking-widest text-[#2563EB] bg-blue-50 px-4 py-2 rounded-xl hover:bg-blue-100 transition border border-blue-200 shadow-sm">
-                  Admin
+                  Time-Man
                 </button>
               </Link>
             )}

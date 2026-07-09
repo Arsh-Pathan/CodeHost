@@ -136,6 +136,37 @@ router.delete('/projects/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// Change project tier (capacity)
+router.put('/projects/:id/tier', async (req: AuthRequest, res) => {
+  try {
+    const { tier } = req.body;
+    if (!tier || !['free', 'pro', 'elite'].includes(tier)) {
+      return res.status(400).json({ error: 'Invalid tier. Must be free, pro, or elite' });
+    }
+
+    const project = await prisma.project.findUnique({ where: { id: req.params.id } });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const updated = await prisma.project.update({
+      where: { id: project.id },
+      data: { tier }
+    });
+
+    if (project.status === 'running') {
+      try {
+        await RunnerService.stopContainer(project.id);
+        await prisma.project.update({ where: { id: project.id }, data: { status: 'stopped' } });
+      } catch (e) {}
+    }
+
+    logger.info(`Admin ${req.user!.email} changed tier of project ${project.id} to ${tier}`);
+    res.json({ project: updated });
+  } catch (error) {
+    logger.error({ error }, 'Admin tier update error');
+    res.status(500).json({ error: 'Failed to update project tier' });
+  }
+});
+
 // List all users
 router.get('/users', async (req: AuthRequest, res) => {
   try {

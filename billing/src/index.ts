@@ -113,7 +113,7 @@ app.post('/verify', requireAuth, async (req: AuthRequest, res) => {
 
     const userId = req.user!.id;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       let wallet = await tx.wallet.findUnique({ where: { userId } });
       if (!wallet) {
         wallet = await tx.wallet.create({ data: { userId } });
@@ -176,7 +176,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
         return res.json({ status: 'ok', message: 'Already processed' });
       }
 
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         let wallet = await tx.wallet.findUnique({ where: { userId } });
         if (!wallet) {
           wallet = await tx.wallet.create({ data: { userId } });

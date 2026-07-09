@@ -22,13 +22,13 @@ export const generateTokens = (user: { id: string; email: string; role: string; 
   const accessToken = jwt.sign(
     { id: user.id, email: user.email, role: user.role, emailVerified: user.emailVerified ?? false },
     env.JWT_SECRET,
-    { expiresIn: '15m' }
+    { expiresIn: '30d' }
   );
 
   const refreshToken = jwt.sign(
     { id: user.id },
     env.JWT_REFRESH_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '60d' }
   );
 
   return { accessToken, refreshToken };
@@ -97,7 +97,7 @@ router.post('/register', authLimiter, async (req, res) => {
       data: {
         userId: user.id,
         token: refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
       }
     });
 
@@ -149,7 +149,7 @@ router.post('/login', authLimiter, async (req, res) => {
       data: {
         userId: user.id,
         token: refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
       }
     });
 
@@ -191,7 +191,7 @@ router.post('/refresh', async (req, res) => {
       where: { id: session.id },
       data: {
         token: tokens.refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
       }
     });
 
