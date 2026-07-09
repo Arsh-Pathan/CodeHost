@@ -58,7 +58,7 @@ export class RunnerService {
           Memory: memoryLimit,
           MemorySwap: memoryLimit,
           NanoCpus: nanoCpus,
-          NetworkMode: 'docker_default', // Connect to the Brain's network
+          NetworkMode: 'proxy', // Connect to the proxy network
         },
         Labels: {
           'traefik.enable': 'true',
@@ -134,7 +134,7 @@ export class RunnerService {
             Memory: memoryLimit,
             MemorySwap: memoryLimit,
             NanoCpus: nanoCpus,
-            NetworkMode: 'docker_default',
+            NetworkMode: 'proxy',
           },
           Labels: {
             'traefik.enable': 'true',
