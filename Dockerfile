@@ -57,6 +57,9 @@ COPY packages/types/package.json ./packages/types/
 
 RUN npm ci --omit=dev
 
+# Pre-create tmp directory for file uploads with permissive ownership
+RUN mkdir -p /app/tmp/uploads && chmod -R 777 /app/tmp
+
 # Copy built assets and prisma client
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/packages/config/dist ./packages/config/dist
