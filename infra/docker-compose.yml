@@ -67,9 +67,6 @@ services:
   # --- CodeHost Services ---
   api:
     image: ghcr.io/arsh-pathan/codehost-api:latest
-    build:
-      context: ../
-      dockerfile: backend/Dockerfile
     container_name: codehost-api
     user: "${PUID}:${PGID}"
     depends_on:
@@ -98,11 +95,6 @@ services:
 
   web:
     image: ghcr.io/arsh-pathan/codehost-web:latest
-    build:
-      context: ../
-      dockerfile: frontend/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${API_URL:-https://api.code-host.online}
     container_name: codehost-web
     user: "${PUID}:${PGID}"
     depends_on:
