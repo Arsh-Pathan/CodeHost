@@ -56,6 +56,7 @@ services:
       REDIS_URL: redis://redis:6379
       VIRTUAL_HOST: api.code-host.online
       VIRTUAL_PORT: 4000
+      VIRTUAL_NETWORK: proxy
       LETSENCRYPT_HOST: api.code-host.online
       LETSENCRYPT_EMAIL: admin@code-host.online
     volumes:
@@ -81,6 +82,7 @@ services:
       NEXT_PUBLIC_API_URL: ${API_URL:-https://api.code-host.online}
       VIRTUAL_HOST: code-host.online,www.code-host.online
       VIRTUAL_PORT: 3000
+      VIRTUAL_NETWORK: proxy
       LETSENCRYPT_HOST: code-host.online,www.code-host.online
       LETSENCRYPT_EMAIL: admin@code-host.online
     env_file:
