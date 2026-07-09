@@ -75,7 +75,7 @@ docker compose up -d
 ### 4. Run Database Migration
 After the stack is running, apply the Prisma migration to initialize your database:
 ```bash
-docker exec -it codehost-api npx prisma migrate deploy
+docker exec -it codehost-api npx prisma migrate deploy --schema=./database/prisma/schema.prisma
 ```
 
 ---
