@@ -66,6 +66,7 @@ services:
 
   # --- CodeHost Services ---
   api:
+    image: ghcr.io/arsh-pathan/codehost-api:latest
     build:
       context: ../
       dockerfile: backend/Dockerfile
@@ -96,6 +97,7 @@ services:
         max-size: "10m"
 
   web:
+    image: ghcr.io/arsh-pathan/codehost-web:latest
     build:
       context: ../
       dockerfile: frontend/Dockerfile
