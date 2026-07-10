@@ -36,7 +36,9 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     } catch (e) {
       // Not JSON
     }
-    throw new Error(errorMessage);
+    const error: any = new Error(errorMessage);
+    error.status = res.status;
+    throw error;
   }
 
   return res.json();

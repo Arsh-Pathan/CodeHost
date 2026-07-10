@@ -32,9 +32,11 @@ export default function Dashboard() {
         
         setUser(meData.user);
         setProjects(projData.projects);
-      } catch (err) {
-        localStorage.removeItem('token');
-        router.push('/login');
+      } catch (err: any) {
+        if (err.status === 401 || err.status === 403) {
+          localStorage.removeItem('token');
+          router.push('/login');
+        }
       } finally {
         setLoading(false);
       }

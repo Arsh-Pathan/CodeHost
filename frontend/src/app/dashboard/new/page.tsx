@@ -39,7 +39,7 @@ export default function NewProject() {
         setTiers(tierRes.tiers);
         setWalletBalance(walletRes.wallet.balance);
       })
-      .catch(() => router.push('/login'));
+      .catch((err: any) => { if (err.status === 401 || err.status === 403) router.push('/login') });
   }, [router]);
 
   const formatBytes = (bytes: number) => {

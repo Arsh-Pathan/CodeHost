@@ -63,7 +63,7 @@ export default function BillingPage() {
         setTransactions(txRes.transactions);
         setPackages(tierRes.creditPackages);
       })
-      .catch(() => router.push('/login'))
+      .catch((err: any) => { if (err.status === 401 || err.status === 403) router.push('/login') })
       .finally(() => setLoading(false));
   }, [router]);
 
