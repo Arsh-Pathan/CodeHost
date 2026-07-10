@@ -64,7 +64,8 @@ export class RunnerService {
           `VIRTUAL_PORT=${containerPort}`,
           `LETSENCRYPT_HOST=${projectSlug}.${host}`,
           `LETSENCRYPT_EMAIL=admin@${host}`,
-          `VIRTUAL_NETWORK=proxy`
+          `VIRTUAL_NETWORK=proxy`,
+          ...Object.entries((project?.envVars as Record<string, string>) || {}).map(([k, v]) => `${k}=${v}`)
         ],
         HostConfig: {
           PublishAllPorts: true,
@@ -147,7 +148,8 @@ export class RunnerService {
             `VIRTUAL_PORT=${actualPort}`,
             `LETSENCRYPT_HOST=${projectSlug}.${host}`,
             `LETSENCRYPT_EMAIL=admin@${host}`,
-            `VIRTUAL_NETWORK=proxy`
+            `VIRTUAL_NETWORK=proxy`,
+            ...Object.entries((project?.envVars as Record<string, string>) || {}).map(([k, v]) => `${k}=${v}`)
           ],
           HostConfig: {
             PublishAllPorts: true,

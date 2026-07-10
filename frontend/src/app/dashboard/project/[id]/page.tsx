@@ -151,7 +151,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         buildCommand: projRes.project.buildCommand || '',
         startCommand: projRes.project.startCommand || '',
         dockerfileOverride: projRes.project.dockerfileOverride || '',
-        envVars: projRes.project.envVars || {}
+        envVars: Object.keys(projRes.project.envVars || {}).length > 0 ? JSON.stringify(projRes.project.envVars, null, 2) : '{\n  "PORT": "3000"\n}'
       });
 
       // Pre-fill GitHub fields if project has repo info
@@ -917,6 +917,32 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                     <span>Apply Tier Change</span>
                   </button>
                 )}
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center">
+                    <Terminal size={18} className="mr-3 text-slate-900" />
+                    Environment Variables
+                  </h3>
+                  <button
+                    onClick={handleSaveSettings}
+                    disabled={actionLoading === 'save-settings'}
+                    className="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center space-x-2"
+                  >
+                    {actionLoading === 'save-settings' ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    <span>Save Variables</span>
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">Define environment variables as a JSON object. These will be securely injected into your container at runtime. You must redeploy to apply changes.</p>
+                <div className="relative">
+                  <textarea
+                    value={typeof settings.envVars === 'string' ? settings.envVars : JSON.stringify(settings.envVars, null, 2)}
+                    onChange={(e) => setSettings({ ...settings, envVars: e.target.value })}
+                    className="w-full h-48 p-4 bg-slate-900 text-slate-100 font-mono text-xs rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y border border-slate-800"
+                    spellCheck={false}
+                  />
+                </div>
               </div>
 
               <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
