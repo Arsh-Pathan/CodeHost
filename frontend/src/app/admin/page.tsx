@@ -33,6 +33,7 @@ import {
   X
 } from 'lucide-react';
 import Link from 'next/link';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Stats {
   users: number;
@@ -230,6 +231,35 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleRunPrune = async () => {
+    if (!confirm('Run Docker prune? This will remove all dangling images and unused networks.')) return;
+    setActionLoading('prune');
+    try {
+      await fetchApi('/admin/system/prune', { method: 'POST' });
+      alert('System prune completed successfully.');
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleToggleMaintenance = async () => {
+    if (!confirm('Toggle Maintenance Mode?')) return;
+    setActionLoading('maintenance');
+    try {
+      await fetchApi('/admin/system/maintenance', { 
+        method: 'POST', 
+        body: JSON.stringify({ enabled: true }) // Simplified for now, just sets it
+      });
+      alert('Maintenance mode toggled.');
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'running': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
@@ -409,6 +439,75 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* Data Analytics Charts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center">
+                    <Box className="w-5 h-5 text-purple-500 mr-3" /> Instance States
+                  </h2>
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Running', value: projects.filter(p => p.status === 'running').length, color: '#10b981' },
+                            { name: 'Building', value: projects.filter(p => p.status === 'building').length, color: '#3b82f6' },
+                            { name: 'Stopped', value: projects.filter(p => p.status === 'stopped').length, color: '#f59e0b' },
+                            { name: 'Failed', value: projects.filter(p => p.status === 'failed').length, color: '#ef4444' },
+                          ].filter(d => d.value > 0)}
+                          cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5}
+                          dataKey="value" stroke="none" label
+                        >
+                          {
+                            [
+                              { name: 'Running', value: projects.filter(p => p.status === 'running').length, color: '#10b981' },
+                              { name: 'Building', value: projects.filter(p => p.status === 'building').length, color: '#3b82f6' },
+                              { name: 'Stopped', value: projects.filter(p => p.status === 'stopped').length, color: '#f59e0b' },
+                              { name: 'Failed', value: projects.filter(p => p.status === 'failed').length, color: '#ef4444' },
+                            ].filter(d => d.value > 0).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))
+                          }
+                        </Pie>
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center">
+                    <Server className="w-5 h-5 text-blue-500 mr-3" /> Hardware Tiers
+                  </h2>
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Free Tier', value: projects.filter(p => p.tier === 'free' || !p.tier).length, color: '#94a3b8' },
+                            { name: 'Pro Tier', value: projects.filter(p => p.tier === 'pro').length, color: '#3b82f6' },
+                            { name: 'Elite Tier', value: projects.filter(p => p.tier === 'elite').length, color: '#8b5cf6' },
+                          ].filter(d => d.value > 0)}
+                          cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5}
+                          dataKey="value" stroke="none" label
+                        >
+                          {
+                            [
+                              { name: 'Free Tier', value: projects.filter(p => p.tier === 'free' || !p.tier).length, color: '#94a3b8' },
+                              { name: 'Pro Tier', value: projects.filter(p => p.tier === 'pro').length, color: '#3b82f6' },
+                              { name: 'Elite Tier', value: projects.filter(p => p.tier === 'elite').length, color: '#8b5cf6' },
+                            ].filter(d => d.value > 0).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))
+                          }
+                        </Pie>
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -563,15 +662,23 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 mb-2">Docker System Prune</h3>
                     <p className="text-xs font-medium text-slate-500 mb-4">Clean up unused containers, networks, dangling images, and build caches to free up disk space.</p>
-                    <button className="px-5 py-2.5 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10">
-                      Run Prune
+                    <button 
+                      onClick={handleRunPrune}
+                      disabled={actionLoading === 'prune'}
+                      className="px-5 py-2.5 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10 disabled:opacity-50"
+                    >
+                      {actionLoading === 'prune' ? 'Pruning...' : 'Run Prune'}
                     </button>
                   </div>
                   <div className="pt-8 border-t border-slate-100">
                     <h3 className="text-sm font-bold text-red-600 mb-2">Maintenance Mode</h3>
                     <p className="text-xs font-medium text-slate-500 mb-4">Block new deployments and logins across the platform. Running apps will remain unaffected.</p>
-                    <button className="px-5 py-2.5 bg-red-50 text-red-600 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-100 border border-red-200 transition-colors">
-                      Enable Maintenance Mode
+                    <button 
+                      onClick={handleToggleMaintenance}
+                      disabled={actionLoading === 'maintenance'}
+                      className="px-5 py-2.5 bg-red-50 text-red-600 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading === 'maintenance' ? 'Toggling...' : 'Enable Maintenance Mode'}
                     </button>
                   </div>
                 </div>

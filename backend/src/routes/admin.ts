@@ -324,4 +324,35 @@ router.post('/users', async (req: AuthRequest, res) => {
   }
 });
 
+// Run Docker Prune
+router.post('/system/prune', async (req: AuthRequest, res) => {
+  try {
+    await docker.pruneContainers({ filters: { until: ['24h'] } });
+    await docker.pruneImages({ filters: { dangling: ['true'] } });
+    await docker.pruneNetworks();
+    logger.info(`Admin ${req.user!.email} ran system prune`);
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, 'Admin prune error');
+    res.status(500).json({ error: 'Failed to prune system' });
+  }
+});
+
+// Toggle Maintenance Mode (using Redis as state store)
+router.post('/system/maintenance', async (req: AuthRequest, res) => {
+  try {
+    const { enabled } = req.body;
+    if (enabled) {
+      await redis.set('system:maintenance', 'true');
+    } else {
+      await redis.del('system:maintenance');
+    }
+    logger.info(`Admin ${req.user!.email} set maintenance mode to ${enabled}`);
+    res.json({ success: true });
+  } catch (error) {
+    logger.error({ error }, 'Admin maintenance mode error');
+    res.status(500).json({ error: 'Failed to toggle maintenance mode' });
+  }
+});
+
 export default router;
