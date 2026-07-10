@@ -26,7 +26,9 @@ import {
   HardDrive,
   Globe,
   Bell,
-  Menu
+  Menu,
+  Server,
+  Box
 } from 'lucide-react';
 import Link from 'next/link';
 
