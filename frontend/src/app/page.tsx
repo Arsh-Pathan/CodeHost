@@ -46,11 +46,17 @@ const SplitText = ({ text, className }: { text: string; className?: string }) =>
 
 export default function Home() {
   const [serverCount, setServerCount] = React.useState(0);
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) setIsLoggedIn(true);
+    }
+
     const fetchStats = async () => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/stats/public`);
@@ -237,10 +243,18 @@ export default function Home() {
           <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="text-sm font-medium text-[#5865F2] hover:text-[#4752C4] transition-colors">Discord</Link>
         </div>
         <div className="flex items-center space-x-3">
-          <Link href="/login" className="text-sm font-medium text-slate-500 hover:text-slate-900 px-4 py-2 transition-colors">Login</Link>
-          <Link href="/signup" className="px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-all">
-             Get Started
-          </Link>
+          {isLoggedIn ? (
+            <Link href="/dashboard" className="px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-all">
+               Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm font-medium text-slate-500 hover:text-slate-900 px-4 py-2 transition-colors">Login</Link>
+              <Link href="/signup" className="px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-all">
+                 Get Started
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 

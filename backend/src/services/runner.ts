@@ -60,9 +60,9 @@ export class RunnerService {
         Image: imageName,
         name: containerName,
         Env: [
-          `VIRTUAL_HOST=${projectSlug}.${host}`,
+          `VIRTUAL_HOST=${projectSlug}.${host}${project?.customDomain ? `,${project.customDomain}` : ''}`,
           `VIRTUAL_PORT=${containerPort}`,
-          `LETSENCRYPT_HOST=${projectSlug}.${host}`,
+          `LETSENCRYPT_HOST=${projectSlug}.${host}${project?.customDomain ? `,${project.customDomain}` : ''}`,
           `LETSENCRYPT_EMAIL=admin@${host}`,
           `VIRTUAL_NETWORK=proxy`,
           ...Object.entries((project?.envVars as Record<string, string>) || {}).map(([k, v]) => `${k}=${v}`)
@@ -77,8 +77,8 @@ export class RunnerService {
         Labels: {
           'traefik.enable': 'true',
 
-          // 1. Subdomain-based router (New: projectname.code-host.online)
-          [`traefik.http.routers.${containerName}-subdomain.rule`]: `Host(\`${projectSlug}.${host}\`)`,
+          // 1. Subdomain-based router (New: projectname.code-host.online and custom domains)
+          [`traefik.http.routers.${containerName}-subdomain.rule`]: project?.customDomain ? `Host(\`${projectSlug}.${host}\`) || Host(\`${project.customDomain}\`)` : `Host(\`${projectSlug}.${host}\`)`,
           [`traefik.http.routers.${containerName}-subdomain.priority`]: '200',
           [`traefik.http.routers.${containerName}-subdomain.entrypoints`]: 'web',
           [`traefik.http.routers.${containerName}-subdomain.service`]: containerName,
@@ -144,9 +144,9 @@ export class RunnerService {
           Image: imageName,
           name: containerName,
           Env: [
-            `VIRTUAL_HOST=${projectSlug}.${host}`,
+            `VIRTUAL_HOST=${projectSlug}.${host}${project?.customDomain ? `,${project.customDomain}` : ''}`,
             `VIRTUAL_PORT=${actualPort}`,
-            `LETSENCRYPT_HOST=${projectSlug}.${host}`,
+            `LETSENCRYPT_HOST=${projectSlug}.${host}${project?.customDomain ? `,${project.customDomain}` : ''}`,
             `LETSENCRYPT_EMAIL=admin@${host}`,
             `VIRTUAL_NETWORK=proxy`,
             ...Object.entries((project?.envVars as Record<string, string>) || {}).map(([k, v]) => `${k}=${v}`)
@@ -160,7 +160,7 @@ export class RunnerService {
           },
           Labels: {
             'traefik.enable': 'true',
-            [`traefik.http.routers.${containerName}-subdomain.rule`]: `Host(\`${projectSlug}.${host}\`)`,
+            [`traefik.http.routers.${containerName}-subdomain.rule`]: project?.customDomain ? `Host(\`${projectSlug}.${host}\`) || Host(\`${project.customDomain}\`)` : `Host(\`${projectSlug}.${host}\`)`,
             [`traefik.http.routers.${containerName}-subdomain.priority`]: '200',
             [`traefik.http.routers.${containerName}-subdomain.entrypoints`]: 'web',
             [`traefik.http.routers.${containerName}-subdomain.service`]: containerName,

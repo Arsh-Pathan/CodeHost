@@ -50,6 +50,7 @@ interface Project {
   repoUrl?: string;
   repoBranch?: string;
   repoSubdir?: string;
+  customDomain?: string;
 }
 
 interface TierInfo {
@@ -101,7 +102,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
     buildCommand: '',
     startCommand: '',
     dockerfileOverride: '',
-    envVars: {}
+    envVars: {},
+    customDomain: ''
   });
 
   const [logs, setLogs] = useState<{message: string; timestamp: string; type: string}[]>([]);
@@ -151,7 +153,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         buildCommand: projRes.project.buildCommand || '',
         startCommand: projRes.project.startCommand || '',
         dockerfileOverride: projRes.project.dockerfileOverride || '',
-        envVars: Object.keys(projRes.project.envVars || {}).length > 0 ? JSON.stringify(projRes.project.envVars, null, 2) : '{\n  "PORT": "3000"\n}'
+        envVars: Object.keys(projRes.project.envVars || {}).length > 0 ? JSON.stringify(projRes.project.envVars, null, 2) : '{\n  "PORT": "3000"\n}',
+        customDomain: projRes.project.customDomain || ''
       });
 
       // Pre-fill GitHub fields if project has repo info
@@ -701,13 +704,25 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                       </div>
                     )}
 
-                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between opacity-50">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Custom Domain</span>
-                        <span className="font-mono text-sm font-bold text-slate-900">Premium Upgrade Required</span>
+                    {project.customDomain ? (
+                      <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-blue-200 transition-all">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Custom Domain</span>
+                          <a href={`https://${project.customDomain}`} target="_blank" className="font-mono text-sm font-bold text-slate-900 block hover:underline">
+                            {project.customDomain}
+                          </a>
+                        </div>
+                        <Globe size={18} className="text-slate-300 group-hover:text-blue-500 transform transition-all" />
                       </div>
-                      <Settings size={18} className="text-slate-300" />
-                    </div>
+                    ) : (
+                      <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between opacity-50">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Custom Domain</span>
+                          <span className="font-mono text-sm font-bold text-slate-900">Premium Upgrade Required</span>
+                        </div>
+                        <Settings size={18} className="text-slate-300" />
+                      </div>
+                    )}
                   </div>
                </div>
 
@@ -856,6 +871,35 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                       Current: <span className="text-slate-900 font-black">{project.name}.code-host.online</span>.
                       If the app is running, it will be <span className="text-blue-600 font-black">automatically restarted</span> on the new subdomain.
                     </p>
+                  </div>
+                  
+                  <div className="space-y-2 mt-8 pt-8 border-t border-slate-100">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Custom Domain</label>
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <input
+                        type="text"
+                        placeholder="e.g., app.mywebsite.com"
+                        className="flex-1 p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold text-slate-900 focus:outline-none focus:ring-0 focus:border-blue-600 transition-all"
+                        value={settings.customDomain}
+                        onChange={(e) => setSettings({ ...settings, customDomain: e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, '') })}
+                      />
+                      <button
+                        onClick={handleSaveSettings}
+                        disabled={actionLoading !== null}
+                        className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-30 transition-all flex items-center justify-center space-x-2 shrink-0"
+                      >
+                        {actionLoading === 'save-settings' ? <Loader2 size={16} className="animate-spin" /> : <Globe size={14} />}
+                        <span>Save Domain</span>
+                      </button>
+                    </div>
+                    <div className="px-1 mt-2 space-y-1">
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        Point your domain to the VPS IP using an <span className="text-slate-900 font-black">A Record</span> to enable this custom domain.
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        A free Let's Encrypt SSL certificate will automatically be generated for your custom domain by the proxy.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

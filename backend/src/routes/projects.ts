@@ -318,7 +318,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const { name, buildCommand, startCommand, dockerfileOverride, envVars, tier } = req.body;
+    const { name, buildCommand, startCommand, dockerfileOverride, envVars, tier, customDomain } = req.body;
 
     // Handle Rename (Subdomain Change) logic (omitted for brevity in search but included in replacement)
     if (name && name.toLowerCase() !== project.name.toLowerCase()) {
@@ -373,14 +373,16 @@ router.put('/:id', async (req: AuthRequest, res) => {
         dockerfileOverride: dockerfileOverride ?? project.dockerfileOverride,
         envVars: envVars ?? project.envVars,
         tier: newTier,
+        customDomain: customDomain !== undefined ? customDomain : project.customDomain,
       }
     });
 
-    // Auto-restart if name or tier changed and project is running
+    // Auto-restart if name, tier, or custom domain changed and project is running
     const nameChanged = name && name.toLowerCase() !== project.name.toLowerCase();
     const tierChanged = tier && tier !== project.tier;
+    const domainChanged = customDomain !== undefined && customDomain !== project.customDomain;
 
-    if ((nameChanged || tierChanged) && (project.status === 'running' || project.containerId)) {
+    if ((nameChanged || tierChanged || domainChanged) && (project.status === 'running' || project.containerId)) {
       const lastDeployment = await prisma.deployment.findFirst({
         where: { projectId: project.id, status: 'success' },
         orderBy: { createdAt: 'desc' }
@@ -391,7 +393,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
         void (async () => {
           try {
             await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
-            logger.info(`Auto-restarted container for project ${project.id} after settings change (name/tier)`);
+            logger.info(`Auto-restarted container for project ${project.id} after settings change (name/tier/domain)`);
           } catch (err) {
             logger.error({ error: err }, `Failed to auto-restart container after settings change for ${project.id}`);
           }
@@ -401,7 +403,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
 
     res.json({ 
       project: updated, 
-      restarting: !!((nameChanged || tierChanged) && (project.status === 'running' || project.containerId)) 
+      restarting: !!((nameChanged || tierChanged || domainChanged) && (project.status === 'running' || project.containerId)) 
     });
   } catch (error) {
     logger.error({ error }, 'Update project error');
