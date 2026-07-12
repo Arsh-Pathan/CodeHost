@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { fetchApi, API_URL } from '@/lib/api';
 import PanelLayout from '@/components/PanelLayout';
 import { CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Loader2, Zap, Package } from 'lucide-react';
@@ -232,10 +233,19 @@ export default function BillingPage() {
                       </td>
                       <td className="p-4 text-xs font-medium text-slate-600">{tx.description || '-'}</td>
                       <td className="p-4 pr-6 text-right">
-                        <span className={`flex items-center justify-end space-x-1 text-sm font-black ${tx.amount > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                          {tx.amount > 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                          <span>{tx.amount > 0 ? '+' : ''}{tx.amount}</span>
-                        </span>
+                        <div className="flex flex-col items-end space-y-2">
+                          <span className={`flex items-center space-x-1 text-sm font-black ${tx.amount > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {tx.amount > 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                            <span>{tx.amount > 0 ? '+' : ''}{tx.amount}</span>
+                          </span>
+                          {(tx.type === 'purchase' || tx.type === 'admin_grant') && (
+                            <Link href={`/dashboard/billing/invoice/${tx.id}`}>
+                              <button className="text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                                View Invoice
+                              </button>
+                            </Link>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

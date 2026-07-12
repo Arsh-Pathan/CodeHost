@@ -180,6 +180,7 @@ router.get('/users', async (req: AuthRequest, res) => {
         emailVerified: true,
         provider: true,
         createdAt: true,
+        wallet: { select: { balance: true } },
         _count: {
           select: { projects: true }
         }
@@ -352,6 +353,47 @@ router.post('/system/maintenance', async (req: AuthRequest, res) => {
   } catch (error) {
     logger.error({ error }, 'Admin maintenance mode error');
     res.status(500).json({ error: 'Failed to toggle maintenance mode' });
+  }
+});
+
+// Grant credits to a user
+router.post('/users/:id/credits', async (req: AuthRequest, res) => {
+  try {
+    const { amount, description } = req.body;
+    if (typeof amount !== 'number') {
+      return res.status(400).json({ error: 'Amount is required and must be a number' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    let wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
+    if (!wallet) {
+      wallet = await prisma.wallet.create({ data: { userId: user.id, balance: 0 } });
+    }
+
+    const newWallet = await prisma.$transaction(async (tx) => {
+      const updated = await tx.wallet.update({
+        where: { id: wallet!.id },
+        data: { balance: { increment: amount } }
+      });
+      
+      await tx.transaction.create({
+        data: {
+          walletId: wallet!.id,
+          amount,
+          type: 'admin_grant',
+          description: description || 'Admin manual adjustment'
+        }
+      });
+      return updated;
+    });
+
+    logger.info(`Admin ${req.user!.email} granted ${amount} credits to user ${user.email}`);
+    res.json({ wallet: newWallet });
+  } catch (error) {
+    logger.error({ error }, 'Admin grant credits error');
+    res.status(500).json({ error: 'Failed to grant credits' });
   }
 });
 

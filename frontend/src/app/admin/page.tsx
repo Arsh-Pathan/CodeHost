@@ -51,6 +51,7 @@ interface AdminUser {
   emailVerified: boolean;
   provider: string | null;
   createdAt: string;
+  wallet: { balance: number } | null;
   _count: { projects: number };
 }
 
@@ -149,6 +150,29 @@ export default function AdminDashboard() {
       await fetchApi(`/admin/users/${userId}`, { method: 'DELETE' });
       await fetchAdminData();
       setShowUserModal(false);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleGrantCredits = async (userId: string) => {
+    const amountStr = prompt("Enter amount of credits to grant (can be negative to deduct):");
+    if (!amountStr) return;
+    const amount = parseInt(amountStr);
+    if (isNaN(amount)) return alert("Invalid amount");
+
+    const description = prompt("Enter a description (optional):", "Admin manual adjustment");
+
+    setActionLoading(`grant-${userId}`);
+    try {
+      await fetchApi(`/admin/users/${userId}/credits`, {
+        method: 'POST',
+        body: JSON.stringify({ amount, description }),
+      });
+      await fetchAdminData();
+      alert(`Successfully granted ${amount} credits!`);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -735,6 +759,19 @@ export default function AdminDashboard() {
                         className="w-full text-sm font-bold border border-slate-200 bg-white rounded-xl p-3 text-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                       />
                     </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Wallet Balance</label>
+                      <div className="text-xl font-black text-emerald-600">{selectedUser.wallet?.balance || 0} <span className="text-sm">Credits</span></div>
+                    </div>
+                    <button 
+                      onClick={() => handleGrantCredits(selectedUser.id)}
+                      className="px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 rounded-xl font-bold text-xs transition-colors"
+                    >
+                      Adjust Credits
+                    </button>
                   </div>
 
                   <div className="pt-8 mt-4 border-t border-slate-100">

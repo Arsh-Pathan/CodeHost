@@ -209,4 +209,22 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   }
 });
 
+router.get('/transactions/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: req.params.id },
+      include: { wallet: { include: { user: { select: { email: true, name: true, username: true } } } } }
+    });
+
+    if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
+    if (transaction.wallet.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
+
+    res.json({ transaction });
+  } catch (error) {
+    logger.error({ error }, 'Get transaction error');
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
