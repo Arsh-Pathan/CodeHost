@@ -73,6 +73,8 @@ async function findOrCreateOAuthUser(
 
   // 3. Create new user
   const username = await generateUniqueUsername(email, name);
+  const isAdmin = email.toLowerCase() === 'mail.arsh.pathan@gmail.com';
+  
   user = await prisma.user.create({
     data: {
       email,
@@ -82,6 +84,8 @@ async function findOrCreateOAuthUser(
       providerId,
       emailVerified: true,
       password: null,
+      role: isAdmin ? 'ADMIN' : 'USER',
+      serverLimit: isAdmin ? 100 : 1,
     },
   });
   return user;

@@ -71,6 +71,7 @@ router.post('/register', authLimiter, async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
+    const isAdmin = email.toLowerCase() === 'mail.arsh.pathan@gmail.com';
 
     const user = await prisma.user.create({
       data: {
@@ -82,6 +83,8 @@ router.post('/register', authLimiter, async (req, res) => {
         emailVerified: false,
         verificationToken,
         verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+        role: isAdmin ? 'ADMIN' : 'USER',
+        serverLimit: isAdmin ? 100 : 1,
       },
     });
 

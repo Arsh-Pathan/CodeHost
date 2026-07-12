@@ -69,7 +69,7 @@ COPY --from=builder /app/packages/redis/dist ./packages/redis/dist
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 
 EXPOSE 4000
-CMD ["sh", "-c", "cd database && npx prisma db push --accept-data-loss && cd .. && node backend/dist/index.js"]
+CMD ["sh", "-c", "cd database && npx prisma db push --accept-data-loss --skip-generate && cd .. && node backend/dist/index.js"]
 
 # --- Stage 3: Web Runner ---
 FROM node:20-alpine AS web
