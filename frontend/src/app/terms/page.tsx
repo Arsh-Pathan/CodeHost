@@ -115,13 +115,13 @@ export default function TermsPage() {
 
           {/* 7 */}
           <section>
-            <h2 className="text-xl font-black text-[#0F172A] mb-4">7. Razorpay & Payment Processing</h2>
+            <h2 className="text-xl font-black text-[#0F172A] mb-4">7. Online Payment Processing</h2>
             <p className="mb-4">
-              We use <strong>Razorpay</strong> as our third-party payment processor. By purchasing credits, you also agree to Razorpay&apos;s terms and conditions.
+              We use certified third-party payment gateways for online transactions. By purchasing credits, you also agree to the payment provider&apos;s terms and conditions.
             </p>
             <ul className="list-disc pl-6 space-y-2">
-              <li>CodeHost does not store your full credit card details, UPI PINs, or net-banking credentials. This data is handled exclusively and securely by Razorpay.</li>
-              <li>We only store payment metadata (Razorpay Order and Payment IDs) to verify and record your credit purchases.</li>
+              <li>CodeHost does not store your full credit card details, UPI PINs, or net-banking credentials. Payment processing is handled exclusively and securely by certified payment gateways.</li>
+              <li>We only store payment metadata (order and payment transaction identifiers) to verify and record your credit purchases.</li>
               <li>You are responsible for any fees charged by your bank or payment provider during the transaction.</li>
             </ul>
           </section>
@@ -161,7 +161,7 @@ export default function TermsPage() {
               <li>Attempt to exploit, attack, or reverse-engineer the platform.</li>
               <li>Use excessive resources that degrade service for other users.</li>
               <li>Create multiple accounts to circumvent platform limits or free-tier quotas.</li>
-              <li>Initiate unauthorized chargebacks or payment disputes with Razorpay.</li>
+              <li>Initiate unauthorized chargebacks or payment disputes with payment processors.</li>
             </ul>
             <p className="mt-4">
               Upon termination, all your deployed projects will be stopped and your data will be deleted within 30 days. Unused credits are non-refundable upon account termination.

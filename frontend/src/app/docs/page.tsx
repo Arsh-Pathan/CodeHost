@@ -659,43 +659,48 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
                 <h2 className="text-2xl font-black text-[#0F172A]">Billing & Pricing</h2>
               </div>
               <p className="text-slate-600 leading-relaxed mb-6">
-                CodeHost uses a <strong>prepaid credits model</strong>. You buy credits in packages, and then assign a resource tier to each of your projects. 1 credit = ₹2.
+                CodeHost operates on a <strong>prepaid credits model</strong>. You buy credits in preset packages or any custom amount, then assign a resource tier to each of your projects. 1 credit = ₹1.60 ($0.02).
               </p>
 
               <h3 className="text-lg font-black text-[#0F172A] mb-3">How it Works</h3>
               <div className="space-y-4 mb-8">
                 <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
                   <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg flex-shrink-0">1. Buy Credits</span>
-                  <p className="text-sm text-slate-600">Purchase credits online via UPI, Cards, NetBanking, or Wallets. Credits are added to your account wallet instantly.</p>
+                  <p className="text-sm text-slate-600">Purchase preset credit bundles or enter any custom credit amount (min. 10 credits). Payments are processed instantly and credits reflect in your wallet in real time.</p>
                 </div>
                 <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
                   <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg flex-shrink-0">2. Pick a Tier</span>
-                  <p className="text-sm text-slate-600">When creating a project or in project settings, chose a resource tier (Free, Basic, Pro, or Business). Each tier has different RAM, CPU, and storage limits.</p>
+                  <p className="text-sm text-slate-600">When creating a project or in project settings, choose a resource tier (Free, Basic, Pro, or Business). Each tier specifies dedicated RAM, CPU, and storage limits.</p>
                 </div>
                 <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
                   <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg flex-shrink-0">3. Monthly Charge</span>
-                  <p className="text-sm text-slate-600">Credits are deducted from your wallet monthly for each active paid project. If your balance hits zero, your project will be automatically stopped.</p>
+                  <p className="text-sm text-slate-600">Credits are deducted from your wallet monthly for each active paid project. If your balance hits zero, your project container is cleanly paused without data loss.</p>
                 </div>
               </div>
 
-              <h3 className="text-lg font-black text-[#0F172A] mb-3">Credit Packages</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <h3 className="text-lg font-black text-[#0F172A] mb-3">Credit Packages & Custom Amount</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Starter</p>
                   <p className="text-xl font-black text-slate-900">100 Credits</p>
-                  <p className="text-sm font-bold text-blue-600 mt-2">₹200</p>
+                  <p className="text-sm font-bold text-blue-600 mt-2">₹160 ($2.00)</p>
                 </div>
                 <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/30 shadow-sm relative overflow-hidden">
                    <div className="absolute top-0 right-0 px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black uppercase tracking-tighter">Save 17%</div>
                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Growth</p>
                   <p className="text-xl font-black text-slate-900">300 Credits</p>
-                  <p className="text-sm font-bold text-blue-600 mt-2">₹500</p>
+                  <p className="text-sm font-bold text-blue-600 mt-2">₹400 ($5.00)</p>
                 </div>
                 <div className="p-4 rounded-xl border border-slate-100 bg-white shadow-sm relative overflow-hidden">
                    <div className="absolute top-0 right-0 px-2 py-0.5 bg-emerald-600 text-white text-[8px] font-black uppercase tracking-tighter">Save 25%</div>
                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Team</p>
                   <p className="text-xl font-black text-slate-900">600 Credits</p>
-                  <p className="text-sm font-bold text-blue-600 mt-2">₹900</p>
+                  <p className="text-sm font-bold text-blue-600 mt-2">₹720 ($9.00)</p>
+                </div>
+                <div className="p-4 rounded-xl border border-purple-100 bg-purple-50/30 shadow-sm relative overflow-hidden">
+                  <p className="text-xs font-black text-purple-600 uppercase tracking-widest mb-1">Custom</p>
+                  <p className="text-xl font-black text-slate-900">Any Amount</p>
+                  <p className="text-sm font-bold text-purple-600 mt-2">₹1.60 / credit</p>
                 </div>
               </div>
             </section>
