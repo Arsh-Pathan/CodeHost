@@ -1,10 +1,30 @@
 import Link from 'next/link';
 import { LogoWithText } from '@/components/Logo';
-import { ArrowLeft, ArrowRight, Terminal, Upload, Globe, Cpu, FileCode, Settings, AlertTriangle } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  Terminal, 
+  Upload, 
+  Globe, 
+  Cpu, 
+  FileCode, 
+  Settings, 
+  AlertTriangle,
+  Database,
+  Zap,
+  Rocket,
+  Shield,
+  Lock,
+  Check,
+  Sparkles,
+  Moon,
+  Flame,
+  Copy
+} from 'lucide-react';
 
 export const metadata = {
   title: 'Documentation — CodeHost',
-  description: 'Learn how to deploy your projects on CodeHost. Step-by-step guides, supported technologies, and troubleshooting.',
+  description: 'Learn how to deploy your projects on CodeHost. Step-by-step guides, supported technologies, starter templates, and databases.',
 };
 
 function SidebarLink({ href, children, indent }: { href: string; children: React.ReactNode; indent?: boolean }) {
@@ -79,6 +99,15 @@ export default function DocsPage() {
           </div>
 
           <div className="space-y-2">
+            <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-3">Platform Features</p>
+            <SidebarLink href="#starter-templates">Starter Templates</SidebarLink>
+            <SidebarLink href="#managed-databases">Managed Databases</SidebarLink>
+            <SidebarLink href="#scale-to-zero">Scale-to-Zero Auto-Sleep</SidebarLink>
+            <SidebarLink href="#custom-domains">Custom Domains & SSL</SidebarLink>
+            <SidebarLink href="#white-labeling">White-Labeling</SidebarLink>
+          </div>
+
+          <div className="space-y-2">
             <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-3">Reference</p>
             <SidebarLink href="#supported-technologies">Supported Technologies</SidebarLink>
             <SidebarLink href="#project-requirements">Project Requirements</SidebarLink>
@@ -87,8 +116,9 @@ export default function DocsPage() {
           </div>
 
           <div className="space-y-2">
-            <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-3">Help</p>
-            <SidebarLink href="#billing-pricing">Billing & Pricing</SidebarLink>
+            <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-3">Billing & Help</p>
+            <SidebarLink href="#billing-pricing">Billing & Credits</SidebarLink>
+            <SidebarLink href="#hackathon-pass">Hackathon Pass</SidebarLink>
             <SidebarLink href="#deployment-status">Deployment Status</SidebarLink>
             <SidebarLink href="#troubleshooting">Troubleshooting</SidebarLink>
             <SidebarLink href="#limits">Limits & Quotas</SidebarLink>
@@ -316,6 +346,209 @@ export default function DocsPage() {
                   </tbody>
                 </table>
               </div>
+            </section>
+
+            {/* Starter Templates */}
+            <section id="starter-templates">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center">
+                  <Rocket size={20} className="text-blue-600" />
+                </div>
+                <h2 className="text-2xl font-black text-[#0F172A]">1-Click Starter Templates</h2>
+              </div>
+              <p className="text-slate-600 leading-relaxed mb-6">
+                Instead of configuring dependencies, package scripts, and ports from scratch, you can deploy verified starter templates in one click. Every template is pre-tuned for isolated container runtimes, hot reloading, and zero-config SSL.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <div className="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-black text-slate-900 text-base">Next.js 16 Fullstack</h4>
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">React 19</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-3">App Router, SSR, Turbopack, Tailwind CSS, and standalone Docker output.</p>
+                  <p className="text-[11px] font-mono text-slate-400">Launch URL: <InlineCode>?template=nextjs</InlineCode></p>
+                </div>
+
+                <div className="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-black text-slate-900 text-base">Python FastAPI + AI</h4>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">AI Ready</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-3">Python 3.12 async backend with Pydantic validation, OpenAPI docs, and LangChain support.</p>
+                  <p className="text-[11px] font-mono text-slate-400">Launch URL: <InlineCode>?template=fastapi</InlineCode></p>
+                </div>
+
+                <div className="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-black text-slate-900 text-base">Node.js Express & WS</h4>
+                    <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">WebSockets</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-3">High-throughput REST API with real-time Socket.io and CORS configuration.</p>
+                  <p className="text-[11px] font-mono text-slate-400">Launch URL: <InlineCode>?template=express</InlineCode></p>
+                </div>
+
+                <div className="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-black text-slate-900 text-base">Modern Static Portfolio</h4>
+                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Instant CDN</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-3">Responsive HTML5, Tailwind CSS, and zero runtime overhead served via Nginx.</p>
+                  <p className="text-[11px] font-mono text-slate-400">Launch URL: <InlineCode>?template=portfolio</InlineCode></p>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-black text-[#0F172A] mb-3">Deploying a Starter Template</h3>
+              <p className="text-slate-600 leading-relaxed mb-4">
+                To launch a template, navigate to <strong>Dashboard &gt; New Project</strong>. Under Step 1, click any verified template card. CodeHost pre-fills a unique project identifier and sets up the deployment container immediately.
+              </p>
+            </section>
+
+            {/* Managed Databases */}
+            <section id="managed-databases">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                  <Database size={20} className="text-emerald-500" />
+                </div>
+                <h2 className="text-2xl font-black text-[#0F172A]">Managed Databases (Postgres & Redis)</h2>
+              </div>
+              <p className="text-slate-600 leading-relaxed mb-6">
+                CodeHost eliminates the hassle of manually provisioning database servers, configuring firewall ports, or running backups. Launch dedicated instances of PostgreSQL 16 and Redis 7 in seconds.
+              </p>
+
+              <div className="space-y-4 mb-8">
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-black text-slate-900 text-base flex items-center gap-2">
+                      <Database size={16} className="text-blue-600" />
+                      <span>PostgreSQL 16 Enterprise</span>
+                    </h4>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">Automated Daily Backups</span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Dedicated relational database engine with persistent NVMe storage, connection pooling, and automated point-in-time recovery.
+                  </p>
+                  <CodeBlock>{`DATABASE_URL=postgresql://codehost_user:password@db.code-host.online:5432/production`}</CodeBlock>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-black text-slate-900 text-base flex items-center gap-2">
+                      <Zap size={16} className="text-red-600" />
+                      <span>Redis 7 In-Memory Cache</span>
+                    </h4>
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">&lt; 0.5ms Ping</span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    High-speed key-value store for session caching, pub/sub queues, rate limiting, and temporary state storage.
+                  </p>
+                  <CodeBlock>{`REDIS_URL=rediss://default:password@cache.code-host.online:6379`}</CodeBlock>
+                </div>
+              </div>
+            </section>
+
+            {/* Scale-to-Zero Auto-Sleep */}
+            <section id="scale-to-zero">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+                  <Moon size={20} className="text-cyan-600" />
+                </div>
+                <h2 className="text-2xl font-black text-[#0F172A]">Scale-to-Zero & Intelligent Auto-Sleep</h2>
+              </div>
+              <p className="text-slate-600 leading-relaxed mb-6">
+                Why pay for idle servers running at 3 AM? CodeHost features a background daemon that automatically detects when your application has had zero HTTP traffic for <strong>15 minutes</strong> and safely puts compute resources to sleep.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="p-4 rounded-2xl border border-slate-100 bg-white">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Phase 1</p>
+                  <h4 className="font-black text-slate-900 text-sm mb-1">Inactivity Detection</h4>
+                  <p className="text-xs text-slate-500">After 15m of zero requests, CPU & RAM freeze. 0 credits are burned.</p>
+                </div>
+                <div className="p-4 rounded-2xl border border-slate-100 bg-white">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-1">Phase 2</p>
+                  <h4 className="font-black text-slate-900 text-sm mb-1">Proxy Request Buffer</h4>
+                  <p className="text-xs text-slate-500">When traffic arrives, our reverse proxy holds the socket and spins up the container in ~280ms.</p>
+                </div>
+                <div className="p-4 rounded-2xl border border-slate-100 bg-white">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">Phase 3</p>
+                  <h4 className="font-black text-slate-900 text-sm mb-1">Zero Dropped Packets</h4>
+                  <p className="text-xs text-slate-500">HTTP 200 OK is returned seamlessly. Neither your user nor evaluator ever sees a failure.</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500">
+                <em>Note: If you run background WebSocket bots or continuous Cron jobs that must stay warm 24/7, you can toggle Always-On in project settings.</em>
+              </p>
+            </section>
+
+            {/* Custom Domains & SSL */}
+            <section id="custom-domains">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                  <Globe size={20} className="text-indigo-600" />
+                </div>
+                <h2 className="text-2xl font-black text-[#0F172A]">Custom Domains & Instant Free SSL</h2>
+              </div>
+              <p className="text-slate-600 leading-relaxed mb-6">
+                Every project automatically receives a free <InlineCode>your-app.code-host.online</InlineCode> subdomain with Let&apos;s Encrypt TLS. You can also connect any custom domain (e.g. <InlineCode>api.mybrand.com</InlineCode> or apex <InlineCode>mybrand.com</InlineCode>).
+              </p>
+
+              <h3 className="text-lg font-black text-[#0F172A] mb-3">DNS Configuration Steps</h3>
+              <div className="space-y-4 mb-8">
+                <StepCard number="1" title="Add a DNS A Record">
+                  <p className="text-sm text-slate-600 mb-2">
+                    In your domain registrar (Cloudflare, GoDaddy, Namecheap, Google Domains, etc.), add an <strong>A record</strong>:
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs font-mono border-collapse bg-slate-50 rounded-xl border border-slate-200">
+                      <thead>
+                        <tr className="text-left border-b border-slate-200 text-slate-400">
+                          <th className="p-2.5">Type</th>
+                          <th className="p-2.5">Name / Host</th>
+                          <th className="p-2.5">Value / IP Address</th>
+                          <th className="p-2.5">TTL</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-slate-800 font-bold">
+                        <tr>
+                          <td className="p-2.5 text-blue-600">A</td>
+                          <td className="p-2.5">@ (or app / api)</td>
+                          <td className="p-2.5 text-emerald-600">51.79.249.143</td>
+                          <td className="p-2.5">Auto (300s)</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </StepCard>
+
+                <StepCard number="2" title="Save Custom Domain in Settings">
+                  <p className="text-sm text-slate-600">
+                    Open your project dashboard, navigate to the <strong>Settings</strong> tab, paste your domain under <strong>&ldquo;Custom Domain&rdquo;</strong>, and click <strong>&ldquo;Save Domain&rdquo;</strong>.
+                  </p>
+                </StepCard>
+
+                <StepCard number="3" title="Automatic TLS Verification">
+                  <p className="text-sm text-slate-600">
+                    CodeHost&apos;s edge proxy automatically verifies the DNS propagation and provisions a valid Let&apos;s Encrypt TLS 1.3 certificate in seconds. Automatic renewals happen transparently before expiry.
+                  </p>
+                </StepCard>
+              </div>
+            </section>
+
+            {/* Viral Badge & White-Labeling */}
+            <section id="white-labeling">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                  <Sparkles size={20} className="text-purple-600" />
+                </div>
+                <h2 className="text-2xl font-black text-[#0F172A]">Powered by CodeHost Badge & White-Labeling</h2>
+              </div>
+              <p className="text-slate-600 leading-relaxed mb-4">
+                Projects hosted on the Free tier include an unobtrusive, floating <InlineCode>⚡ Powered by CodeHost</InlineCode> badge in the bottom-right corner of public web pages. This brings viral discovery to the platform and allows student builders to showcase where their project runs.
+              </p>
+              <p className="text-slate-600 leading-relaxed mb-6">
+                <strong>Commercial White-Labeling:</strong> For developers building client sites or professional SaaS products, subscribing to the <strong>Pro</strong> or <strong>Business</strong> plan unlocks a 1-click toggle in Project Settings to remove the badge completely.
+              </p>
             </section>
 
             {/* Supported Technologies */}
@@ -701,6 +934,49 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
                   <p className="text-xs font-black text-purple-600 uppercase tracking-widest mb-1">Custom</p>
                   <p className="text-xl font-black text-slate-900">Any Amount</p>
                   <p className="text-sm font-bold text-purple-600 mt-2">₹1.60 / credit</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Hackathon Pass */}
+            <section id="hackathon-pass">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                  <Flame size={20} className="text-amber-500" />
+                </div>
+                <h2 className="text-2xl font-black text-[#0F172A]">Weekend Hackathon Pass</h2>
+              </div>
+              <p className="text-slate-600 leading-relaxed mb-6">
+                Designed specifically for collegiate hackathons (e.g. Smart India Hackathon, MLH, internal college project showcases) and 48-hour sprints, the <strong>Hackathon Pass</strong> delivers full Pro tier specs without needing monthly subscriptions.
+              </p>
+
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-900 via-slate-900 to-indigo-950 text-white mb-6 border border-blue-500/20 shadow-xl">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-slate-800">
+                  <div>
+                    <h3 className="text-xl font-black">₹49 for 72 Hours (3 Days)</h3>
+                    <p className="text-xs text-slate-400">One-time payment &middot; Instant activation &middot; Zero recurring auto-renew</p>
+                  </div>
+                  <span className="px-3 py-1 bg-amber-500/20 text-amber-400 font-mono text-xs font-bold rounded-lg border border-amber-500/30">
+                    Pro Specs
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                  <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60">
+                    <span className="text-slate-400 block text-[10px]">CPU</span>
+                    <span className="font-bold text-white">2.0 vCPUs</span>
+                  </div>
+                  <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60">
+                    <span className="text-slate-400 block text-[10px]">RAM</span>
+                    <span className="font-bold text-white">2GB Dedicated</span>
+                  </div>
+                  <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60">
+                    <span className="text-slate-400 block text-[10px]">Storage</span>
+                    <span className="font-bold text-white">5GB NVMe</span>
+                  </div>
+                  <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60">
+                    <span className="text-slate-400 block text-[10px]">Auto-Sleep</span>
+                    <span className="font-bold text-emerald-400">Disabled (24/7)</span>
+                  </div>
                 </div>
               </div>
             </section>
