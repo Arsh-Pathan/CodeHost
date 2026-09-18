@@ -12,10 +12,6 @@ import {
   Loader2, 
   Key, 
   Github, 
-  Sparkles, 
-  RefreshCw, 
-  Check, 
-  Palette,
   CheckCircle2
 } from 'lucide-react';
 
@@ -30,34 +26,27 @@ function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-const AVATAR_STYLES = [
-  { id: 'notionists', label: 'Notion Illustrator', icon: '🎨' },
-  { id: 'adventurer', label: 'Adventurer', icon: '🧑‍🎨' },
-  { id: 'bottts', label: 'Tech Robot', icon: '🤖' },
-  { id: 'lorelei', label: 'Modern Art', icon: '🌸' },
-  { id: 'fun-emoji', label: 'Fun Emoji', icon: '✨' },
-  { id: 'github', label: 'GitHub Avatar', icon: '🐙' },
-  { id: 'initials', label: 'Letter Monogram', icon: '🔤' },
-] as const;
-
-type AvatarStyleId = typeof AVATAR_STYLES[number]['id'];
+type AvatarType = 'google' | 'github';
 
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [avatarStyle, setAvatarStyle] = useState<AvatarStyleId>('notionists');
-  const [avatarSeed, setAvatarSeed] = useState<string>('');
+  const [avatarType, setAvatarType] = useState<AvatarType>('google');
   const [isSavedNotice, setIsSavedNotice] = useState(false);
 
   useEffect(() => {
     fetchApi('/auth/me')
       .then((res) => {
         setUser(res.user);
-        const storedStyle = (localStorage.getItem('codehost_avatar_style') as AvatarStyleId) || 'notionists';
-        const storedSeed = localStorage.getItem('codehost_avatar_seed') || res.user?.username || res.user?.email || 'developer';
-        setAvatarStyle(storedStyle);
-        setAvatarSeed(storedSeed);
+        const stored = localStorage.getItem('codehost_avatar_type') as AvatarType;
+        if (stored === 'google' || stored === 'github') {
+          setAvatarType(stored);
+        } else if (res.user?.provider === 'github') {
+          setAvatarType('github');
+        } else {
+          setAvatarType('google');
+        }
       })
       .catch((err) => {
         if (err.status === 401 || err.status === 403) router.push('/login');
@@ -65,40 +54,12 @@ export default function ProfilePage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  const selectAvatarStyle = (style: AvatarStyleId) => {
-    setAvatarStyle(style);
-    localStorage.setItem('codehost_avatar_style', style);
-    if (!avatarSeed && user) {
-      const seed = user.username || user.email || 'developer';
-      setAvatarSeed(seed);
-      localStorage.setItem('codehost_avatar_seed', seed);
-    }
+  const selectAvatarType = (type: AvatarType) => {
+    setAvatarType(type);
+    localStorage.setItem('codehost_avatar_type', type);
     window.dispatchEvent(new Event('codehost_avatar_changed'));
-    showSavedNotification();
-  };
-
-  const shuffleSeed = () => {
-    const randomWords = ['cyber', 'quantum', 'stellar', 'rocket', 'pixel', 'vortex', 'turbo', 'spark', 'cloud', 'blaze'];
-    const newSeed = `${user?.username || 'user'}-${randomWords[Math.floor(Math.random() * randomWords.length)]}-${Math.floor(Math.random() * 900 + 100)}`;
-    setAvatarSeed(newSeed);
-    localStorage.setItem('codehost_avatar_seed', newSeed);
-    window.dispatchEvent(new Event('codehost_avatar_changed'));
-    showSavedNotification();
-  };
-
-  const showSavedNotification = () => {
     setIsSavedNotice(true);
     setTimeout(() => setIsSavedNotice(false), 2000);
-  };
-
-  const getAvatarUrl = (style: AvatarStyleId, seed: string) => {
-    if (style === 'github') {
-      return `https://github.com/${user?.username || 'github'}.png`;
-    }
-    if (style === 'initials') {
-      return null;
-    }
-    return `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed || user?.username || 'developer')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
   };
 
   if (loading) {
@@ -111,7 +72,6 @@ export default function ProfilePage() {
     );
   }
 
-  const currentAvatarUrl = getAvatarUrl(avatarStyle, avatarSeed);
   const isGoogleConnected = user?.provider === 'google' || user?.email?.endsWith('@gmail.com');
   const isGithubConnected = user?.provider === 'github';
 
@@ -119,57 +79,24 @@ export default function ProfilePage() {
     <PanelLayout user={user} projectName="Profile">
       <div className="max-w-4xl mx-auto space-y-8 sm:space-y-10">
         
-        {/* Profile Header & Illustrator Customizer */}
+        {/* Profile Header & Avatar */}
         <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-10 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8 relative overflow-hidden">
           {isSavedNotice && (
             <div className="absolute top-4 right-4 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-full text-xs font-bold flex items-center space-x-1.5 shadow-sm animate-in fade-in duration-200">
               <CheckCircle2 size={13} />
-              <span>Avatar Updated!</span>
+              <span>Avatar Saved</span>
             </div>
           )}
 
           {/* Avatar Display Frame */}
           <div className="flex flex-col items-center shrink-0">
-            <div className="relative group">
-              <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-blue-500/20 via-indigo-500/10 to-purple-500/20 p-1.5 ring-4 ring-blue-500/15 shadow-xl flex items-center justify-center overflow-hidden">
-                {currentAvatarUrl ? (
-                  <img
-                    src={currentAvatarUrl}
-                    alt={user?.name || user?.username}
-                    className="w-full h-full rounded-full object-cover bg-white"
-                    onError={(e) => {
-                      // Fallback to initials if image fails
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-black text-4xl sm:text-5xl shadow-inner">
-                    {user?.username?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Shuffle button on top of avatar */}
-              {avatarStyle !== 'github' && avatarStyle !== 'initials' && (
-                <button
-                  onClick={shuffleSeed}
-                  title="Roll random illustration"
-                  className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-[#0F172A] text-white hover:bg-blue-600 active:scale-90 flex items-center justify-center shadow-lg border-2 border-white transition-all cursor-pointer"
-                >
-                  <RefreshCw size={14} />
-                </button>
+            <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-white ring-4 ring-slate-100 shadow-md border border-slate-200 flex items-center justify-center overflow-hidden p-6 sm:p-7">
+              {avatarType === 'google' ? (
+                <GoogleIcon className="w-full h-full" />
+              ) : (
+                <Github className="w-full h-full text-[#0F172A]" />
               )}
             </div>
-
-            {avatarStyle !== 'github' && avatarStyle !== 'initials' && (
-              <button
-                onClick={shuffleSeed}
-                className="mt-3 text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1.5 cursor-pointer bg-blue-50 px-3 py-1 rounded-full border border-blue-100 hover:bg-blue-100 transition-all active:scale-95"
-              >
-                <Sparkles size={12} />
-                <span>Shuffle Artwork</span>
-              </button>
-            )}
           </div>
 
           <div className="flex-1 text-center md:text-left space-y-2 w-full">
@@ -191,31 +118,35 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Avatar Style Picker Pills */}
+            {/* Icon Switcher */}
             <div className="pt-4 border-t border-slate-100 mt-4">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 flex items-center justify-center md:justify-start space-x-1">
-                <Palette size={12} />
-                <span>Choose Avatar Artwork Style:</span>
+                <span>Account Icon:</span>
               </label>
 
-              <div className="flex flex-wrap gap-1.5 justify-center md:justify-start">
-                {AVATAR_STYLES.map((style) => {
-                  const isSelected = avatarStyle === style.id;
-                  return (
-                    <button
-                      key={style.id}
-                      onClick={() => selectAvatarStyle(style.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95 ${
-                        isSelected
-                          ? 'bg-[#0F172A] text-white shadow-md shadow-slate-900/20'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                      }`}
-                    >
-                      <span>{style.icon}</span>
-                      <span>{style.label}</span>
-                    </button>
-                  );
-                })}
+              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                <button
+                  onClick={() => selectAvatarType('google')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer border active:scale-95 ${
+                    avatarType === 'google'
+                      ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm ring-2 ring-blue-500/20'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <GoogleIcon className="w-4 h-4" />
+                  <span>Google</span>
+                </button>
+                <button
+                  onClick={() => selectAvatarType('github')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer border active:scale-95 ${
+                    avatarType === 'github'
+                      ? 'bg-[#0F172A] border-[#0F172A] text-white shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Github size={15} />
+                  <span>GitHub</span>
+                </button>
               </div>
             </div>
           </div>
