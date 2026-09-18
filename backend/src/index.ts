@@ -17,7 +17,11 @@ export const io = new Server(httpServer, {
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 
 // Routes
 import authRouter from './routes/auth.js';
@@ -36,6 +40,7 @@ app.use('/deployments', deploymentsRouter);
 app.use('/admin', adminRouter);
 app.use('/files', filesRouter);
 app.use('/billing', billingRouter);
+app.use('/api', billingRouter);
 
 // Public Stats (for landing page)
 app.get('/stats/public', async (req, res) => {

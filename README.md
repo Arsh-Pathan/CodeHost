@@ -29,7 +29,7 @@
 - 🔒 **Safe by Default**: Sandboxed container isolation with strict resource limits.
 - 🛡️ **Admin Console**: Enhanced panel for monitoring platform health, users, and detailed deployment stats.
 - 🔑 **Multi-Provider Auth**: Sign in with email/password, Google, or GitHub.
-- 💳 **Prepaid Billing**: Comprehensive system with Razorpay integration, wallet credits, and tiered resource allocation.
+- 💳 **Prepaid Billing**: Comprehensive system with Razorpay integration (UPI, Cards, NetBanking), wallet credits, and tiered resource allocation.
 
 ---
 
@@ -103,7 +103,7 @@ CodeHost/
 
 - **Prepaid Model**: Buy credits (1 credit = ₹2), then select a tier for each project.
 - **Auto-stop**: If your wallet balance is insufficient for a monthly charge, the project container is automatically stopped.
-- **Payment Methods**: Seamless integration with Razorpay (UPI, Google Pay, Cards, Netbanking).
+- **Payment Methods**: Seamless integration with Razorpay (UPI, Cards, NetBanking, Wallets).
 
 ---
 

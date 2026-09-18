@@ -5,10 +5,10 @@ import { logger } from '@codehost/logger';
 
 let razorpayInstance: Razorpay | null = null;
 
-function getRazorpay(): Razorpay {
+export function getRazorpayClient(): Razorpay {
   if (!razorpayInstance) {
     if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
-      throw new Error('Razorpay credentials not configured');
+      throw new Error('Razorpay credentials (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET) are not configured in environment');
     }
     razorpayInstance = new Razorpay({
       key_id: env.RAZORPAY_KEY_ID,
@@ -18,33 +18,57 @@ function getRazorpay(): Razorpay {
   return razorpayInstance;
 }
 
-export async function createOrder(amountPaise: number, receipt: string, notes: Record<string, string> = {}) {
-  const razorpay = getRazorpay();
-  const order = await razorpay.orders.create({
-    amount: amountPaise,
-    currency: 'INR',
-    receipt,
-    notes,
-  });
-  logger.info(`Razorpay order created: ${order.id} for ${amountPaise} paise`);
+export interface CreateOrderParams {
+  amount: number; // in smallest currency unit (e.g. paise for INR)
+  currency?: string;
+  receipt: string;
+  notes?: Record<string, string | number>;
+}
+
+export async function createRazorpayOrder(params: CreateOrderParams) {
+  const client = getRazorpayClient();
+  const options = {
+    amount: Math.round(params.amount),
+    currency: params.currency || 'INR',
+    receipt: params.receipt,
+    notes: params.notes,
+  };
+
+  const order = await client.orders.create(options);
   return order;
 }
 
-export function verifySignature(orderId: string, paymentId: string, signature: string): boolean {
-  if (!env.RAZORPAY_KEY_SECRET) return false;
-  const body = `${orderId}|${paymentId}`;
-  const expectedSignature = crypto
+export function verifyRazorpayPaymentSignature(params: {
+  orderId: string;
+  paymentId: string;
+  signature: string;
+}): boolean {
+  if (!env.RAZORPAY_KEY_SECRET) {
+    logger.error('RAZORPAY_KEY_SECRET is not set');
+    return false;
+  }
+
+  const generatedSignature = crypto
     .createHmac('sha256', env.RAZORPAY_KEY_SECRET)
-    .update(body)
+    .update(`${params.orderId}|${params.paymentId}`)
     .digest('hex');
-  return expectedSignature === signature;
+
+  return generatedSignature === params.signature;
 }
 
-export function verifyWebhookSignature(body: string, signature: string): boolean {
-  if (!env.RAZORPAY_WEBHOOK_SECRET) return false;
-  const expectedSignature = crypto
+export function verifyRazorpayWebhookSignature(
+  rawBody: string | Buffer,
+  signature: string
+): boolean {
+  if (!env.RAZORPAY_WEBHOOK_SECRET) {
+    logger.error('RAZORPAY_WEBHOOK_SECRET is not set');
+    return false;
+  }
+
+  const generatedSignature = crypto
     .createHmac('sha256', env.RAZORPAY_WEBHOOK_SECRET)
-    .update(body)
+    .update(rawBody)
     .digest('hex');
-  return expectedSignature === signature;
+
+  return generatedSignature === signature;
 }

@@ -666,7 +666,7 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
               <div className="space-y-4 mb-8">
                 <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
                   <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg flex-shrink-0">1. Buy Credits</span>
-                  <p className="text-sm text-slate-600">Purchase credit packages via Razorpay (supports UPI, Cards, Netbanking). Credits are added to your account wallet instantly.</p>
+                  <p className="text-sm text-slate-600">Purchase credit packages via Razorpay (UPI, Cards, NetBanking, Wallets). Credits are added to your account wallet instantly.</p>
                 </div>
                 <div className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
                   <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg flex-shrink-0">2. Pick a Tier</span>

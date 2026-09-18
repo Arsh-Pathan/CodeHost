@@ -4,8 +4,12 @@ import cors from 'cors';
 import { prisma } from '@codehost/database';
 import { logger } from '@codehost/logger';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { RESOURCE_TIERS, CREDIT_PACKAGES, CREDIT_PRICE_INR } from '@codehost/config';
-import { createOrder, verifySignature, verifyWebhookSignature } from '../services/razorpay.js';
+import { RESOURCE_TIERS, CREDIT_PACKAGES, CREDIT_PRICE_USD, CREDIT_PRICE_INR, env } from '@codehost/config';
+import {
+  createRazorpayOrder,
+  verifyRazorpayPaymentSignature,
+  verifyRazorpayWebhookSignature,
+} from '../services/razorpay.js';
 
 const router = Router();
 
@@ -61,153 +65,235 @@ router.get('/tiers', requireAuth, async (_req: AuthRequest, res) => {
     storage: t.storage,
     creditsPerMonth: t.creditsPerMonth,
     maxProjects: t.maxProjects,
+    priceUsd: t.creditsPerMonth * CREDIT_PRICE_USD,
     priceInr: t.creditsPerMonth * CREDIT_PRICE_INR,
   }));
-  res.json({ tiers, creditPackages: CREDIT_PACKAGES, creditPriceInr: CREDIT_PRICE_INR });
+  res.json({
+    tiers,
+    creditPackages: CREDIT_PACKAGES,
+    creditPriceUsd: CREDIT_PRICE_USD,
+    creditPriceInr: CREDIT_PRICE_INR,
+    currency: 'INR',
+    razorpayKeyId: env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || '',
+  });
 });
 
-router.post('/purchase', requireAuth, async (req: AuthRequest, res) => {
+// Razorpay: Create Order Handler
+export const handleCreateRazorpayOrder = async (req: AuthRequest, res: any) => {
   try {
-    const { credits } = req.body;
-    const pkg = CREDIT_PACKAGES.find((p) => p.credits === credits);
-    if (!pkg) {
-      return res.status(400).json({ error: 'Invalid credit package' });
+    const { credits, amount: rawAmount, currency = 'INR', receipt: customReceipt } = req.body;
+    let amountInPaise = 0;
+    const notes: Record<string, string> = {};
+
+    if (req.user) {
+      notes.userId = req.user.id;
     }
 
-    const order = await createOrder(pkg.priceInr * 100, `wallet-${req.user!.id}`, {
-      userId: req.user!.id,
-      credits: String(pkg.credits),
+    if (credits) {
+      const pkg = CREDIT_PACKAGES.find((p) => p.credits === credits);
+      if (!pkg) {
+        return res.status(400).json({ error: 'Invalid credit package' });
+      }
+      amountInPaise = Math.round(pkg.priceInr * 100);
+      notes.credits = String(pkg.credits);
+    } else if (rawAmount !== undefined) {
+      const parsed = Number(rawAmount);
+      if (isNaN(parsed) || parsed < 100) {
+        return res.status(400).json({ error: 'Minimum amount is 100 paise (1 INR)' });
+      }
+      amountInPaise = Math.round(parsed);
+    } else {
+      return res.status(400).json({ error: 'Amount or credits package is required' });
+    }
+
+    const receipt = customReceipt || `rcpt_${req.user?.id ? req.user.id.slice(0, 8) : 'guest'}_${Date.now()}`;
+    const order = await createRazorpayOrder({
+      amount: amountInPaise,
+      currency,
+      receipt,
+      notes,
     });
 
-    res.json({ orderId: order.id, amount: pkg.priceInr * 100, currency: 'INR', credits: pkg.credits });
-  } catch (error) {
-    logger.error({ error }, 'Purchase error');
-    res.status(500).json({ error: 'Failed to create payment order' });
+    const keyId = env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || '';
+
+    return res.json({
+      order_id: order.id,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key_id: keyId,
+      keyId: keyId,
+    });
+  } catch (error: any) {
+    logger.error({ error }, 'Razorpay create order error');
+    return res.status(500).json({ error: error.message || 'Failed to create Razorpay order' });
   }
-});
+};
 
-router.post('/verify', requireAuth, async (req: AuthRequest, res) => {
+// Razorpay: Verify Payment Signature Handler
+export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) => {
   try {
-    const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+    const orderId = req.body.razorpay_order_id || req.body.razorpayOrderId;
+    const paymentId = req.body.razorpay_payment_id || req.body.razorpayPaymentId;
+    const signature = req.body.razorpay_signature || req.body.razorpaySignature;
+    const credits = req.body.credits ? Number(req.body.credits) : undefined;
 
-    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-      return res.status(400).json({ error: 'Missing payment details' });
+    if (!orderId || !paymentId || !signature) {
+      return res.status(400).json({
+        error: 'Missing required payment verification fields (order_id, payment_id, signature)',
+      });
     }
 
-    const isValid = verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+    const isValid = verifyRazorpayPaymentSignature({
+      orderId,
+      paymentId,
+      signature,
+    });
+
     if (!isValid) {
-      return res.status(400).json({ error: 'Invalid payment signature' });
-    }
-
-    // Check idempotency
-    const existing = await prisma.transaction.findFirst({
-      where: { razorpayPaymentId },
-    });
-    if (existing) {
-      return res.json({ success: true, message: 'Payment already processed' });
-    }
-
-    // Find the credit amount from order notes
-    const pkg = CREDIT_PACKAGES.find((p) => p.priceInr * 100 === req.body.amount) || CREDIT_PACKAGES[0];
-    const creditAmount = req.body.credits || pkg.credits;
-
-    const userId = req.user!.id;
-
-    await prisma.$transaction(async (tx: any) => {
-      let wallet = await tx.wallet.findUnique({ where: { userId } });
-      if (!wallet) {
-        wallet = await tx.wallet.create({ data: { userId } });
-      }
-
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: { increment: creditAmount } },
+      logger.warn({ orderId, paymentId }, 'Razorpay payment signature mismatch');
+      return res.status(400).json({
+        error: 'Invalid payment signature. Verification failed.',
       });
-
-      await tx.transaction.create({
-        data: {
-          walletId: wallet.id,
-          amount: creditAmount,
-          type: 'purchase',
-          description: `Purchased ${creditAmount} credits`,
-          razorpayOrderId,
-          razorpayPaymentId,
-        },
-      });
-    });
-
-    logger.info(`Credits purchased: ${creditAmount} by user ${userId}`);
-    res.json({ success: true, credits: creditAmount });
-  } catch (error) {
-    logger.error({ error }, 'Verify payment error');
-    res.status(500).json({ error: 'Failed to verify payment' });
-  }
-});
-
-// Webhook — no auth, raw body, signature verification
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    const signature = req.headers['x-razorpay-signature'] as string;
-    const body = req.body.toString();
-
-    if (!signature || !verifyWebhookSignature(body, signature)) {
-      return res.status(400).json({ error: 'Invalid webhook signature' });
     }
 
-    const event = JSON.parse(body);
-
-    if (event.event === 'payment.captured') {
-      const payment = event.payload.payment.entity;
-      const orderId = payment.order_id;
-      const paymentId = payment.id;
-      const notes = payment.notes || {};
-      const userId = notes.userId;
-      const credits = parseInt(notes.credits) || 0;
-
-      if (!userId || !credits) {
-        return res.json({ status: 'ok', message: 'Missing notes' });
-      }
-
+    // If authenticated, credit user's wallet
+    if (req.user?.id) {
+      const userId = req.user.id;
       // Idempotency check
-      const existing = await prisma.transaction.findFirst({
+      const existingTx = await prisma.transaction.findFirst({
         where: { razorpayPaymentId: paymentId },
       });
-      if (existing) {
-        return res.json({ status: 'ok', message: 'Already processed' });
+
+      if (existingTx) {
+        return res.json({
+          success: true,
+          message: 'Payment already processed',
+          credits: existingTx.amount,
+        });
       }
 
-      await prisma.$transaction(async (tx: any) => {
+      const creditsToAdd = credits || 100;
+
+      const result = await prisma.$transaction(async (tx: any) => {
         let wallet = await tx.wallet.findUnique({ where: { userId } });
         if (!wallet) {
           wallet = await tx.wallet.create({ data: { userId } });
         }
 
-        await tx.wallet.update({
+        const updatedWallet = await tx.wallet.update({
           where: { id: wallet.id },
-          data: { balance: { increment: credits } },
+          data: { balance: { increment: creditsToAdd } },
         });
 
-        await tx.transaction.create({
+        const transaction = await tx.transaction.create({
           data: {
             walletId: wallet.id,
-            amount: credits,
+            amount: creditsToAdd,
             type: 'purchase',
-            description: `Webhook: Purchased ${credits} credits`,
+            description: `Purchased ${creditsToAdd} credits via Razorpay`,
             razorpayOrderId: orderId,
             razorpayPaymentId: paymentId,
           },
         });
+
+        return { wallet: updatedWallet, transaction };
       });
 
-      logger.info(`Webhook: Credits ${credits} added for user ${userId}`);
+      return res.json({
+        success: true,
+        message: 'Payment verified and credits added successfully',
+        balance: result.wallet.balance,
+        transaction: result.transaction,
+      });
     }
 
-    res.json({ status: 'ok' });
-  } catch (error) {
-    logger.error({ error }, 'Webhook error');
-    res.status(500).json({ error: 'Webhook processing failed' });
+    return res.json({
+      success: true,
+      message: 'Payment verified successfully',
+      orderId,
+      paymentId,
+    });
+  } catch (error: any) {
+    logger.error({ error }, 'Razorpay verify payment error');
+    return res.status(500).json({ error: error.message || 'Payment verification failed' });
   }
-});
+};
+
+// Mount Razorpay endpoints
+router.post('/razorpay/create-order', requireAuth, handleCreateRazorpayOrder);
+router.post('/create-order', handleCreateRazorpayOrder);
+router.post('/razorpay/verify', requireAuth, handleVerifyRazorpayPayment);
+router.post('/verify-payment', handleVerifyRazorpayPayment);
+
+// Razorpay Webhook Handler
+export const handleRazorpayWebhook = async (req: any, res: any) => {
+  try {
+    const signature = (req.headers['x-razorpay-signature'] || '') as string;
+    const rawBody = req.rawBody ? req.rawBody.toString() : JSON.stringify(req.body);
+
+    if (!signature || !verifyRazorpayWebhookSignature(rawBody, signature)) {
+      return res.status(400).json({ error: 'Invalid webhook signature' });
+    }
+
+    const event = typeof req.body === 'object' ? req.body : JSON.parse(rawBody);
+    const eventType = event.event;
+
+    if (eventType === 'payment.captured' || eventType === 'order.paid') {
+      const payment = event.payload?.payment?.entity;
+      const order = event.payload?.order?.entity;
+      const paymentId = payment?.id;
+      const orderId = payment?.order_id || order?.id;
+      const notes = payment?.notes || order?.notes || {};
+      const userId = notes.userId;
+      const credits = parseInt(notes.credits) || 0;
+
+      if (userId && credits && paymentId) {
+        const existing = await prisma.transaction.findFirst({
+          where: { razorpayPaymentId: paymentId },
+        });
+
+        if (!existing) {
+          await prisma.$transaction(async (tx: any) => {
+            let wallet = await tx.wallet.findUnique({ where: { userId } });
+            if (!wallet) {
+              wallet = await tx.wallet.create({ data: { userId } });
+            }
+
+            await tx.wallet.update({
+              where: { id: wallet.id },
+              data: { balance: { increment: credits } },
+            });
+
+            await tx.transaction.create({
+              data: {
+                walletId: wallet.id,
+                amount: credits,
+                type: 'purchase',
+                description: `Webhook: Purchased ${credits} credits via Razorpay`,
+                razorpayOrderId: orderId,
+                razorpayPaymentId: paymentId,
+              },
+            });
+          });
+          logger.info(`Webhook: ${credits} credits added for user ${userId} via Razorpay`);
+        }
+      }
+    }
+
+    return res.json({ status: 'ok' });
+  } catch (error) {
+    logger.error({ error }, 'Razorpay webhook error');
+    return res.status(500).json({ error: 'Webhook processing failed' });
+  }
+};
+
+router.post('/razorpay/webhook', handleRazorpayWebhook);
+
+// Backward-compatibility aliases
+router.post('/purchase', requireAuth, handleCreateRazorpayOrder);
+router.post('/verify', requireAuth, handleVerifyRazorpayPayment);
+router.post('/webhook', handleRazorpayWebhook);
 
 router.get('/transactions/:id', requireAuth, async (req: AuthRequest, res) => {
   try {

@@ -47,11 +47,21 @@ export const RESOURCE_TIERS: Record<string, TierConfig> = {
   },
 };
 
-// 1 credit = ₹2
-export const CREDIT_PRICE_INR = 2;
+// 100 credits = $2.00 / ₹160
+export const CREDIT_PRICE_USD = 0.02;
+export const CREDIT_PRICE_INR = 1.60;
 
-export const CREDIT_PACKAGES = [
-  { credits: 100, priceInr: 200, label: '100 Credits', savings: null },
-  { credits: 300, priceInr: 500, label: '300 Credits', savings: '17% savings' },
-  { credits: 600, priceInr: 900, label: '600 Credits', savings: '25% savings' },
+export interface CreditPackage {
+  credits: number;
+  priceUsd: number;
+  priceInr: number;
+  label: string;
+  savings: string | null;
+}
+
+export const CREDIT_PACKAGES: CreditPackage[] = [
+  { credits: 100, priceUsd: 2.00, priceInr: 160, label: '100 Credits', savings: null },
+  { credits: 300, priceUsd: 5.00, priceInr: 400, label: '300 Credits', savings: '17% savings' },
+  { credits: 600, priceUsd: 9.00, priceInr: 720, label: '600 Credits', savings: '25% savings' },
 ];
+

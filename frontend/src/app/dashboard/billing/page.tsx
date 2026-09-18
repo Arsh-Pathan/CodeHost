@@ -22,33 +22,40 @@ interface Transaction {
 
 interface CreditPackage {
   credits: number;
-  priceInr: number;
+  priceUsd: number;
+  priceInr?: number;
   label: string;
   savings: string | null;
 }
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
+const loadRazorpayScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(false);
+    if ((window as any).Razorpay) return resolve(true);
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 export default function BillingPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ email: string; username: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; username: string; name?: string | null; role: string } | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [packages, setPackages] = useState<CreditPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<number | null>(null);
+  const [razorpayKeyId, setRazorpayKeyId] = useState<string>('');
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load Razorpay checkout script
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
+    loadRazorpayScript();
   }, []);
 
   useEffect(() => {
@@ -63,62 +70,94 @@ export default function BillingPage() {
         setWallet(walletRes.wallet);
         setTransactions(txRes.transactions);
         setPackages(tierRes.creditPackages);
+        if (tierRes.razorpayKeyId) {
+          setRazorpayKeyId(tierRes.razorpayKeyId);
+        }
       })
       .catch((err: any) => { if (err.status === 401 || err.status === 403) router.push('/login') })
       .finally(() => setLoading(false));
   }, [router]);
 
   const handlePurchase = async (pkg: CreditPackage) => {
+    setPaymentError(null);
+    setPaymentSuccess(null);
     setPurchasing(pkg.credits);
+
     try {
-      const orderData = await fetchApi('/billing/purchase', {
+      const isScriptLoaded = await loadRazorpayScript();
+      if (!isScriptLoaded) {
+        throw new Error('Failed to load Razorpay payment gateway. Please check your internet connection.');
+      }
+
+      // Step 1: Create order on backend
+      const orderData = await fetchApi('/billing/razorpay/create-order', {
         method: 'POST',
-        body: JSON.stringify({ credits: pkg.credits }),
+        body: JSON.stringify({ credits: pkg.credits, currency: 'INR' }),
       });
 
+      const key = orderData.key_id || orderData.keyId || razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+
+      // Step 2: Open Razorpay checkout modal
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key,
         amount: orderData.amount,
-        currency: orderData.currency,
+        currency: orderData.currency || 'INR',
         name: 'CodeHost',
-        description: `${pkg.credits} Credits`,
-        order_id: orderData.orderId,
-        handler: async (response: any) => {
-          try {
-            await fetchApi('/billing/verify', {
-              method: 'POST',
-              body: JSON.stringify({
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-                credits: pkg.credits,
-                amount: orderData.amount,
-              }),
-            });
-            // Refresh wallet and transactions
-            const [walletRes, txRes] = await Promise.all([
-              fetchApi('/billing/wallet'),
-              fetchApi('/billing/transactions'),
-            ]);
-            setWallet(walletRes.wallet);
-            setTransactions(txRes.transactions);
-          } catch (err) {
-            alert('Payment verification failed. Please contact support.');
-          }
-        },
+        description: `${pkg.label} (${pkg.credits} Credits)`,
+        order_id: orderData.order_id || orderData.orderId,
         prefill: {
-          email: user?.email,
+          name: user?.name || user?.username || '',
+          email: user?.email || '',
         },
         theme: {
-          color: '#2563EB',
+          color: '#2563eb',
+        },
+        modal: {
+          ondismiss: function () {
+            setPurchasing(null);
+          },
+        },
+        handler: async function (response: any) {
+          // Step 3: Verify payment signature on backend
+          try {
+            const verifyRes = await fetchApi('/billing/razorpay/verify', {
+              method: 'POST',
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                credits: pkg.credits,
+              }),
+            });
+
+            if (verifyRes.success) {
+              setPaymentSuccess(`Payment successful! ${pkg.credits} credits have been added to your wallet.`);
+              // Refresh wallet & transactions
+              const [walletRes, txRes] = await Promise.all([
+                fetchApi('/billing/wallet'),
+                fetchApi('/billing/transactions'),
+              ]);
+              setWallet(walletRes.wallet);
+              setTransactions(txRes.transactions);
+            } else {
+              setPaymentError(verifyRes.error || 'Payment verification failed');
+            }
+          } catch (verifyErr: any) {
+            setPaymentError(verifyErr.message || 'Payment verification failed');
+          } finally {
+            setPurchasing(null);
+          }
         },
       };
 
-      const rzp = new window.Razorpay(options);
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        setPaymentError(`Payment failed: ${response.error?.description || 'Transaction declined'}`);
+        setPurchasing(null);
+      });
       rzp.open();
     } catch (err: any) {
-      alert(err.message || 'Failed to initiate payment');
-    } finally {
+      setPaymentError(err.message || 'Failed to initiate payment');
       setPurchasing(null);
     }
   };
@@ -136,6 +175,20 @@ export default function BillingPage() {
   return (
     <PanelLayout user={user} projectName="Billing">
       <div className="max-w-5xl mx-auto space-y-10">
+        {/* Alerts */}
+        {paymentSuccess && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-6 py-4 rounded-2xl flex items-center justify-between text-sm font-bold shadow-sm">
+            <span>{paymentSuccess}</span>
+            <button onClick={() => setPaymentSuccess(null)} className="text-emerald-600 hover:text-emerald-900 ml-4 font-black">✕</button>
+          </div>
+        )}
+        {paymentError && (
+          <div className="bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-2xl flex items-center justify-between text-sm font-bold shadow-sm">
+            <span>{paymentError}</span>
+            <button onClick={() => setPaymentError(null)} className="text-red-600 hover:text-red-900 ml-4 font-black">✕</button>
+          </div>
+        )}
+
         {/* Wallet Balance */}
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-10 text-white shadow-2xl">
           <div className="flex items-center justify-between">
@@ -145,7 +198,7 @@ export default function BillingPage() {
                 <span className="text-6xl font-black">{wallet?.balance || 0}</span>
                 <span className="text-slate-400 font-bold text-lg">credits</span>
               </div>
-              <p className="text-sm text-slate-500 mt-2">1 credit = ₹2</p>
+              <p className="text-sm text-slate-500 mt-2">100 credits = ₹160 ($2.00)</p>
             </div>
             <div className="w-20 h-20 rounded-2xl bg-blue-600/20 flex items-center justify-center">
               <Wallet size={36} className="text-blue-400" />
@@ -157,7 +210,7 @@ export default function BillingPage() {
         <div>
           <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center">
             <Package size={16} className="mr-2 text-blue-600" />
-            Buy Credits
+            Buy Credits (Razorpay Checkout)
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {packages.map((pkg) => (
@@ -170,8 +223,15 @@ export default function BillingPage() {
                   <Zap size={20} className="text-yellow-500" />
                 </div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Credits</p>
-                <div className="flex items-baseline space-x-1 mb-2">
-                  <span className="text-3xl font-black text-slate-900">₹{pkg.priceInr}</span>
+                <div className="flex items-baseline space-x-2 mb-2">
+                  <span className="text-3xl font-black text-slate-900">
+                    {pkg.priceInr ? `₹${pkg.priceInr}` : `$${pkg.priceUsd.toFixed(2)}`}
+                  </span>
+                  {pkg.priceInr && (
+                    <span className="text-xs font-bold text-slate-400">
+                      (${pkg.priceUsd.toFixed(2)})
+                    </span>
+                  )}
                 </div>
                 {pkg.savings && (
                   <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-full mb-4">
@@ -181,14 +241,14 @@ export default function BillingPage() {
                 <button
                   onClick={() => handlePurchase(pkg)}
                   disabled={purchasing !== null}
-                  className="w-full mt-4 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-30 transition-all flex items-center justify-center space-x-2"
+                  className="w-full mt-4 py-3 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center space-x-2 shadow-lg shadow-blue-600/20"
                 >
                   {purchasing === pkg.credits ? (
                     <Loader2 size={16} className="animate-spin" />
                   ) : (
                     <>
                       <CreditCard size={14} />
-                      <span>Buy Now</span>
+                      <span>Pay with Razorpay</span>
                     </>
                   )}
                 </button>

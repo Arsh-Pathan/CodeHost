@@ -106,9 +106,11 @@ export default function InvoicePage() {
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Payment Details</p>
               {transaction.razorpayPaymentId ? (
                 <>
-                  <p className="text-sm text-slate-900 font-medium"><span className="font-bold">Order ID:</span> {transaction.razorpayOrderId}</p>
                   <p className="text-sm text-slate-900 font-medium"><span className="font-bold">Payment ID:</span> {transaction.razorpayPaymentId}</p>
-                  <span className="inline-block mt-2 px-2 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-md">Paid</span>
+                  {transaction.razorpayOrderId && (
+                    <p className="text-xs text-slate-500 font-medium mt-1"><span className="font-bold">Order ID:</span> {transaction.razorpayOrderId}</p>
+                  )}
+                  <span className="inline-block mt-2 px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-md">Paid via Razorpay</span>
                 </>
               ) : (
                 <span className="inline-block mt-2 px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-md">{transaction.type.replace('_', ' ')}</span>

@@ -120,8 +120,8 @@ export default function TermsPage() {
               We use <strong>Razorpay</strong> as our third-party payment processor. By purchasing credits, you also agree to Razorpay&apos;s terms and conditions.
             </p>
             <ul className="list-disc pl-6 space-y-2">
-              <li>CodeHost does not store your full credit card details, UPI PINs, or net-banking credentials. This data is handled exclusively by Razorpay.</li>
-              <li>We only store payment metadata (Razorpay Order ID, Payment ID) to verify and record your credit purchases.</li>
+              <li>CodeHost does not store your full credit card details, UPI PINs, or net-banking credentials. This data is handled exclusively and securely by Razorpay.</li>
+              <li>We only store payment metadata (Razorpay Order and Payment IDs) to verify and record your credit purchases.</li>
               <li>You are responsible for any fees charged by your bank or payment provider during the transaction.</li>
             </ul>
           </section>
