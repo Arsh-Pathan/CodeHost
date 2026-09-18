@@ -659,95 +659,80 @@ export default function Home() {
 
         {/* Templates Grid & Live Code Window */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left: Sleek Template Selection List (5 cols) */}
-          <div className="lg:col-span-5 space-y-3">
+          {/* Left: Template Cards List */}
+          <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {filteredTemplates.map((t) => {
               const isSelected = selectedTpl.id === t.id;
               return (
                 <div
                   key={t.id}
                   onClick={() => setSelectedTplId(t.id)}
-                  className={`p-4.5 rounded-2xl border-2 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer relative flex items-center justify-between ${
+                  className={`p-5 rounded-3xl border-2 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer relative flex flex-col justify-between ${
                     isSelected
-                      ? 'bg-white border-blue-600 shadow-xl shadow-blue-500/10 scale-[1.02]'
-                      : 'bg-white/70 border-slate-200/80 hover:border-slate-300 hover:bg-white hover:shadow-md'
+                      ? 'bg-white border-blue-600 shadow-xl shadow-blue-500/10 -translate-y-1'
+                      : 'bg-white/80 border-slate-100 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5'
                   }`}
                 >
-                  <div className="flex items-start space-x-3.5 min-w-0">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 border ${isSelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
-                      <FileCode size={18} />
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border ${t.badgeColor}`}>
+                        {t.badge}
+                      </span>
+                      <span className="text-[11px] font-mono text-slate-400 font-bold">{t.time}</span>
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-black text-slate-900 text-sm truncate">{t.name}</h3>
-                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${t.badgeColor}`}>
-                          {t.badge}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 font-medium line-clamp-1 mt-0.5">{t.desc}</p>
-                      <div className="flex items-center space-x-3 mt-1.5 text-[10px] font-mono text-slate-400 font-bold">
-                        <span>{t.tag}</span>
-                        <span>&middot;</span>
-                        <span className="text-emerald-600 font-semibold">{t.time}</span>
-                      </div>
-                    </div>
+                    <h3 className="font-black text-slate-900 text-base mb-1">{t.name}</h3>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed mb-4">{t.desc}</p>
                   </div>
 
-                  <div className="ml-3 flex-shrink-0">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-100 text-blue-600' : 'text-slate-300'}`}>
-                      <ArrowRight size={14} />
-                    </div>
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="font-mono text-[10px] text-slate-400 font-bold">{t.tag}</span>
+                    <span className={`font-black text-xs flex items-center space-x-1 ${isSelected ? 'text-blue-600' : 'text-slate-400'}`}>
+                      <span>{isSelected ? 'Selected' : 'Preview'}</span>
+                      <ArrowRight size={12} />
+                    </span>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Right: Live Interactive Sandbox Preview (7 cols, sticky) */}
-          <div className="lg:col-span-7 lg:sticky lg:top-24">
+          {/* Right: Live Interactive Sandbox Preview */}
+          <div className="lg:col-span-6">
             <div className="rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0A0E17] text-white p-6 md:p-8 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-blue-500/15">
               {/* Window Header */}
-              <div className="flex items-center justify-between pb-5 mb-5 border-b border-slate-800/80">
+              <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-red-500/80" />
                   <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                   <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
                 </div>
-                <div className="px-3.5 py-1 rounded-full bg-slate-800/80 text-[11px] font-mono font-bold text-slate-300 flex items-center space-x-2 border border-slate-700">
+                <div className="px-3.5 py-1 rounded-full bg-slate-800/80 text-[10px] font-mono font-bold text-slate-300 flex items-center space-x-2 border border-slate-700">
                   <FileCode size={12} className="text-blue-400" />
                   <span>template: {selectedTpl.slug}</span>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20 flex items-center space-x-1">
-                  <Check size={10} className="stroke-[3]" />
-                  <span>Pre-Configured</span>
+                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-500/20">
+                  Verified
                 </span>
-              </div>
-
-              {/* Template Title & Summary */}
-              <div className="mb-4">
-                <h4 className="text-xl font-black text-white">{selectedTpl.name}</h4>
-                <p className="text-xs text-slate-400 mt-1">{selectedTpl.desc}</p>
               </div>
 
               {/* File Tree Tags */}
               <div className="mb-4 flex flex-wrap gap-2">
                 {selectedTpl.fileTree.map((f, i) => (
-                  <span key={i} className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-800/60 text-slate-300 border border-slate-700/50 flex items-center space-x-1.5">
-                    <span className="text-blue-400 font-bold">#</span>
-                    <span>{f}</span>
+                  <span key={i} className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-800/60 text-slate-300 border border-slate-700/50">
+                    {f}
                   </span>
                 ))}
               </div>
 
               {/* Code Snippet Box */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 font-mono text-xs text-slate-200 overflow-x-auto leading-relaxed shadow-inner max-h-56">
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 font-mono text-xs text-slate-200 overflow-x-auto leading-relaxed shadow-inner">
                 <pre className="text-blue-300">{selectedTpl.codeSnippet}</pre>
               </div>
 
               {/* Action Banner */}
               <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-bold text-white">Ready for 1-click deployment</p>
+                  <p className="text-xs font-bold text-white">Ready for instant deployment</p>
                   <p className="text-[10px] text-slate-400">Zero build setup &middot; Automatic TLS &middot; Isolated sandbox</p>
                 </div>
                 <Link
@@ -755,7 +740,7 @@ export default function Home() {
                   className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-105 active:scale-95 flex items-center justify-center space-x-2 shadow-lg shadow-blue-600/30 cursor-pointer"
                 >
                   <Rocket size={14} />
-                  <span>Deploy {selectedTpl.name}</span>
+                  <span>Deploy This Template</span>
                 </Link>
               </div>
             </div>
@@ -1586,8 +1571,8 @@ export default function Home() {
       </section>
 
       {/* Supported Stacks & Technologies */}
-      <section className="py-24 px-6 max-w-7xl mx-auto border-t border-slate-100 relative">
-        <div className="text-center mb-12">
+      <section className="py-24 px-6 max-w-7xl mx-auto border-t border-slate-100">
+        <div className="text-center mb-16">
           <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-500 bg-slate-100 px-3.5 py-1.5 rounded-full">
             Universal Compatibility
           </span>
@@ -1599,49 +1584,23 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Horizontal Flow Container with Left-to-Right layout and edge fades */}
-        <div className="relative group">
-          {/* Subtle Left & Right gradient masks */}
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-slate-50 to-transparent z-10 hidden sm:block" />
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-slate-50 to-transparent z-10 hidden sm:block" />
-
-          <div className="flex items-center gap-4 overflow-x-auto pb-6 pt-2 px-4 no-scrollbar snap-x scroll-smooth">
-            {[
-              { name: "Next.js", desc: "SSR, SSG, Turbopack", tag: "Fullstack", color: "text-black bg-slate-100" },
-              { name: "Node.js", desc: "Express, Nest, Fastify", tag: "Backend", color: "text-emerald-600 bg-emerald-50" },
-              { name: "Python", desc: "FastAPI, Django, Flask", tag: "AI & APIs", color: "text-blue-600 bg-blue-50" },
-              { name: "Go", desc: "Gin, Fiber, Echo", tag: "High Perf", color: "text-cyan-600 bg-cyan-50" },
-              { name: "Rust", desc: "Actix, Axum, Warp", tag: "Systems", color: "text-amber-600 bg-amber-50" },
-              { name: "PHP", desc: "Laravel, WordPress", tag: "Web", color: "text-indigo-600 bg-indigo-50" },
-              { name: "Bun", desc: "Ultra-fast JS runtime", tag: "Speed", color: "text-orange-600 bg-orange-50" },
-              { name: "Docker", desc: "Custom Dockerfile", tag: "Any Image", color: "text-blue-500 bg-blue-50" },
-            ].map((stack, i) => (
-              <div
-                key={i}
-                className="flex-shrink-0 snap-start flex items-center space-x-4 p-4 pr-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-blue-500/50 hover:-translate-y-1 transition-all duration-300 min-w-[240px] cursor-default"
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 shadow-inner">
-                  <Code2 size={22} className="text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between space-x-2">
-                    <p className="text-sm font-black text-slate-900 truncate">{stack.name}</p>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${stack.color}`}>
-                      {stack.tag}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">{stack.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="text-center mt-2">
-            <span className="text-[11px] font-bold text-slate-400 inline-flex items-center space-x-1">
-              <span>Scroll horizontally or drag to explore all supported environments</span>
-              <ArrowRight size={12} className="text-slate-400" />
-            </span>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+          {[
+            { name: "Next.js", desc: "SSR, SSG, Turbopack" },
+            { name: "Node.js", desc: "Express, Nest, Fastify" },
+            { name: "Python", desc: "FastAPI, Django, Flask" },
+            { name: "Go", desc: "Gin, Fiber, Echo" },
+            { name: "Rust", desc: "Actix, Axum, Warp" },
+            { name: "PHP", desc: "Laravel, WordPress" },
+            { name: "Bun", desc: "Ultra-fast JS runtime" },
+            { name: "Docker", desc: "Custom Dockerfile" },
+          ].map((stack, i) => (
+            <div key={i} className="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all text-center">
+              <Code2 size={24} className="mx-auto text-blue-600 mb-2" />
+              <p className="text-sm font-black text-slate-900">{stack.name}</p>
+              <p className="text-[10px] text-slate-400 font-medium mt-1">{stack.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -1659,149 +1618,64 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl shadow-slate-200/40 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[720px]">
-              <thead>
-                <tr className="border-b-2 border-slate-100 bg-slate-50/70">
-                  <th className="p-5 pl-8 text-xs font-black uppercase tracking-widest text-slate-400">Feature</th>
-                  <th className="p-5 text-xs font-black uppercase tracking-widest bg-gradient-to-r from-blue-600 to-indigo-600 text-white relative shadow-sm">
-                    <div className="flex items-center space-x-2">
-                      <Zap size={14} className="text-yellow-300 fill-yellow-300" />
-                      <span className="tracking-wider font-extrabold text-sm">CodeHost</span>
-                      <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full font-bold ml-1">You</span>
-                    </div>
-                  </th>
-                  <th className="p-5 text-xs font-black uppercase tracking-widest text-slate-400">Traditional VPS</th>
-                  <th className="p-5 text-xs font-black uppercase tracking-widest text-slate-400">Heroku</th>
-                  <th className="p-5 pr-8 text-xs font-black uppercase tracking-widest text-slate-400">AWS / GCP</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm font-medium text-slate-600 divide-y divide-slate-100/80">
-                {/* Setup Time */}
-                <tr className="hover:bg-slate-50/60 transition-colors">
-                  <td className="p-5 pl-8 font-bold text-slate-900">Setup Time</td>
-                  <td className="p-5 bg-blue-50/30 border-x border-blue-100/50">
-                    <span className="inline-block relative">
-                      <span className="relative z-10 font-black text-slate-900 text-xs px-2.5 py-1">
-                        ⚡ &lt; 30 Seconds
-                      </span>
-                      <span className="absolute inset-0 bg-yellow-300/80 -rotate-1 rounded-md -skew-x-3 shadow-sm transform transition-transform" />
-                    </span>
-                  </td>
-                  <td className="p-5 text-slate-500">1 - 3 Hours</td>
-                  <td className="p-5 text-slate-500">2 - 5 Minutes</td>
-                  <td className="p-5 pr-8">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-red-50 text-red-500 font-bold text-xs">
-                      Hours / Days
-                    </span>
-                  </td>
-                </tr>
-                {/* Terminal Required */}
-                <tr className="hover:bg-slate-50/60 transition-colors">
-                  <td className="p-5 pl-8 font-bold text-slate-900">Terminal / SSH Required</td>
-                  <td className="p-5 bg-blue-50/30 border-x border-blue-100/50">
-                    <span className="inline-block relative">
-                      <span className="relative z-10 font-black text-emerald-950 text-xs px-2.5 py-1">
-                        ✓ Never
-                      </span>
-                      <span className="absolute inset-0 bg-emerald-300/70 rotate-1 rounded-md -skew-x-2 shadow-sm" />
-                    </span>
-                  </td>
-                  <td className="p-5">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-red-50 text-red-500 font-bold text-xs">Always</span>
-                  </td>
-                  <td className="p-5 text-slate-500">CLI Required</td>
-                  <td className="p-5 pr-8">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-red-50 text-red-500 font-bold text-xs">Complex CLI / IAM</span>
-                  </td>
-                </tr>
-                {/* Surprise Bill */}
-                <tr className="hover:bg-slate-50/60 transition-colors">
-                  <td className="p-5 pl-8 font-bold text-slate-900">Surprise Bill Risk</td>
-                  <td className="p-5 bg-blue-50/30 border-x border-blue-100/50">
-                    <div className="flex items-center space-x-2">
-                      <span className="inline-block relative">
-                        <span className="relative z-10 font-black text-slate-900 text-xs px-2.5 py-1">
-                          🛡️ Zero Risk
-                        </span>
-                        <span className="absolute inset-0 bg-yellow-300/80 -rotate-1 rounded-md shadow-sm" />
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-400">(Prepaid Credits)</span>
-                    </div>
-                  </td>
-                  <td className="p-5 text-slate-500">Fixed + Overage</td>
-                  <td className="p-5 text-slate-500">Moderate</td>
-                  <td className="p-5 pr-8">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-red-50 text-red-600 font-bold text-xs">
-                      High (Bandwidth/API traps)
-                    </span>
-                  </td>
-                </tr>
-                {/* Custom Credits */}
-                <tr className="hover:bg-slate-50/60 transition-colors">
-                  <td className="p-5 pl-8 font-bold text-slate-900">Buy Any Custom Amount</td>
-                  <td className="p-5 bg-blue-50/30 border-x border-blue-100/50">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-extrabold text-blue-700 text-xs bg-blue-100 px-2 py-0.5 rounded-md">✓ Yes</span>
-                      <span className="text-xs text-slate-600">from</span>
-                      <span className="inline-block relative">
-                        <span className="relative z-10 font-black text-slate-950 text-xs px-2 py-0.5">
-                          ₹16
-                        </span>
-                        <span className="absolute inset-0 bg-lime-300/80 rotate-1 rounded shadow-sm" />
-                      </span>
-                    </div>
-                  </td>
-                  <td className="p-5 text-slate-400">N/A</td>
-                  <td className="p-5 text-slate-400">Fixed tiers only</td>
-                  <td className="p-5 pr-8 text-slate-400">Credit card auto-charge</td>
-                </tr>
-                {/* Free SSL */}
-                <tr className="hover:bg-slate-50/60 transition-colors">
-                  <td className="p-5 pl-8 font-bold text-slate-900">Free SSL Subdomain</td>
-                  <td className="p-5 bg-blue-50/30 border-x border-blue-100/50">
-                    <span className="inline-block relative">
-                      <span className="relative z-10 font-black text-slate-900 text-xs px-2.5 py-1">
-                        🔒 1-Click Auto
-                      </span>
-                      <span className="absolute inset-0 bg-cyan-200/80 -rotate-1 rounded-md shadow-sm" />
-                    </span>
-                  </td>
-                  <td className="p-5 text-slate-500">Manual Certbot setup</td>
-                  <td className="p-5 text-slate-500">Included</td>
-                  <td className="p-5 pr-8 text-slate-500">ACM + CloudFront setup</td>
-                </tr>
-                {/* Free Tier Forever */}
-                <tr className="hover:bg-slate-50/60 transition-colors bg-amber-50/20">
-                  <td className="p-5 pl-8 font-bold text-slate-900">Free Tier Forever</td>
-                  <td className="p-5 bg-blue-50/40 border-x border-blue-100/60">
-                    <div className="flex items-center flex-wrap gap-2">
-                      <span className="font-extrabold text-emerald-700 text-xs bg-emerald-100 px-2 py-0.5 rounded-md">✓ Yes</span>
-                      <span className="text-xs font-semibold text-slate-700">1 Project for</span>
-                      <span className="inline-block relative">
-                        <span className="relative z-10 font-black text-slate-950 text-sm px-2.5 py-0.5">
-                          0 ₹
-                        </span>
-                        <span className="absolute inset-0 bg-yellow-300 rotate-2 rounded-md shadow-md border border-yellow-400/80 transform scale-105" />
-                      </span>
-                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Forever</span>
-                    </div>
-                  </td>
-                  <td className="p-5">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-red-50 text-red-500 font-bold text-xs">No</span>
-                  </td>
-                  <td className="p-5">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-red-50 text-red-500 font-bold text-xs">No (Removed)</span>
-                  </td>
-                  <td className="p-5 pr-8 text-slate-400">12 Months Only</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/50 text-xs font-black uppercase tracking-widest text-slate-500">
+                <th className="p-5 pl-8">Feature</th>
+                <th className="p-5 text-blue-600 bg-blue-50/50">CodeHost</th>
+                <th className="p-5">Traditional VPS</th>
+                <th className="p-5">Heroku</th>
+                <th className="p-5 pr-8">AWS / GCP</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm font-medium text-slate-600 divide-y divide-slate-100">
+              <tr>
+                <td className="p-5 pl-8 font-bold text-slate-900">Setup Time</td>
+                <td className="p-5 font-bold text-blue-600 bg-blue-50/30">&lt; 30 Seconds</td>
+                <td className="p-5">1 - 3 Hours</td>
+                <td className="p-5">2 - 5 Minutes</td>
+                <td className="p-5 pr-8">Hours / Days</td>
+              </tr>
+              <tr>
+                <td className="p-5 pl-8 font-bold text-slate-900">Terminal / SSH Required</td>
+                <td className="p-5 font-bold text-emerald-600 bg-blue-50/30">Never</td>
+                <td className="p-5 text-red-500">Always</td>
+                <td className="p-5">CLI Required</td>
+                <td className="p-5 pr-8 text-red-500">Complex CLI / IAM</td>
+              </tr>
+              <tr>
+                <td className="p-5 pl-8 font-bold text-slate-900">Surprise Bill Risk</td>
+                <td className="p-5 font-bold text-emerald-600 bg-blue-50/30">Zero (Prepaid Credits)</td>
+                <td className="p-5">Fixed + Overage</td>
+                <td className="p-5">Moderate</td>
+                <td className="p-5 pr-8 text-red-500">High (Bandwidth/API traps)</td>
+              </tr>
+              <tr>
+                <td className="p-5 pl-8 font-bold text-slate-900">Buy Any Custom Credit Amount</td>
+                <td className="p-5 font-bold text-emerald-600 bg-blue-50/30">Yes (from ₹16)</td>
+                <td className="p-5 text-slate-400">N/A</td>
+                <td className="p-5 text-slate-400">Fixed tiers only</td>
+                <td className="p-5 pr-8 text-slate-400">Credit card auto-charge</td>
+              </tr>
+              <tr>
+                <td className="p-5 pl-8 font-bold text-slate-900">Free SSL Subdomain</td>
+                <td className="p-5 font-bold text-emerald-600 bg-blue-50/30">1-Click Auto</td>
+                <td className="p-5">Manual Certbot setup</td>
+                <td className="p-5">Included</td>
+                <td className="p-5 pr-8">ACM + CloudFront setup</td>
+              </tr>
+              <tr>
+                <td className="p-5 pl-8 font-bold text-slate-900">Free Tier Forever</td>
+                <td className="p-5 font-bold text-emerald-600 bg-blue-50/30">Yes (1 Project, ₹0)</td>
+                <td className="p-5 text-red-500">No</td>
+                <td className="p-5 text-red-500">No (Removed)</td>
+                <td className="p-5 pr-8">12 Months Only</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
-
 
       {/* Features Section */}
       <section id="features" className="features-section py-28 px-6 max-w-7xl mx-auto scroll-mt-20 border-t border-slate-100">
@@ -1903,124 +1777,112 @@ export default function Home() {
                       </li>
                    </ul>
                 </div>
-                 <Link
-                   href={isLoggedIn ? "/dashboard/new" : "/signup"}
-                   className="w-full py-3.5 bg-slate-100 text-slate-900 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center"
-                 >
-                    {isLoggedIn ? "Deploy Free Project" : "Get Started Free"}
-                 </Link>
-              </div>
+                <Link href="/signup" className="w-full py-3.5 bg-slate-100 text-slate-900 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center">
+                   Get Started Free
+                </Link>
+             </div>
 
-              {/* Basic Tier */}
-              <div className="pricing-card bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm flex flex-col justify-between">
-                 <div>
-                    <h4 className="text-lg font-black text-slate-900 mb-1">Basic</h4>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">For hobbyists</p>
-                    <div className="flex items-baseline space-x-1 mb-8">
-                       <span className="text-4xl font-black text-slate-900">₹80</span>
-                       <span className="text-slate-400 font-bold text-xs">/month (50 cr)</span>
-                    </div>
-                    <ul className="space-y-3.5 mb-8">
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
-                          <CheckCircle2 size={16} className="text-blue-600" />
-                          <span>3 Active Projects</span>
-                       </li>
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
-                          <CheckCircle2 size={16} className="text-blue-600" />
-                          <span>256MB RAM &middot; 1 CPU</span>
-                       </li>
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
-                          <CheckCircle2 size={16} className="text-blue-600" />
-                          <span>2GB NVMe Storage</span>
-                       </li>
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
-                          <CheckCircle2 size={16} className="text-blue-600" />
-                          <span>Automatic Backups</span>
-                       </li>
-                    </ul>
-                 </div>
-                 <Link
-                   href={isLoggedIn ? "/dashboard/billing?credits=50" : "/signup?redirect=billing&credits=50"}
-                   className="w-full py-3.5 bg-slate-100 text-slate-900 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center"
-                 >
-                    Get Basic (₹80)
-                 </Link>
-              </div>
+             {/* Basic Tier */}
+             <div className="pricing-card bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                   <h4 className="text-lg font-black text-slate-900 mb-1">Basic</h4>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">For hobbyists</p>
+                   <div className="flex items-baseline space-x-1 mb-8">
+                      <span className="text-4xl font-black text-slate-900">₹80</span>
+                      <span className="text-slate-400 font-bold text-xs">/month (50 cr)</span>
+                   </div>
+                   <ul className="space-y-3.5 mb-8">
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
+                         <CheckCircle2 size={16} className="text-blue-600" />
+                         <span>3 Active Projects</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
+                         <CheckCircle2 size={16} className="text-blue-600" />
+                         <span>256MB RAM &middot; 1 CPU</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
+                         <CheckCircle2 size={16} className="text-blue-600" />
+                         <span>2GB NVMe Storage</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
+                         <CheckCircle2 size={16} className="text-blue-600" />
+                         <span>Automatic Backups</span>
+                      </li>
+                   </ul>
+                </div>
+                <Link href="/signup" className="w-full py-3.5 bg-slate-100 text-slate-900 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center">
+                   Get Started
+                </Link>
+             </div>
 
-              {/* Pro Tier */}
-              <div className="pricing-card bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl shadow-blue-500/20 flex flex-col justify-between transform lg:-translate-y-2 transition-all relative text-white">
-                 <div className="absolute top-0 right-8 -translate-y-1/2 px-3.5 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
-                    Popular
-                 </div>
-                 <div>
-                    <h4 className="text-lg font-black text-white mb-1">Pro</h4>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">For builders</p>
-                    <div className="flex items-baseline space-x-1 mb-8">
-                       <span className="text-4xl font-black text-white">₹240</span>
-                       <span className="text-slate-400 font-bold text-xs">/month (150 cr)</span>
-                    </div>
-                    <ul className="space-y-3.5 mb-8">
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-300">
-                          <CheckCircle2 size={16} className="text-blue-400" />
-                          <span>5 Active Projects</span>
-                       </li>
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-300">
-                          <CheckCircle2 size={16} className="text-blue-400" />
-                          <span>512MB RAM &middot; 2 CPUs</span>
-                       </li>
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-300">
-                          <CheckCircle2 size={16} className="text-blue-400" />
-                          <span>5GB NVMe Storage</span>
-                       </li>
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-300">
-                          <CheckCircle2 size={16} className="text-blue-400" />
-                          <span>Priority Build Queue</span>
-                       </li>
-                    </ul>
-                 </div>
-                 <Link
-                   href={isLoggedIn ? "/dashboard/billing?credits=150" : "/signup?redirect=billing&credits=150"}
-                   className="w-full py-4 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/40 text-center"
-                 >
-                    Get Pro (₹240)
-                 </Link>
-              </div>
+             {/* Pro Tier */}
+             <div className="pricing-card bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl shadow-blue-500/20 flex flex-col justify-between transform lg:-translate-y-2 transition-all relative text-white">
+                <div className="absolute top-0 right-8 -translate-y-1/2 px-3.5 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
+                   Popular
+                </div>
+                <div>
+                   <h4 className="text-lg font-black text-white mb-1">Pro</h4>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">For builders</p>
+                   <div className="flex items-baseline space-x-1 mb-8">
+                      <span className="text-4xl font-black text-white">₹240</span>
+                      <span className="text-slate-400 font-bold text-xs">/month (150 cr)</span>
+                   </div>
+                   <ul className="space-y-3.5 mb-8">
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-300">
+                         <CheckCircle2 size={16} className="text-blue-400" />
+                         <span>5 Active Projects</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-300">
+                         <CheckCircle2 size={16} className="text-blue-400" />
+                         <span>512MB RAM &middot; 2 CPUs</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-300">
+                         <CheckCircle2 size={16} className="text-blue-400" />
+                         <span>5GB NVMe Storage</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-300">
+                         <CheckCircle2 size={16} className="text-blue-400" />
+                         <span>Priority Build Queue</span>
+                      </li>
+                   </ul>
+                </div>
+                <Link href="/signup" className="w-full py-4 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/40 text-center">
+                   Get Started
+                </Link>
+             </div>
 
-              {/* Business Tier */}
-              <div className="pricing-card bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm flex flex-col justify-between">
-                 <div>
-                    <h4 className="text-lg font-black text-slate-900 mb-1">Business</h4>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">For high traffic</p>
-                    <div className="flex items-baseline space-x-1 mb-8">
-                       <span className="text-4xl font-black text-slate-900">₹640</span>
-                       <span className="text-slate-400 font-bold text-xs">/month (400 cr)</span>
-                    </div>
-                    <ul className="space-y-3.5 mb-8">
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
-                          <CheckCircle2 size={16} className="text-blue-600" />
-                          <span>10 Active Projects</span>
-                       </li>
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
-                          <CheckCircle2 size={16} className="text-blue-600" />
-                          <span>1GB RAM &middot; 4 CPUs</span>
-                       </li>
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
-                          <CheckCircle2 size={16} className="text-blue-600" />
-                          <span>10GB NVMe Storage</span>
-                       </li>
-                       <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
-                          <CheckCircle2 size={16} className="text-blue-600" />
-                          <span>Dedicated 24/7 Support</span>
-                       </li>
-                    </ul>
-                 </div>
-                 <Link
-                   href={isLoggedIn ? "/dashboard/billing?credits=400" : "/signup?redirect=billing&credits=400"}
-                   className="w-full py-3.5 bg-slate-100 text-slate-900 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center"
-                 >
-                    Get Business (₹640)
-                 </Link>
-              </div>
+             {/* Business Tier */}
+             <div className="pricing-card bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                   <h4 className="text-lg font-black text-slate-900 mb-1">Business</h4>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">For high traffic</p>
+                   <div className="flex items-baseline space-x-1 mb-8">
+                      <span className="text-4xl font-black text-slate-900">₹640</span>
+                      <span className="text-slate-400 font-bold text-xs">/month (400 cr)</span>
+                   </div>
+                   <ul className="space-y-3.5 mb-8">
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
+                         <CheckCircle2 size={16} className="text-blue-600" />
+                         <span>10 Active Projects</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
+                         <CheckCircle2 size={16} className="text-blue-600" />
+                         <span>1GB RAM &middot; 4 CPUs</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
+                         <CheckCircle2 size={16} className="text-blue-600" />
+                         <span>10GB NVMe Storage</span>
+                      </li>
+                      <li className="flex items-center space-x-3 text-xs font-medium text-slate-600">
+                         <CheckCircle2 size={16} className="text-blue-600" />
+                         <span>Dedicated 24/7 Support</span>
+                      </li>
+                   </ul>
+                </div>
+                <Link href="/signup" className="w-full py-3.5 bg-slate-100 text-slate-900 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all text-center">
+                   Get Started
+                </Link>
+             </div>
           </div>
 
           {/* Weekend Hackathon Pass Banner */}
@@ -2049,10 +1911,10 @@ export default function Home() {
               <p className="text-4xl font-black text-white mb-1">₹49</p>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">3 Days (72h) Pro Access</p>
               <Link
-                href={isLoggedIn ? "/dashboard/billing?hackathon=true" : "/signup?redirect=billing&hackathon=true"}
+                href="/signup"
                 className="inline-flex w-full md:w-auto px-8 py-4 bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-400 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/30 items-center justify-center space-x-2 cursor-pointer"
               >
-                <span>Claim Pass Now (₹49)</span>
+                <span>Claim Pass Now</span>
                 <ArrowRight size={14} />
               </Link>
             </div>
