@@ -23,6 +23,24 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 1. Instant cache hydration: Render dashboard in 0ms if visited before
+    if (typeof window !== 'undefined') {
+      try {
+        const cachedUser = localStorage.getItem('codehost_user_cache');
+        const cachedProjects = localStorage.getItem('codehost_projects_cache');
+        if (cachedUser) {
+          setUser(JSON.parse(cachedUser));
+          setLoading(false);
+        }
+        if (cachedProjects) {
+          setProjects(JSON.parse(cachedProjects));
+        }
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
+    }
+
+    // 2. Fetch fresh user and projects in the background
     const checkAuthAndFetchProjects = async () => {
       try {
         const [meData, projData] = await Promise.all([
@@ -32,9 +50,16 @@ export default function Dashboard() {
         
         setUser(meData.user);
         setProjects(projData.projects);
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('codehost_user_cache', JSON.stringify(meData.user));
+          localStorage.setItem('codehost_projects_cache', JSON.stringify(projData.projects));
+        }
       } catch (err: any) {
         if (err.status === 401 || err.status === 403) {
           localStorage.removeItem('token');
+          localStorage.removeItem('codehost_user_cache');
+          localStorage.removeItem('codehost_projects_cache');
           router.push('/login');
         }
       } finally {
@@ -56,12 +81,18 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  if (loading && !user) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f6f8fa] space-y-4 font-sans text-slate-900">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-        <p className="font-semibold tracking-tight animate-pulse">Initializing your dashboard...</p>
-      </div>
+      <PanelLayout user={null} projectName="Loading...">
+        <div className="space-y-8 animate-pulse">
+          <div className="h-10 bg-slate-200/80 rounded-2xl w-48" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="h-44 bg-slate-200/60 rounded-3xl" />
+            <div className="h-44 bg-slate-200/60 rounded-3xl" />
+            <div className="h-44 bg-slate-200/60 rounded-3xl" />
+          </div>
+        </div>
+      </PanelLayout>
     );
   }
 

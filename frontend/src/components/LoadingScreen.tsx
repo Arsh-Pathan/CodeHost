@@ -10,56 +10,46 @@ export const LoadingScreen = () => {
     const dotsRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const logo = logoRef.current;
         const container = containerRef.current;
+        const logo = logoRef.current;
         const dots = dotsRef.current;
-        if (!logo || !container || !dots) return;
+        if (!container || !logo || !dots) return;
 
-        const tl = gsap.timeline();
+        // Skip splash screen completely if user already loaded it in this session
+        if (typeof window !== 'undefined' && sessionStorage.getItem('codehost_splash_shown')) {
+            container.style.display = 'none';
+            return;
+        }
+
+        const tl = gsap.timeline({
+            onComplete: () => {
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('codehost_splash_shown', 'true');
+                }
+                container.style.display = "none";
+            }
+        });
 
         tl.to(logo, {
             opacity: 1,
             filter: "blur(0px)",
             scale: 1,
-            duration: 1.4,
+            duration: 0.45,
             ease: "power2.out",
         })
         .to(dots, {
             opacity: 1,
-            duration: 0.5,
+            duration: 0.25,
             ease: "power2.out",
-        }, "-=0.8")
-        .to(logo, {
-            duration: 1.0,
-        });
-
-        const dotEls = dots.querySelectorAll(".loading-dot");
-        const blink = gsap.timeline({ repeat: -1 });
-        dotEls.forEach((dot, i) => {
-            blink.to(dot, {
-                opacity: 1,
-                scale: 1,
-                duration: 0.3,
-                ease: "power1.inOut",
-            }, i * 0.25)
-            .to(dot, {
-                opacity: 0.3,
-                duration: 0.5,
-                ease: "power1.inOut",
-            }, i * 0.25 + 0.3);
-        });
-
-        tl.to(container, {
+        }, "-=0.2")
+        .to(container, {
             opacity: 0,
-            filter: "blur(30px)",
-            duration: 1,
-            ease: "power2.in",
-            onComplete: () => {
-                container.style.display = "none";
-            },
+            duration: 0.35,
+            ease: "power2.inOut",
+            delay: 0.2,
         });
 
-        return () => { tl.kill(); blink.kill(); };
+        return () => { tl.kill(); };
     }, []);
 
     return (

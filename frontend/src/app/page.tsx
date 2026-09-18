@@ -371,22 +371,30 @@ export default function Home() {
          }
        });
 
+       let rafId: number | null = null;
        const onMouseMove = (e: MouseEvent) => {
-          const { clientX, clientY } = e;
-          const xPos = (clientX / window.innerWidth) - 0.5;
-          const yPos = (clientY / window.innerHeight) - 0.5;
+          if (rafId) return;
+          rafId = window.requestAnimationFrame(() => {
+             const { clientX, clientY } = e;
+             const xPos = (clientX / window.innerWidth) - 0.5;
+             const yPos = (clientY / window.innerHeight) - 0.5;
 
-          gsap.to(".floating-symbol", {
-             xPercent: xPos * 20,
-             yPercent: yPos * 20,
-             duration: 1,
-             ease: "power2.out",
-             stagger: 0.02
+             gsap.to(".floating-symbol", {
+                xPercent: xPos * 15,
+                yPercent: yPos * 15,
+                duration: 0.8,
+                ease: "power2.out",
+                stagger: 0.01
+             });
+             rafId = null;
           });
        };
 
-       window.addEventListener("mousemove", onMouseMove);
-       return () => window.removeEventListener("mousemove", onMouseMove);
+       window.addEventListener("mousemove", onMouseMove, { passive: true });
+       return () => {
+         window.removeEventListener("mousemove", onMouseMove);
+         if (rafId) window.cancelAnimationFrame(rafId);
+       };
      }, [heroRef]);
 
      return () => ctx.revert();
@@ -447,7 +455,7 @@ export default function Home() {
            The simplest cloud platform for students. No Linux, no Docker, no terminals. Just one-click and your project is online.
         </p>
 
-        <div className="hero-btns w-full max-w-md sm:max-w-none flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
+        <div className="hero-btns w-full flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 mx-auto">
           <Link href="/signup" className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-[#0F172A] text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center space-x-2 active:scale-95 shadow-md">
              <span>Start Hosting Free</span>
              <ArrowRight size={16} />
