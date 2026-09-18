@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Logo, LogoWithText } from './Logo';
@@ -29,6 +29,25 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateAvatar = () => {
+      const style = localStorage.getItem('codehost_avatar_style') || 'notionists';
+      const seed = localStorage.getItem('codehost_avatar_seed') || user?.username || user?.email || 'developer';
+      if (style === 'github') {
+        setAvatarUrl(`https://github.com/${user?.username || 'github'}.png`);
+      } else if (style === 'initials') {
+        setAvatarUrl(null);
+      } else {
+        setAvatarUrl(`https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`);
+      }
+    };
+
+    updateAvatar();
+    window.addEventListener('codehost_avatar_changed', updateAvatar);
+    return () => window.removeEventListener('codehost_avatar_changed', updateAvatar);
+  }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -105,8 +124,12 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
         <div className="p-4 border-t border-slate-100 mt-auto">
           <div className="flex flex-col space-y-4">
             <div className={`p-3 sm:p-4 bg-slate-50/70 rounded-2xl border border-slate-100 flex items-center space-x-3 ${!isSidebarOpen && 'md:hidden'}`}>
-              <div className="w-9 h-9 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-black text-xs ring-4 ring-blue-500/5 shrink-0">
-                {user?.username ? user.username[0].toUpperCase() : user?.email ? user.email[0].toUpperCase() : 'U'}
+              <div className="w-9 h-9 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-black text-xs ring-4 ring-blue-500/10 shrink-0 overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                ) : (
+                  <span>{user?.username ? user.username[0].toUpperCase() : user?.email ? user.email[0].toUpperCase() : 'U'}</span>
+                )}
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-black text-[#0F172A] truncate">{user?.username || 'Developer'}</span>
@@ -174,9 +197,17 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
                 </button>
               </Link>
             )}
-            <div className="w-8 h-8 rounded-full bg-blue-50 text-[#2563EB] border border-blue-100 flex items-center justify-center shadow-xs">
-               <span className="text-[11px] font-black">{user?.username?.[0]?.toUpperCase() || 'U'}</span>
-            </div>
+            <Link
+              href="/dashboard/profile"
+              title="View Profile"
+              className="w-8 h-8 rounded-full bg-blue-50 text-[#2563EB] border border-blue-100 ring-2 ring-blue-500/10 flex items-center justify-center shadow-xs overflow-hidden hover:scale-105 transition-all"
+            >
+               {avatarUrl ? (
+                 <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+               ) : (
+                 <span className="text-[11px] font-black">{user?.username?.[0]?.toUpperCase() || 'U'}</span>
+               )}
+            </Link>
           </div>
         </header>
 
