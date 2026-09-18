@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchApi, API_URL } from '@/lib/api';
 import PanelLayout from '@/components/PanelLayout';
-import { CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Loader2, Zap, Package } from 'lucide-react';
+import { CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Loader2, Zap, Package, Sliders } from 'lucide-react';
 
 interface WalletData {
   id: string;
@@ -50,9 +50,14 @@ export default function BillingPage() {
   const [packages, setPackages] = useState<CreditPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<number | null>(null);
+  const [customAmount, setCustomAmount] = useState<number | string>(250);
   const [razorpayKeyId, setRazorpayKeyId] = useState<string>('');
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
+
+  const parsedCustomCredits = typeof customAmount === 'string' ? parseInt(customAmount, 10) : customAmount;
+  const customPriceInr = (!isNaN(parsedCustomCredits) && parsedCustomCredits > 0) ? Math.round(parsedCustomCredits * 1.60) : 0;
+  const customPriceUsd = (!isNaN(parsedCustomCredits) && parsedCustomCredits > 0) ? (parsedCustomCredits * 0.02).toFixed(2) : '0.00';
 
   useEffect(() => {
     loadRazorpayScript();
@@ -78,32 +83,37 @@ export default function BillingPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  const handlePurchase = async (pkg: CreditPackage) => {
+  const handlePurchase = async (creditsToBuy: number, label?: string) => {
+    if (!creditsToBuy || isNaN(creditsToBuy) || creditsToBuy < 10) {
+      setPaymentError('Minimum purchase is 10 credits');
+      return;
+    }
+
     setPaymentError(null);
     setPaymentSuccess(null);
-    setPurchasing(pkg.credits);
+    setPurchasing(creditsToBuy);
 
     try {
       const isScriptLoaded = await loadRazorpayScript();
       if (!isScriptLoaded) {
-        throw new Error('Failed to load Razorpay payment gateway. Please check your internet connection.');
+        throw new Error('Failed to load secure payment gateway. Please check your internet connection.');
       }
 
       // Step 1: Create order on backend
       const orderData = await fetchApi('/billing/razorpay/create-order', {
         method: 'POST',
-        body: JSON.stringify({ credits: pkg.credits, currency: 'INR' }),
+        body: JSON.stringify({ credits: creditsToBuy, currency: 'INR' }),
       });
 
       const key = orderData.key_id || orderData.keyId || razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
-      // Step 2: Open Razorpay checkout modal
+      // Step 2: Open checkout modal
       const options = {
         key,
         amount: orderData.amount,
         currency: orderData.currency || 'INR',
         name: 'CodeHost',
-        description: `${pkg.label} (${pkg.credits} Credits)`,
+        description: label || `${creditsToBuy} Credits`,
         order_id: orderData.order_id || orderData.orderId,
         prefill: {
           name: user?.name || user?.username || '',
@@ -126,12 +136,12 @@ export default function BillingPage() {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                credits: pkg.credits,
+                credits: creditsToBuy,
               }),
             });
 
             if (verifyRes.success) {
-              setPaymentSuccess(`Payment successful! ${pkg.credits} credits have been added to your wallet.`);
+              setPaymentSuccess(`Payment successful! ${creditsToBuy} credits have been added to your wallet.`);
               // Refresh wallet & transactions
               const [walletRes, txRes] = await Promise.all([
                 fetchApi('/billing/wallet'),
@@ -210,36 +220,40 @@ export default function BillingPage() {
         <div>
           <h2 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center">
             <Package size={16} className="mr-2 text-blue-600" />
-            Buy Credits (Razorpay Checkout)
+            Buy Credits
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {packages.map((pkg) => (
               <div
                 key={pkg.credits}
-                className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all"
+                className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-2xl font-black text-slate-900">{pkg.credits}</h3>
-                  <Zap size={20} className="text-yellow-500" />
-                </div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Credits</p>
-                <div className="flex items-baseline space-x-2 mb-2">
-                  <span className="text-3xl font-black text-slate-900">
-                    {pkg.priceInr ? `₹${pkg.priceInr}` : `$${pkg.priceUsd.toFixed(2)}`}
-                  </span>
-                  {pkg.priceInr && (
-                    <span className="text-xs font-bold text-slate-400">
-                      (${pkg.priceUsd.toFixed(2)})
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-2xl font-black text-slate-900">{pkg.credits}</h3>
+                    <Zap size={20} className="text-yellow-500" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Credits</p>
+                  <div className="flex items-baseline space-x-2 mb-2">
+                    <span className="text-3xl font-black text-slate-900">
+                      {pkg.priceInr ? `₹${pkg.priceInr}` : `$${pkg.priceUsd.toFixed(2)}`}
                     </span>
+                    {pkg.priceInr && (
+                      <span className="text-xs font-bold text-slate-400">
+                        (${pkg.priceUsd.toFixed(2)})
+                      </span>
+                    )}
+                  </div>
+                  {pkg.savings ? (
+                    <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-full mb-4">
+                      {pkg.savings}
+                    </span>
+                  ) : (
+                    <div className="h-6 mb-4" />
                   )}
                 </div>
-                {pkg.savings && (
-                  <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-full mb-4">
-                    {pkg.savings}
-                  </span>
-                )}
                 <button
-                  onClick={() => handlePurchase(pkg)}
+                  onClick={() => handlePurchase(pkg.credits, `${pkg.label} (${pkg.credits} Credits)`)}
                   disabled={purchasing !== null}
                   className="w-full mt-4 py-3 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center space-x-2 shadow-lg shadow-blue-600/20"
                 >
@@ -248,12 +262,60 @@ export default function BillingPage() {
                   ) : (
                     <>
                       <CreditCard size={14} />
-                      <span>Pay with Razorpay</span>
+                      <span>Buy Now</span>
                     </>
                   )}
                 </button>
               </div>
             ))}
+
+            {/* Custom Amount Card */}
+            <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/30 rounded-3xl border-2 border-dashed border-blue-200 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-black text-slate-900">Custom</h3>
+                  <Sliders size={20} className="text-blue-600" />
+                </div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Any Amount</p>
+                <div className="relative mb-3">
+                  <input
+                    type="number"
+                    min="10"
+                    step="10"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder="Credits"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-lg font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-400">credits</span>
+                </div>
+                <div className="flex items-baseline space-x-2 mb-2">
+                  <span className="text-2xl font-black text-slate-900">
+                    ₹{customPriceInr}
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">
+                    (${customPriceUsd})
+                  </span>
+                </div>
+                <span className="inline-block text-[10px] font-bold text-slate-400">
+                  Min. 10 credits (₹1.60 / credit)
+                </span>
+              </div>
+              <button
+                onClick={() => handlePurchase(parsedCustomCredits, `Custom (${parsedCustomCredits} Credits)`)}
+                disabled={purchasing !== null || isNaN(parsedCustomCredits) || parsedCustomCredits < 10}
+                className="w-full mt-4 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center space-x-2 shadow-lg shadow-slate-900/10"
+              >
+                {purchasing === parsedCustomCredits ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <>
+                    <CreditCard size={14} />
+                    <span>Buy Custom</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 

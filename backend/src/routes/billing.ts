@@ -6,6 +6,7 @@ import { logger } from '@codehost/logger';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { RESOURCE_TIERS, CREDIT_PACKAGES, CREDIT_PRICE_USD, CREDIT_PRICE_INR, env } from '@codehost/config';
 import {
+  getRazorpayClient,
   createRazorpayOrder,
   verifyRazorpayPaymentSignature,
   verifyRazorpayWebhookSignature,
@@ -78,7 +79,7 @@ router.get('/tiers', requireAuth, async (_req: AuthRequest, res) => {
   });
 });
 
-// Razorpay: Create Order Handler
+// Create Order Handler (Supports predefined packages & custom credit amounts)
 export const handleCreateRazorpayOrder = async (req: AuthRequest, res: any) => {
   try {
     const { credits, amount: rawAmount, currency = 'INR', receipt: customReceipt } = req.body;
@@ -89,19 +90,26 @@ export const handleCreateRazorpayOrder = async (req: AuthRequest, res: any) => {
       notes.userId = req.user.id;
     }
 
-    if (credits) {
-      const pkg = CREDIT_PACKAGES.find((p) => p.credits === credits);
-      if (!pkg) {
-        return res.status(400).json({ error: 'Invalid credit package' });
+    if (credits !== undefined) {
+      const parsedCredits = parseInt(String(credits), 10);
+      if (isNaN(parsedCredits) || parsedCredits < 10) {
+        return res.status(400).json({ error: 'Minimum purchase is 10 credits' });
       }
-      amountInPaise = Math.round(pkg.priceInr * 100);
-      notes.credits = String(pkg.credits);
+      const pkg = CREDIT_PACKAGES.find((p) => p.credits === parsedCredits);
+      if (pkg) {
+        amountInPaise = Math.round(pkg.priceInr * 100);
+      } else {
+        // Custom credit purchase rate (1 credit = 1.60 INR = 160 paise)
+        amountInPaise = Math.round(parsedCredits * CREDIT_PRICE_INR * 100);
+      }
+      notes.credits = String(parsedCredits);
     } else if (rawAmount !== undefined) {
       const parsed = Number(rawAmount);
       if (isNaN(parsed) || parsed < 100) {
         return res.status(400).json({ error: 'Minimum amount is 100 paise (1 INR)' });
       }
       amountInPaise = Math.round(parsed);
+      notes.credits = String(Math.floor(amountInPaise / (CREDIT_PRICE_INR * 100)));
     } else {
       return res.status(400).json({ error: 'Amount or credits package is required' });
     }
@@ -130,7 +138,7 @@ export const handleCreateRazorpayOrder = async (req: AuthRequest, res: any) => {
   }
 };
 
-// Razorpay: Verify Payment Signature Handler
+// Verify Payment Signature Handler
 export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) => {
   try {
     const orderId = req.body.razorpay_order_id || req.body.razorpayOrderId;
@@ -173,7 +181,21 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
         });
       }
 
-      const creditsToAdd = credits || 100;
+      // Securely read credits from order details or fallback
+      let creditsToAdd = 0;
+      try {
+        const client = getRazorpayClient();
+        const orderData = await client.orders.fetch(orderId);
+        if (orderData && orderData.notes && orderData.notes.credits) {
+          creditsToAdd = parseInt(String(orderData.notes.credits), 10);
+        }
+      } catch (fetchErr) {
+        // Fetch failed, use request credits
+      }
+
+      if (!creditsToAdd || isNaN(creditsToAdd)) {
+        creditsToAdd = credits ? Math.max(10, Number(credits)) : 100;
+      }
 
       const result = await prisma.$transaction(async (tx: any) => {
         let wallet = await tx.wallet.findUnique({ where: { userId } });
@@ -191,7 +213,7 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
             walletId: wallet.id,
             amount: creditsToAdd,
             type: 'purchase',
-            description: `Purchased ${creditsToAdd} credits via Razorpay`,
+            description: `Purchased ${creditsToAdd} credits`,
             razorpayOrderId: orderId,
             razorpayPaymentId: paymentId,
           },
@@ -226,7 +248,7 @@ router.post('/create-order', handleCreateRazorpayOrder);
 router.post('/razorpay/verify', requireAuth, handleVerifyRazorpayPayment);
 router.post('/verify-payment', handleVerifyRazorpayPayment);
 
-// Razorpay Webhook Handler
+// Webhook Handler
 export const handleRazorpayWebhook = async (req: any, res: any) => {
   try {
     const signature = (req.headers['x-razorpay-signature'] || '') as string;
@@ -270,13 +292,13 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
                 walletId: wallet.id,
                 amount: credits,
                 type: 'purchase',
-                description: `Webhook: Purchased ${credits} credits via Razorpay`,
+                description: `Purchased ${credits} credits`,
                 razorpayOrderId: orderId,
                 razorpayPaymentId: paymentId,
               },
             });
           });
-          logger.info(`Webhook: ${credits} credits added for user ${userId} via Razorpay`);
+          logger.info(`Webhook: ${credits} credits added for user ${userId}`);
         }
       }
     }

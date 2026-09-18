@@ -5,6 +5,7 @@ import { logger } from '@codehost/logger';
 import { requireAuth, AuthRequest } from './middleware/auth.js';
 import { RESOURCE_TIERS, CREDIT_PACKAGES, CREDIT_PRICE_USD, CREDIT_PRICE_INR, env } from '@codehost/config';
 import {
+  getRazorpayClient,
   createRazorpayOrder,
   verifyRazorpayPaymentSignature,
   verifyRazorpayWebhookSignature,
@@ -93,19 +94,25 @@ const handleCreateOrder = async (req: AuthRequest, res: any) => {
       notes.userId = req.user.id;
     }
 
-    if (credits) {
-      const pkg = CREDIT_PACKAGES.find((p) => p.credits === credits);
-      if (!pkg) {
-        return res.status(400).json({ error: 'Invalid credit package' });
+    if (credits !== undefined) {
+      const parsedCredits = parseInt(String(credits), 10);
+      if (isNaN(parsedCredits) || parsedCredits < 10) {
+        return res.status(400).json({ error: 'Minimum purchase is 10 credits' });
       }
-      amountInPaise = Math.round(pkg.priceInr * 100);
-      notes.credits = String(pkg.credits);
+      const pkg = CREDIT_PACKAGES.find((p) => p.credits === parsedCredits);
+      if (pkg) {
+        amountInPaise = Math.round(pkg.priceInr * 100);
+      } else {
+        amountInPaise = Math.round(parsedCredits * CREDIT_PRICE_INR * 100);
+      }
+      notes.credits = String(parsedCredits);
     } else if (rawAmount !== undefined) {
       const parsed = Number(rawAmount);
       if (isNaN(parsed) || parsed < 100) {
         return res.status(400).json({ error: 'Minimum amount is 100 paise (1 INR)' });
       }
       amountInPaise = Math.round(parsed);
+      notes.credits = String(Math.floor(amountInPaise / (CREDIT_PRICE_INR * 100)));
     } else {
       return res.status(400).json({ error: 'Amount or credits package is required' });
     }
@@ -130,7 +137,7 @@ const handleCreateOrder = async (req: AuthRequest, res: any) => {
     });
   } catch (error: any) {
     logger.error({ error }, 'Razorpay create order error');
-    return res.status(500).json({ error: error.message || 'Failed to create Razorpay order' });
+    return res.status(500).json({ error: error.message || 'Failed to create order' });
   }
 };
 
@@ -173,7 +180,20 @@ const handleVerifyPayment = async (req: AuthRequest, res: any) => {
         });
       }
 
-      const creditsToAdd = credits || 100;
+      let creditsToAdd = 0;
+      try {
+        const client = getRazorpayClient();
+        const orderData = await client.orders.fetch(orderId);
+        if (orderData && orderData.notes && orderData.notes.credits) {
+          creditsToAdd = parseInt(String(orderData.notes.credits), 10);
+        }
+      } catch (fetchErr) {
+        // Order notes fetch fallback
+      }
+
+      if (!creditsToAdd || isNaN(creditsToAdd)) {
+        creditsToAdd = credits ? Math.max(10, Number(credits)) : 100;
+      }
 
       const result = await prisma.$transaction(async (tx: any) => {
         let wallet = await tx.wallet.findUnique({ where: { userId } });
@@ -191,7 +211,7 @@ const handleVerifyPayment = async (req: AuthRequest, res: any) => {
             walletId: wallet.id,
             amount: creditsToAdd,
             type: 'purchase',
-            description: `Purchased ${creditsToAdd} credits via Razorpay`,
+            description: `Purchased ${creditsToAdd} credits`,
             razorpayOrderId: orderId,
             razorpayPaymentId: paymentId,
           },
@@ -215,7 +235,7 @@ const handleVerifyPayment = async (req: AuthRequest, res: any) => {
       paymentId,
     });
   } catch (error: any) {
-    logger.error({ error }, 'Razorpay verify payment error');
+    logger.error({ error }, 'Payment verify error');
     return res.status(500).json({ error: error.message || 'Payment verification failed' });
   }
 };
@@ -228,8 +248,8 @@ app.post('/razorpay/verify', requireAuth, handleVerifyPayment);
 app.post('/verify-payment', handleVerifyPayment);
 app.post('/verify', requireAuth, handleVerifyPayment);
 
-// Webhook
-app.post('/webhook', async (req: any, res) => {
+// Webhook Handler
+app.post('/webhook', async (req: any, res: any) => {
   try {
     const signature = (req.headers['x-razorpay-signature'] || '') as string;
     const rawBody = req.rawBody ? req.rawBody.toString() : JSON.stringify(req.body);
@@ -272,13 +292,13 @@ app.post('/webhook', async (req: any, res) => {
                 walletId: wallet.id,
                 amount: credits,
                 type: 'purchase',
-                description: `Webhook: Purchased ${credits} credits via Razorpay`,
+                description: `Purchased ${credits} credits`,
                 razorpayOrderId: orderId,
                 razorpayPaymentId: paymentId,
               },
             });
           });
-          logger.info(`Webhook: ${credits} credits added for user ${userId} via Razorpay`);
+          logger.info(`Webhook: ${credits} credits added for user ${userId}`);
         }
       }
     }
