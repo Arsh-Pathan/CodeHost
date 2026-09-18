@@ -45,6 +45,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { fetchApi } from '@/lib/api';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { MobileFloatingIsland } from '@/components/MobileFloatingIsland';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -408,23 +409,25 @@ export default function Home() {
        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05]"
             style={{ backgroundImage: 'radial-gradient(#2563EB 2px, transparent 2px)', backgroundSize: '60px 60px' }} />
 
-      <nav className="fixed top-0 w-full z-50 bg-white/60 backdrop-blur-2xl px-8 py-5 flex items-center justify-between">
-        <LogoWithText />
+      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-2xl px-4 sm:px-8 py-3 sm:py-5 flex items-center justify-between border-b border-slate-100/60 transition-all">
+        <div className="scale-90 sm:scale-100 origin-left">
+          <LogoWithText />
+        </div>
         <div className="hidden md:flex items-center space-x-8">
           <Link href="#features" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Features</Link>
           <Link href="#pricing" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Pricing</Link>
           <Link href="/docs" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Docs</Link>
           <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="text-sm font-medium text-[#5865F2] hover:text-[#4752C4] transition-colors">Discord</Link>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           {isLoggedIn ? (
-            <Link href="/dashboard" className="px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-all">
-               Go to Dashboard
+            <Link href="/dashboard" className="px-4 sm:px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm active:scale-95">
+               Dashboard
             </Link>
           ) : (
             <>
-              <Link href="/login" className="text-sm font-medium text-slate-500 hover:text-slate-900 px-4 py-2 transition-colors">Login</Link>
-              <Link href="/signup" className="px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-all">
+              <Link href="/login" className="text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 px-2.5 sm:px-4 py-2 transition-colors">Login</Link>
+              <Link href="/signup" className="px-3.5 sm:px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm active:scale-95">
                  Get Started
               </Link>
             </>
@@ -433,31 +436,31 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <header ref={heroRef} className="relative pt-52 md:pt-56 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+      <header id="hero" ref={heroRef} className="relative pt-28 sm:pt-36 md:pt-56 pb-12 sm:pb-20 px-4 sm:px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
 
-          <h1 className="hero-title text-5xl md:text-8xl font-black tracking-tightest leading-[0.95] max-w-4xl mb-10 text-[#0F172A]">
+          <h1 className="hero-title text-4xl sm:text-6xl md:text-8xl font-black tracking-tightest leading-[1.05] sm:leading-[0.95] max-w-4xl mb-6 sm:mb-10 text-[#0F172A]">
               <span className="block"><SplitText text="Cloud, Made" /></span>
               <span className="block"><SplitText text="Simple" className="text-[#2563EB]" /></span>
           </h1>
 
-        <p className="hero-subtext text-lg md:text-xl text-slate-500 font-medium max-w-2xl mb-12">
+        <p className="hero-subtext text-base sm:text-lg md:text-xl text-slate-500 font-medium max-w-2xl mb-8 sm:mb-12 px-2">
            The simplest cloud platform for students. No Linux, no Docker, no terminals. Just one-click and your project is online.
         </p>
 
-        <div className="hero-btns flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-          <Link href="/signup" className="w-full sm:w-auto px-8 py-4 bg-[#0F172A] text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center space-x-2">
+        <div className="hero-btns w-full max-w-md sm:max-w-none flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
+          <Link href="/signup" className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-[#0F172A] text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center space-x-2 active:scale-95 shadow-md">
              <span>Start Hosting Free</span>
              <ArrowRight size={16} />
           </Link>
-          <Link href="#features" className="w-full sm:w-auto px-8 py-4 bg-white border border-slate-200 text-slate-500 text-sm font-medium rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all flex items-center justify-center">
+          <Link href="#features" className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-white border border-slate-200 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all flex items-center justify-center active:scale-95">
              See how it works
           </Link>
         </div>
 
         {/* Dashboard Preview - Floating mockup with animated glow border */}
-        <div className="mt-36 md:mt-44 mb-20 md:mb-28 dashboard-preview relative max-w-5xl mx-auto w-full group">
-          <div className="glow-border rounded-[2.5rem]">
-            <div className="relative bg-[#F8FAFC] rounded-[2.5rem] border border-white/80 shadow-2xl overflow-hidden p-6">
+        <div className="mt-16 sm:mt-24 md:mt-44 mb-16 sm:mb-20 md:mb-28 dashboard-preview relative max-w-5xl mx-auto w-full group">
+          <div className="glow-border rounded-2xl sm:rounded-[2.5rem]">
+            <div className="relative bg-[#F8FAFC] rounded-2xl sm:rounded-[2.5rem] border border-white/80 shadow-2xl overflow-hidden p-4 sm:p-6 md:p-8">
                <div className="flex items-center space-x-2 mb-8">
                   <div className="w-3 h-3 rounded-full bg-[#E53935]" />
                   <div className="w-3 h-3 rounded-full bg-[#FFB300]" />
@@ -621,21 +624,21 @@ export default function Home() {
       </section>
 
       {/* 1-CLICK STARTER TEMPLATE MARKETPLACE */}
-      <section className="py-28 px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="text-center mb-16">
+      <section id="templates" className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-16">
+        <div className="text-center mb-10 sm:mb-16">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
             <Rocket size={13} className="text-blue-600" />
             <span>1-Click Starter Marketplace</span>
           </div>
-          <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
             Skip the setup. Launch in seconds.
           </h2>
-          <p className="text-slate-500 font-medium max-w-2xl mx-auto mt-3">
+          <p className="text-slate-500 font-medium text-sm sm:text-base max-w-2xl mx-auto mt-3 px-2">
             Choose from production-grade templates pre-configured with Docker sandboxes, health checks, and instant SSL routing.
           </p>
 
           {/* Interactive Category Filter Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
+          <div className="flex items-center gap-2 mt-6 sm:mt-8 overflow-x-auto no-scrollbar py-2 max-w-full justify-start sm:justify-center px-1">
             {[
               { id: 'all', label: 'All Templates' },
               { id: 'fullstack', label: 'Fullstack & Web' },
@@ -749,20 +752,20 @@ export default function Home() {
       </section>
 
       {/* SHOWCASE SECTION 1: Text Left, Smooth Visual Right (Git Deployments) */}
-      <section className="py-28 px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <div className="lg:col-span-5 space-y-6">
+      <section className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+          <div className="lg:col-span-5 space-y-4 sm:space-y-6">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
               <GitBranch size={13} className="text-blue-600" />
               <span>Automated CI/CD Pipeline</span>
             </div>
-            <h3 className="text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
+            <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
               Push to GitHub. We handle the rest.
             </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-base">
+            <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
               Say goodbye to messy manual FTP uploads or manually executing SSH scripts. Simply push code to your repository and CodeHost runs dependency installs, generates optimized production builds, and rolls out updates with zero downtime.
             </p>
-            <div className="space-y-3 pt-2">
+            <div className="space-y-2.5 sm:space-y-3 pt-2">
               {[
                 "Automatic builds triggered instantly on push to main",
                 "Isolated build sandboxes prevent dependency conflicts",
@@ -772,7 +775,7 @@ export default function Home() {
                   <div className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Check size={12} className="stroke-[3]" />
                   </div>
-                  <span className="text-sm font-semibold text-slate-700">{item}</span>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
                 </div>
               ))}
             </div>
@@ -780,7 +783,7 @@ export default function Home() {
 
           <div className="lg:col-span-7">
             {/* Smooth Rounded Visual Frame */}
-            <div className="relative rounded-[2.5rem] border border-slate-200/80 shadow-2xl overflow-hidden bg-slate-900 p-6 md:p-8 text-white transition-all hover:shadow-blue-500/10">
+            <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-200/80 shadow-2xl overflow-hidden bg-slate-900 p-4 sm:p-6 md:p-8 text-white transition-all hover:shadow-blue-500/10">
               {/* Window Bar */}
               <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800">
                 <div className="flex items-center space-x-2">
@@ -849,67 +852,67 @@ export default function Home() {
       </section>
 
       {/* SHOWCASE SECTION 2: Smooth Visual Left, Text Right (Live Telemetry & Logs) */}
-      <section className="py-28 px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+      <section className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           <div className="lg:col-span-7 order-2 lg:order-1">
             {/* Smooth Rounded Terminal Frame */}
-            <div className="relative rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0B0F19] p-6 md:p-8 font-mono text-xs transition-all hover:shadow-emerald-500/10">
+            <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0B0F19] p-4 sm:p-6 md:p-8 font-mono text-xs transition-all hover:shadow-emerald-500/10">
               {/* Window Bar */}
-              <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800/80">
+              <div className="flex items-center justify-between pb-4 sm:pb-6 mb-4 sm:mb-6 border-b border-slate-800/80">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-red-500/80" />
                   <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                   <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
                 </div>
-                <span className="text-slate-400 font-bold text-[11px] tracking-wide">
+                <span className="text-slate-400 font-bold text-[10px] sm:text-[11px] tracking-wide truncate">
                   Live Container Console (WebSocket)
                 </span>
                 <div className="flex items-center space-x-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[10px] text-emerald-400 font-bold">Streaming</span>
+                  <span className="text-[10px] text-emerald-400 font-bold hidden sm:inline">Streaming</span>
                 </div>
               </div>
 
               {/* Streaming Output */}
-              <div className="space-y-2 text-slate-300 leading-relaxed font-mono">
+              <div className="space-y-2 text-slate-300 leading-relaxed font-mono text-[11px] sm:text-xs overflow-x-auto">
                 <p><span className="text-slate-500">[12:00:01]</span> <span className="text-blue-400">[INIT]</span> Initializing isolated Docker container sandbox...</p>
                 <p><span className="text-slate-500">[12:00:02]</span> <span className="text-blue-400">[PORT]</span> Container bound to internal port 3000</p>
                 <p><span className="text-slate-500">[12:00:03]</span> <span className="text-emerald-400">[READY]</span> Next.js 16 production server initialized</p>
-                <p><span className="text-slate-500">[12:00:04]</span> <span className="text-purple-400">[CERT]</span> Let's Encrypt TLS certificate active (TLS_AES_256_GCM_SHA384)</p>
+                <p><span className="text-slate-500">[12:00:04]</span> <span className="text-purple-400">[CERT]</span> Let's Encrypt TLS certificate active</p>
                 <p><span className="text-slate-500">[12:00:05]</span> <span className="text-emerald-400">[HEALTH]</span> Health check passed (200 OK, latency: 1.8ms)</p>
-                <p className="text-emerald-300 font-bold"><span className="text-slate-500">[12:00:06]</span> [SERVE] Serving incoming traffic at coffee-shop.code-host.online</p>
+                <p className="text-emerald-300 font-bold"><span className="text-slate-500">[12:00:06]</span> [SERVE] Serving traffic at coffee-shop.code-host.online</p>
               </div>
 
               {/* Live Metric Strip */}
-              <div className="mt-6 pt-5 border-t border-slate-800/80 grid grid-cols-3 gap-4 text-center">
-                <div className="bg-slate-900/80 rounded-2xl p-3 border border-slate-800">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CPU Usage</p>
-                  <p className="text-base font-black text-blue-400 mt-1">14%</p>
+              <div className="mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-slate-800/80 grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                <div className="bg-slate-900/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 border border-slate-800">
+                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">CPU</p>
+                  <p className="text-sm sm:text-base font-black text-blue-400 mt-1">14%</p>
                 </div>
-                <div className="bg-slate-900/80 rounded-2xl p-3 border border-slate-800">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">RAM Allocation</p>
-                  <p className="text-base font-black text-purple-400 mt-1">86 MB / 512 MB</p>
+                <div className="bg-slate-900/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 border border-slate-800">
+                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">RAM</p>
+                  <p className="text-sm sm:text-base font-black text-purple-400 mt-1 truncate">86MB / 512MB</p>
                 </div>
-                <div className="bg-slate-900/80 rounded-2xl p-3 border border-slate-800">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">WebSocket Ping</p>
-                  <p className="text-base font-black text-emerald-400 mt-1">3 ms</p>
+                <div className="bg-slate-900/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 border border-slate-800">
+                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ping</p>
+                  <p className="text-sm sm:text-base font-black text-emerald-400 mt-1">3 ms</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="lg:col-span-5 space-y-6 order-1 lg:order-2">
+          <div className="lg:col-span-5 space-y-4 sm:space-y-6 order-1 lg:order-2">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[11px] font-black uppercase tracking-widest">
               <Terminal size={13} className="text-emerald-600" />
               <span>Real-Time Observability</span>
             </div>
-            <h3 className="text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
+            <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
               Inspect live stdout & stderr without touching SSH.
             </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-base">
+            <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
               Traditional VPS setups force you to configure SSH keys, open security groups, and remember complicated commands like <code className="text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded text-xs font-mono">journalctl -u app -f</code>. CodeHost streams real-time stdout logs right into your browser with zero latency.
             </p>
-            <div className="space-y-3 pt-2">
+            <div className="space-y-2.5 sm:space-y-3 pt-2">
               {[
                 "Instant log search, level filtering, and crash highlights",
                 "One-click Restart, Pause, and Rebuild buttons",
@@ -919,7 +922,7 @@ export default function Home() {
                   <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Check size={12} className="stroke-[3]" />
                   </div>
-                  <span className="text-sm font-semibold text-slate-700">{item}</span>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
                 </div>
               ))}
             </div>
@@ -928,17 +931,17 @@ export default function Home() {
       </section>
 
       {/* SHOWCASE SECTION: 1-Click Managed Databases & Add-ons (Text Left, Visual Right) */}
-      <section className="py-28 px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <div className="lg:col-span-5 space-y-6">
+      <section id="databases" className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+          <div className="lg:col-span-5 space-y-4 sm:space-y-6">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[11px] font-black uppercase tracking-widest">
               <Database size={13} className="text-emerald-600" />
               <span>Instant Managed Databases</span>
             </div>
-            <h3 className="text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
+            <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
               PostgreSQL & Redis. One-click provisioned.
             </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-base">
+            <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
               No need to configure complex database clusters, firewall ports, or manage database user grants. Launch dedicated PostgreSQL or Redis instances with automated daily backups, persistent NVMe storage, and direct connection string exports for your app.
             </p>
             <div className="space-y-3 pt-2">
@@ -1083,11 +1086,11 @@ export default function Home() {
       </section>
 
       {/* SHOWCASE SECTION: Scale-to-Zero & Intelligent Auto-Sleep (Visual Left, Text Right) */}
-      <section className="py-28 px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+      <section id="scaletozero" className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           <div className="lg:col-span-7 order-2 lg:order-1">
             {/* Smooth Visual Simulator Frame */}
-            <div className="relative rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0A0F1D] p-6 md:p-8 text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-cyan-500/10">
+            <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0A0F1D] p-4 sm:p-6 md:p-8 text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-cyan-500/10">
               {/* Window Bar */}
               <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800">
                 <div className="flex items-center space-x-2">
@@ -1289,17 +1292,17 @@ export default function Home() {
       </section>
 
       {/* SHOWCASE SECTION: Custom Domains & Automated Zero-Config SSL (Text Left, Visual Right) */}
-      <section className="py-28 px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <div className="lg:col-span-5 space-y-6">
+      <section id="domains" className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+          <div className="lg:col-span-5 space-y-4 sm:space-y-6">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
               <Globe size={13} className="text-blue-600" />
               <span>Custom Domains & Free SSL</span>
             </div>
-            <h3 className="text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
+            <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
               Your own domain. Zero SSL headache.
             </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-base">
+            <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
               Connect your apex domain or subdomain (<code className="text-blue-600 font-mono bg-blue-50 px-1.5 py-0.5 rounded text-xs">app.yourcompany.com</code>) with a single DNS A record. CodeHost automatically provisions and renews Let's Encrypt TLS certificates with zero manual Certbot commands.
             </p>
             <div className="space-y-3 pt-2">
@@ -1571,20 +1574,20 @@ export default function Home() {
       </section>
 
       {/* Supported Stacks & Technologies */}
-      <section className="py-24 px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="text-center mb-16">
+      <section className="py-16 sm:py-24 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100">
+        <div className="text-center mb-10 sm:mb-16">
           <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-500 bg-slate-100 px-3.5 py-1.5 rounded-full">
             Universal Compatibility
           </span>
-          <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
             Deploy your favorite stack in seconds
           </h2>
-          <p className="text-slate-500 font-medium max-w-xl mx-auto mt-3">
+          <p className="text-slate-500 font-medium text-sm sm:text-base max-w-xl mx-auto mt-3 px-2">
             Automatic framework detection with zero Dockerfile required. Or bring your own Dockerfile for total custom control.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-4">
           {[
             { name: "Next.js", desc: "SSR, SSG, Turbopack" },
             { name: "Node.js", desc: "Express, Nest, Fastify" },
@@ -1595,38 +1598,43 @@ export default function Home() {
             { name: "Bun", desc: "Ultra-fast JS runtime" },
             { name: "Docker", desc: "Custom Dockerfile" },
           ].map((stack, i) => (
-            <div key={i} className="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all text-center">
-              <Code2 size={24} className="mx-auto text-blue-600 mb-2" />
-              <p className="text-sm font-black text-slate-900">{stack.name}</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">{stack.desc}</p>
+            <div key={i} className="p-3.5 sm:p-5 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all text-center">
+              <Code2 size={22} className="mx-auto text-blue-600 mb-2" />
+              <p className="text-xs sm:text-sm font-black text-slate-900">{stack.name}</p>
+              <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium mt-0.5 sm:mt-1">{stack.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Comparison Table */}
-      <section className="py-28 px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="text-center mb-16">
+      <section className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100">
+        <div className="text-center mb-8 sm:mb-16">
           <span className="text-[11px] font-black uppercase tracking-[0.25em] text-blue-600 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-100">
             Why CodeHost
           </span>
-          <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
             CodeHost vs The Alternatives
           </h2>
-          <p className="text-slate-500 font-medium max-w-xl mx-auto mt-3">
+          <p className="text-slate-500 font-medium text-sm sm:text-base max-w-xl mx-auto mt-3 px-2">
             See how CodeHost eliminates the complexity and unpredictable costs of traditional cloud providers.
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        {/* Mobile Swipe Hint */}
+        <div className="flex items-center justify-center space-x-1.5 text-xs font-bold text-blue-600 md:hidden mb-3 bg-blue-50/80 py-1.5 px-3 rounded-full w-fit mx-auto border border-blue-100">
+          <span>← Swipe horizontally to compare →</span>
+        </div>
+
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm overflow-x-auto scrollbar-thin">
+          <table className="w-full text-left border-collapse min-w-[620px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50 text-xs font-black uppercase tracking-widest text-slate-500">
-                <th className="p-5 pl-8">Feature</th>
-                <th className="p-5 text-blue-600 bg-blue-50/50">CodeHost</th>
-                <th className="p-5">Traditional VPS</th>
-                <th className="p-5">Heroku</th>
-                <th className="p-5 pr-8">AWS / GCP</th>
+                <th className="p-4 sm:p-5 pl-5 sm:pl-8">Feature</th>
+                <th className="p-4 sm:p-5 text-blue-600 bg-blue-50/50">CodeHost</th>
+                <th className="p-4 sm:p-5">Traditional VPS</th>
+                <th className="p-4 sm:p-5">Heroku</th>
+                <th className="p-4 sm:p-5 pr-5 sm:pr-8">AWS / GCP</th>
               </tr>
             </thead>
             <tbody className="text-sm font-medium text-slate-600 divide-y divide-slate-100">
@@ -1886,20 +1894,20 @@ export default function Home() {
           </div>
 
           {/* Weekend Hackathon Pass Banner */}
-          <div className="mt-10 max-w-6xl mx-auto rounded-[2.5rem] bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 p-8 md:p-10 border border-blue-500/30 shadow-2xl text-white flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
+          <div id="hackathon" className="mt-8 sm:mt-10 max-w-6xl mx-auto rounded-2xl sm:rounded-[2.5rem] bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 p-6 sm:p-8 md:p-10 border border-blue-500/30 shadow-2xl text-white flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden group scroll-mt-16">
             <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="space-y-3 max-w-2xl relative z-10">
               <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[10px] font-black uppercase tracking-widest">
                 <Flame size={12} className="text-amber-400" />
                 <span>Hackathon Special</span>
               </div>
-              <h3 className="text-2xl md:text-3xl font-black tracking-tight">
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight">
                 Weekend Hackathon Pass — Just ₹49 for 72 Hours
               </h3>
-              <p className="text-slate-300 text-xs md:text-sm font-medium leading-relaxed">
+              <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed">
                 Competing in a college hackathon or presenting an MVP to investors? Get instant Pro power (2 vCPUs, 2GB RAM, 5GB NVMe, unlimited fast builds) for 3 full days with zero recurring commitments.
               </p>
-              <div className="flex flex-wrap gap-2.5 pt-1">
+              <div className="flex flex-wrap gap-2 pt-1">
                 {['2 vCPUs Dedicated', '2GB High-Speed RAM', 'Priority Build Sandboxes', 'Instant Let\'s Encrypt SSL', 'Zero Monthly Lock-In'].map((tag, idx) => (
                   <span key={idx} className="px-2.5 py-1 rounded-lg bg-white/10 text-white font-mono text-[10px] font-bold border border-white/10">
                     ✓ {tag}
@@ -1908,11 +1916,11 @@ export default function Home() {
               </div>
             </div>
             <div className="shrink-0 text-center md:text-right relative z-10 w-full md:w-auto">
-              <p className="text-4xl font-black text-white mb-1">₹49</p>
+              <p className="text-3xl sm:text-4xl font-black text-white mb-1">₹49</p>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">3 Days (72h) Pro Access</p>
               <Link
                 href="/signup"
-                className="inline-flex w-full md:w-auto px-8 py-4 bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-400 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/30 items-center justify-center space-x-2 cursor-pointer"
+                className="inline-flex w-full md:w-auto px-8 py-3.5 sm:py-4 bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-400 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/30 items-center justify-center space-x-2 cursor-pointer"
               >
                 <span>Claim Pass Now</span>
                 <ArrowRight size={14} />
@@ -1923,12 +1931,12 @@ export default function Home() {
       </section>
 
       {/* Interactive FAQ Section */}
-      <section className="py-28 px-6 max-w-4xl mx-auto border-t border-slate-100">
-        <div className="text-center mb-16">
+      <section id="faq" className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-4xl mx-auto border-t border-slate-100 scroll-mt-16">
+        <div className="text-center mb-10 sm:mb-16">
           <span className="text-[11px] font-black uppercase tracking-[0.25em] text-blue-600 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-100">
             Got Questions?
           </span>
-          <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
             Frequently Asked Questions
           </h2>
         </div>
@@ -2082,6 +2090,8 @@ export default function Home() {
          </div>
       </footer>
 
+      {/* Floating Island Navigation for Mobile */}
+      <MobileFloatingIsland isLoggedIn={isLoggedIn} serverCount={serverCount} />
     </div>
   );
 }
