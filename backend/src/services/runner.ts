@@ -6,6 +6,7 @@ import { prisma } from '@codehost/database';
 import { env } from '@codehost/config';
 import { io } from '../index.js';
 import { RESOURCE_TIERS } from '@codehost/config';
+import { sendServerStatusEmail } from '../lib/email.js';
 
 export class RunnerService {
   public static async startContainer(projectId: string, deploymentId: string, imageName: string) {
@@ -226,12 +227,41 @@ export class RunnerService {
         }
       });
 
+      // Asynchronously send status email
+      prisma.project.findUnique({
+        where: { id: projectId },
+        include: { user: { select: { email: true } } }
+      }).then((p) => {
+        if (p?.user?.email) {
+          sendServerStatusEmail(p.user.email, {
+            projectName: p.name,
+            status: 'running',
+            projectId: p.id
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+
       return { containerId: container.id, port: mappedPort };
     } catch (error: any) {
       emitLog(`> Failed to launch app: ${error.message || 'Unknown error'}`);
       logger.error(`Runner failed for project ${projectId}`, error);
       await prisma.project.update({ where: { id: projectId }, data: { status: 'failed' } });
       await prisma.deployment.update({ where: { id: deploymentId }, data: { status: 'failed' } });
+
+      // Asynchronously send failure email
+      prisma.project.findUnique({
+        where: { id: projectId },
+        include: { user: { select: { email: true } } }
+      }).then((p) => {
+        if (p?.user?.email) {
+          sendServerStatusEmail(p.user.email, {
+            projectName: p.name,
+            status: 'failed',
+            projectId: p.id
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+
       throw error;
     }
   }

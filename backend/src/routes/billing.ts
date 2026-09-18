@@ -11,6 +11,11 @@ import {
   verifyRazorpayPaymentSignature,
   verifyRazorpayWebhookSignature,
 } from '../services/razorpay.js';
+import {
+  sendPaymentConfirmationEmail,
+  sendHackathonPassActivatedEmail,
+  sendLowCreditWarningEmail,
+} from '../lib/email.js';
 
 const router = Router();
 
@@ -79,10 +84,10 @@ router.get('/tiers', requireAuth, async (_req: AuthRequest, res) => {
   });
 });
 
-// Create Order Handler (Supports predefined packages & custom credit amounts)
+// Create Order Handler (Supports predefined packages, custom credits, & hackathon pass)
 export const handleCreateRazorpayOrder = async (req: AuthRequest, res: any) => {
   try {
-    const { credits, amount: rawAmount, currency = 'INR', receipt: customReceipt } = req.body;
+    const { credits, amount: rawAmount, currency = 'INR', receipt: customReceipt, planType } = req.body;
     let amountInPaise = 0;
     const notes: Record<string, string> = {};
 
@@ -90,7 +95,12 @@ export const handleCreateRazorpayOrder = async (req: AuthRequest, res: any) => {
       notes.userId = req.user.id;
     }
 
-    if (credits !== undefined) {
+    if (planType === 'hackathon') {
+      // Weekend Hackathon Pass: ₹49 flat for 72h Pro Access
+      amountInPaise = 4900;
+      notes.planType = 'hackathon';
+      notes.credits = '50';
+    } else if (credits !== undefined) {
       const parsedCredits = parseInt(String(credits), 10);
       if (isNaN(parsedCredits) || parsedCredits < 10) {
         return res.status(400).json({ error: 'Minimum purchase is 10 credits' });
@@ -111,7 +121,7 @@ export const handleCreateRazorpayOrder = async (req: AuthRequest, res: any) => {
       amountInPaise = Math.round(parsed);
       notes.credits = String(Math.floor(amountInPaise / (CREDIT_PRICE_INR * 100)));
     } else {
-      return res.status(400).json({ error: 'Amount or credits package is required' });
+      return res.status(400).json({ error: 'Amount, credits package, or planType is required' });
     }
 
     const receipt = customReceipt || `rcpt_${req.user?.id ? req.user.id.slice(0, 8) : 'guest'}_${Date.now()}`;
@@ -145,6 +155,7 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
     const paymentId = req.body.razorpay_payment_id || req.body.razorpayPaymentId;
     const signature = req.body.razorpay_signature || req.body.razorpaySignature;
     const credits = req.body.credits ? Number(req.body.credits) : undefined;
+    const requestedPlanType = req.body.planType;
 
     if (!orderId || !paymentId || !signature) {
       return res.status(400).json({
@@ -181,13 +192,19 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
         });
       }
 
-      // Securely read credits from order details or fallback
+      // Securely read credits and planType from order details or fallback
       let creditsToAdd = 0;
+      let isHackathon = requestedPlanType === 'hackathon';
       try {
         const client = getRazorpayClient();
         const orderData = await client.orders.fetch(orderId);
-        if (orderData && orderData.notes && orderData.notes.credits) {
-          creditsToAdd = parseInt(String(orderData.notes.credits), 10);
+        if (orderData && orderData.notes) {
+          if (orderData.notes.credits) {
+            creditsToAdd = parseInt(String(orderData.notes.credits), 10);
+          }
+          if (orderData.notes.planType === 'hackathon') {
+            isHackathon = true;
+          }
         }
       } catch (fetchErr) {
         // Fetch failed, use request credits
@@ -196,6 +213,8 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
       if (!creditsToAdd || isNaN(creditsToAdd)) {
         creditsToAdd = credits ? Math.max(10, Number(credits)) : 100;
       }
+
+      const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
 
       const result = await prisma.$transaction(async (tx: any) => {
         let wallet = await tx.wallet.findUnique({ where: { userId } });
@@ -208,12 +227,23 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
           data: { balance: { increment: creditsToAdd } },
         });
 
+        // If Hackathon Pass, upgrade user to pro for 72 hours
+        if (isHackathon) {
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              tier: 'pro',
+              tierExpiresAt: hackathonExpiresAt,
+            },
+          });
+        }
+
         const transaction = await tx.transaction.create({
           data: {
             walletId: wallet.id,
             amount: creditsToAdd,
             type: 'purchase',
-            description: `Purchased ${creditsToAdd} credits`,
+            description: isHackathon ? 'Weekend Hackathon Pass (72h Pro Access)' : `Purchased ${creditsToAdd} credits`,
             razorpayOrderId: orderId,
             razorpayPaymentId: paymentId,
           },
@@ -222,11 +252,36 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
         return { wallet: updatedWallet, transaction };
       });
 
+      // Send confirmation email asynchronously
+      try {
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, username: true } });
+        if (user && user.email) {
+          if (isHackathon) {
+            sendHackathonPassActivatedEmail(user.email, {
+              expiresAt: hackathonExpiresAt,
+              username: user.username,
+            }).catch((err) => logger.error({ err }, 'Error sending hackathon email'));
+          } else {
+            sendPaymentConfirmationEmail(user.email, {
+              credits: creditsToAdd,
+              amountInr: Math.round(creditsToAdd * CREDIT_PRICE_INR),
+              newBalance: result.wallet.balance,
+              transactionId: result.transaction.id,
+            }).catch((err) => logger.error({ err }, 'Error sending payment confirmation email'));
+          }
+        }
+      } catch (emailErr) {
+        logger.error({ emailErr }, 'Error looking up user for confirmation email');
+      }
+
       return res.json({
         success: true,
-        message: 'Payment verified and credits added successfully',
+        message: isHackathon
+          ? 'Weekend Hackathon Pass activated successfully! Pro features unlocked for 72 hours.'
+          : 'Payment verified and credits added successfully',
         balance: result.wallet.balance,
         transaction: result.transaction,
+        hackathon: isHackathon,
       });
     }
 
@@ -269,6 +324,7 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
       const notes = payment?.notes || order?.notes || {};
       const userId = notes.userId;
       const credits = parseInt(notes.credits) || 0;
+      const isHackathon = notes.planType === 'hackathon';
 
       if (userId && credits && paymentId) {
         const existing = await prisma.transaction.findFirst({
@@ -276,29 +332,64 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
         });
 
         if (!existing) {
-          await prisma.$transaction(async (tx: any) => {
+          const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+          const result = await prisma.$transaction(async (tx: any) => {
             let wallet = await tx.wallet.findUnique({ where: { userId } });
             if (!wallet) {
               wallet = await tx.wallet.create({ data: { userId } });
             }
 
-            await tx.wallet.update({
+            const updatedWallet = await tx.wallet.update({
               where: { id: wallet.id },
               data: { balance: { increment: credits } },
             });
 
-            await tx.transaction.create({
+            if (isHackathon) {
+              await tx.user.update({
+                where: { id: userId },
+                data: {
+                  tier: 'pro',
+                  tierExpiresAt: hackathonExpiresAt,
+                },
+              });
+            }
+
+            const transaction = await tx.transaction.create({
               data: {
                 walletId: wallet.id,
                 amount: credits,
                 type: 'purchase',
-                description: `Purchased ${credits} credits`,
+                description: isHackathon ? 'Weekend Hackathon Pass (72h Pro Access)' : `Purchased ${credits} credits`,
                 razorpayOrderId: orderId,
                 razorpayPaymentId: paymentId,
               },
             });
+
+            return { wallet: updatedWallet, transaction };
           });
-          logger.info(`Webhook: ${credits} credits added for user ${userId}`);
+
+          // Send confirmation email asynchronously
+          try {
+            const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, username: true } });
+            if (user && user.email) {
+              if (isHackathon) {
+                sendHackathonPassActivatedEmail(user.email, {
+                  expiresAt: hackathonExpiresAt,
+                  username: user.username,
+                }).catch(() => {});
+              } else {
+                sendPaymentConfirmationEmail(user.email, {
+                  credits,
+                  amountInr: Math.round(credits * CREDIT_PRICE_INR),
+                  newBalance: result.wallet.balance,
+                  transactionId: result.transaction.id,
+                }).catch(() => {});
+              }
+            }
+          } catch (e) {}
+
+          logger.info(`Webhook: ${credits} credits added for user ${userId} (Hackathon: ${isHackathon})`);
         }
       }
     }

@@ -16,6 +16,8 @@ model User {
   phoneNumber             String?
   password                String?
   role                    String    @default("USER") // USER, ADMIN
+  tier                    String    @default("free") // free, basic, pro, business
+  tierExpiresAt           DateTime? // For time-limited tier upgrades (e.g. hackathon pass)
   serverLimit             Int       @default(1)
   provider                String?
   providerId              String?
