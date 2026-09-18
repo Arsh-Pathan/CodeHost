@@ -29,6 +29,15 @@ export default function NewProject() {
   const [walletBalance, setWalletBalance] = useState(0);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tpl = urlParams.get('template');
+      if (tpl && !name) {
+        const randomSuffix = Math.floor(100 + Math.random() * 900);
+        setName(`${tpl}-app-${randomSuffix}`);
+      }
+    }
+
     Promise.all([
       fetchApi('/auth/me'),
       fetchApi('/billing/tiers'),
@@ -124,7 +133,7 @@ export default function NewProject() {
                   />
                 </div>
                 {name.length > 0 && (
-                  <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+                  <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50 transition-all">
                     <p className="text-xs text-blue-700/70 font-bold uppercase tracking-widest mb-1 items-center flex">
                       <Check className="h-3 w-3 mr-1.5" />
                       Public Preview URL
@@ -136,10 +145,42 @@ export default function NewProject() {
                 )}
               </div>
 
+              {/* Verified Starter Templates */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between px-1">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Or Start with a Verified Template</label>
+                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">1-Click Launch</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { id: 'nextjs', name: 'Next.js 16 Fullstack', tag: 'React & SSR', slug: 'nextjs-app', color: 'blue' },
+                    { id: 'fastapi', name: 'Python FastAPI', tag: 'AI & REST', slug: 'fastapi-service', color: 'emerald' },
+                    { id: 'express', name: 'Node.js Express', tag: 'REST & WS', slug: 'express-api', color: 'purple' },
+                    { id: 'portfolio', name: 'Modern Portfolio', tag: 'Static CDN', slug: 'dev-portfolio', color: 'amber' },
+                  ].map((tpl) => (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      onClick={() => {
+                        const randomSuffix = Math.floor(100 + Math.random() * 900);
+                        setName(`${tpl.slug}-${randomSuffix}`);
+                      }}
+                      className="p-3 text-left rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-blue-500 hover:shadow-md transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 active:scale-95 group cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-slate-900 group-hover:text-blue-600 transition-colors">{tpl.name}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{tpl.tag}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">Pre-configured Docker sandbox & dependencies</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 onClick={() => { setError(''); setStep(2); }}
                 disabled={name.length < 3}
-                className="w-full rounded-2xl bg-slate-900 px-6 py-4 text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-slate-900/10 hover:bg-slate-800 disabled:opacity-30 transition-all hover:-translate-y-1 active:translate-y-0.5 flex items-center justify-center space-x-2"
+                className="w-full rounded-2xl bg-slate-900 px-6 py-4 text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-slate-900/10 hover:bg-slate-800 disabled:opacity-30 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 active:translate-y-0.5 flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <span>Next: Choose Plan</span>
               </button>
