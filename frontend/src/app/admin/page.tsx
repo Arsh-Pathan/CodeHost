@@ -709,13 +709,13 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
+      {/* Top Navigation Bar (Moved Tabs to the Right Side) */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             
-            {/* Left: Brand & Exit */}
-            <div className="flex items-center space-x-4">
+            {/* Left: Brand & Exit Console */}
+            <div className="flex items-center space-x-4 shrink-0">
               <Link
                 href="/dashboard"
                 className="flex items-center space-x-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 px-3 py-1.5 rounded-xl border border-slate-200 transition-all"
@@ -747,73 +747,77 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Center: Tabs */}
-            <nav className="hidden md:flex items-center space-x-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/80">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'overview'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Activity size={14} />
-                <span>Overview</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('fleet')}
-                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'fleet'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Box size={14} />
-                <span>Fleet</span>
-                <span className="ml-1 text-[10px] px-1.5 py-0.2 bg-slate-200 rounded-md text-slate-700 font-semibold">
-                  {projects.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('revenue')}
-                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'revenue'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <DollarSign size={14} />
-                <span>Revenue</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('users')}
-                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'users'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Users size={14} />
-                <span>Users</span>
-                <span className="ml-1 text-[10px] px-1.5 py-0.2 bg-slate-200 rounded-md text-slate-700 font-semibold">
-                  {users.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('host')}
-                className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'host'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Server size={14} />
-                <span>Host Node</span>
-              </button>
-            </nav>
+            {/* Right Side: Navigation Bar Grouped on the Right + Controls */}
+            <div className="flex items-center space-x-3 ml-auto">
+              
+              {/* Main Navigation Bar */}
+              <nav className="hidden md:flex items-center space-x-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/80">
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'overview'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Activity size={14} />
+                  <span>Overview</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('fleet')}
+                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'fleet'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Box size={14} />
+                  <span>Fleet</span>
+                  <span className="ml-1 text-[10px] px-1.5 py-0.2 bg-slate-200 rounded-md text-slate-700 font-semibold">
+                    {projects.length}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('revenue')}
+                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'revenue'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <DollarSign size={14} />
+                  <span>Revenue</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('users')}
+                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'users'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Users size={14} />
+                  <span>Users</span>
+                  <span className="ml-1 text-[10px] px-1.5 py-0.2 bg-slate-200 rounded-md text-slate-700 font-semibold">
+                    {users.length}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('host')}
+                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'host'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Server size={14} />
+                  <span>Host Node</span>
+                </button>
+              </nav>
 
-            {/* Right: Refresh controls */}
-            <div className="flex items-center space-x-3">
+              <div className="h-5 w-px bg-slate-200 hidden md:block" />
+
+              {/* Action Buttons */}
               <button
                 onClick={() => setAutoRefresh(!autoRefresh)}
                 className={`flex items-center space-x-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl border transition-all ${
@@ -934,7 +938,7 @@ export default function AdminPage() {
 
             </div>
 
-            {/* Telemetry Charts Row */}
+            {/* Telemetry Charts Row (Flat Clean Fills - No Gradients) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Live CPU Utilization Area Chart */}
@@ -960,12 +964,6 @@ export default function AdminPage() {
                   {isMounted && systemMetrics?.history && (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={systemMetrics.history}>
-                        <defs>
-                          <linearGradient id="cpuGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#2563EB" stopOpacity={0.25} />
-                            <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                         <XAxis dataKey="timestamp" stroke="#94a3b8" tick={{ fontSize: 10 }} />
                         <YAxis stroke="#94a3b8" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
@@ -978,8 +976,8 @@ export default function AdminPage() {
                           dataKey="cpu"
                           stroke="#2563EB"
                           strokeWidth={2}
-                          fillOpacity={1}
-                          fill="url(#cpuGradient)"
+                          fill="#dbeafe"
+                          fillOpacity={0.4}
                           isAnimationActive={false}
                         />
                       </AreaChart>
@@ -1011,12 +1009,6 @@ export default function AdminPage() {
                   {isMounted && systemMetrics?.history && (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={systemMetrics.history}>
-                        <defs>
-                          <linearGradient id="memGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.25} />
-                            <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                         <XAxis dataKey="timestamp" stroke="#94a3b8" tick={{ fontSize: 10 }} />
                         <YAxis stroke="#94a3b8" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
@@ -1029,8 +1021,8 @@ export default function AdminPage() {
                           dataKey="memory"
                           stroke="#7c3aed"
                           strokeWidth={2}
-                          fillOpacity={1}
-                          fill="url(#memGradient)"
+                          fill="#f3e8ff"
+                          fillOpacity={0.4}
                           isAnimationActive={false}
                         />
                       </AreaChart>
@@ -1041,25 +1033,25 @@ export default function AdminPage() {
 
             </div>
 
-            {/* Storage Gauge & Quick Ops */}
+            {/* Storage Gauge & Quick Ops (Solid Color Progress Bar - No Gradient) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* Storage Breakdown Card */}
               <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-extrabold text-[#0F172A] flex items-center space-x-2">
-                    <Database size={16} className="text-amber-500" />
+                    <Database size={16} className="text-blue-600" />
                     <span>Disk & Storage Footprint</span>
                   </h3>
-                  <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                  <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
                     {systemMetrics?.disk?.percent ?? 0}% Used
                   </span>
                 </div>
 
-                {/* Progress Bar */}
+                {/* Clean Solid Progress Bar */}
                 <div className="w-full bg-slate-100 rounded-full h-3 mb-4 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-blue-500 to-amber-500 h-3 rounded-full transition-all duration-500"
+                    className="bg-blue-600 h-3 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(100, systemMetrics?.disk?.percent ?? 0)}%` }}
                   />
                 </div>
@@ -1457,7 +1449,7 @@ export default function AdminPage() {
 
             </div>
 
-            {/* 30-Day Revenue Trend Chart */}
+            {/* 30-Day Revenue Trend Chart (Flat Clean Fill - No Gradient) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               <div className="lg:col-span-2 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
@@ -1475,12 +1467,6 @@ export default function AdminPage() {
                   {isMounted && revenueData?.revenueTrend && (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={revenueData.revenueTrend}>
-                        <defs>
-                          <linearGradient id="revGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#059669" stopOpacity={0.25} />
-                            <stop offset="95%" stopColor="#059669" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                         <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 10 }} />
                         <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} />
@@ -1493,8 +1479,8 @@ export default function AdminPage() {
                           dataKey="revenue"
                           stroke="#059669"
                           strokeWidth={2}
-                          fillOpacity={1}
-                          fill="url(#revGradient)"
+                          fill="#d1fae5"
+                          fillOpacity={0.4}
                         />
                       </AreaChart>
                     </ResponsiveContainer>
