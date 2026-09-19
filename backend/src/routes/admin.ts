@@ -140,8 +140,8 @@ router.delete('/projects/:id', async (req: AuthRequest, res) => {
 router.put('/projects/:id/tier', async (req: AuthRequest, res) => {
   try {
     const { tier } = req.body;
-    if (!tier || !['free', 'pro', 'elite'].includes(tier)) {
-      return res.status(400).json({ error: 'Invalid tier. Must be free, pro, or elite' });
+    if (!tier || !['free', 'basic', 'pro', 'business'].includes(tier)) {
+      return res.status(400).json({ error: 'Invalid tier. Must be free, basic, pro, or business' });
     }
 
     const project = await prisma.project.findUnique({ where: { id: req.params.id } });

@@ -273,7 +273,19 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
     try {
         const user = await prisma.user.findUnique({
             where: { id: req.user!.id },
-            select: { id: true, email: true, username: true, name: true, role: true, serverLimit: true, emailVerified: true, provider: true, createdAt: true }
+            select: { 
+                id: true, 
+                email: true, 
+                username: true, 
+                name: true, 
+                role: true, 
+                tier: true,
+                tierExpiresAt: true,
+                serverLimit: true, 
+                emailVerified: true, 
+                provider: true, 
+                createdAt: true 
+            }
         });
 
         if (!user) return res.status(404).json({ error: 'User not found' });
@@ -281,6 +293,21 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
         res.json({ user });
     } catch (error) {
         logger.error({ error }, 'Get me error');
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.post('/logout', requireAuth, async (req: AuthRequest, res) => {
+    try {
+        const { refreshToken } = req.body;
+        if (refreshToken) {
+            await prisma.session.deleteMany({
+                where: { token: refreshToken }
+            });
+        }
+        res.json({ success: true, message: 'Logged out successfully' });
+    } catch (error) {
+        logger.error({ error }, 'Logout error');
         res.status(500).json({ error: 'Internal server error' });
     }
 });

@@ -22,13 +22,7 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
 
     const token = authHeader.split(' ')[1];
     
-    // Check if token exists in session table (simplistic check for revocation)
-    const sessionExists = await prisma.session.findUnique({
-      where: { token }
-    });
-    
-    // In a real app we might only store refresh tokens in DB and access tokens in memory,
-    // but for simplicity we verify the JWT.
+    // Cryptographically verify the JWT token
     const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; email: string; role: string };
     
     if (!decoded || !decoded.id) {

@@ -44,18 +44,19 @@ router.post('/', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Project name already taken across the platform' });
     }
 
-    // For paid tiers, check and deduct credits
-    if (tier !== 'free' && tierConfig.creditsPerMonth > 0) {
-      const wallet = await prisma.wallet.findUnique({ where: { userId } });
-      if (!wallet || wallet.balance < tierConfig.creditsPerMonth) {
-        return res.status(402).json({ error: `Insufficient credits. ${tierConfig.label} tier requires ${tierConfig.creditsPerMonth} credits/month. Please top up your wallet.` });
-      }
+    // Atomically check wallet, deduct credits, and create project
+    const project = await prisma.$transaction(async (tx) => {
+      if (tier !== 'free' && tierConfig.creditsPerMonth > 0) {
+        const wallet = await tx.wallet.findUnique({ where: { userId } });
+        if (!wallet || wallet.balance < tierConfig.creditsPerMonth) {
+          throw new Error(`INSUFFICIENT_CREDITS:${tierConfig.label} tier requires ${tierConfig.creditsPerMonth} credits/month. Please top up your wallet.`);
+        }
 
-      await prisma.$transaction(async (tx) => {
         await tx.wallet.update({
           where: { id: wallet.id },
           data: { balance: { decrement: tierConfig.creditsPerMonth } },
         });
+
         await tx.transaction.create({
           data: {
             walletId: wallet.id,
@@ -64,23 +65,26 @@ router.post('/', async (req: AuthRequest, res) => {
             description: `Initial charge for ${name} (${tierConfig.label} tier)`,
           },
         });
-      });
-    }
-
-    const project = await prisma.project.create({
-      data: {
-        name,
-        userId,
-        status: 'idle',
-        tier,
       }
+
+      return await tx.project.create({
+        data: {
+          name,
+          userId,
+          status: 'idle',
+          tier,
+        },
+      });
     });
 
     logger.info(`Project created: ${project.id} by user ${userId}`);
     res.status(201).json({ project });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
+    }
+    if (error.message?.startsWith('INSUFFICIENT_CREDITS:')) {
+      return res.status(402).json({ error: error.message.replace('INSUFFICIENT_CREDITS:', '') });
     }
     logger.error({ error }, 'Create project error');
     res.status(500).json({ error: 'Internal server error' });
@@ -253,6 +257,8 @@ router.post('/:id/redeploy', async (req: AuthRequest, res) => {
         await RunnerService.startContainer(project.id, deployment.id, imageName);
       } catch (err) {
         logger.error(`Redeploy pipeline failed for ${deployment.id}`);
+        await prisma.deployment.update({ where: { id: deployment.id }, data: { status: 'failed' } }).catch(() => {});
+        await prisma.project.update({ where: { id: project.id }, data: { status: 'failed' } }).catch(() => {});
       }
     })();
   } catch (error) {

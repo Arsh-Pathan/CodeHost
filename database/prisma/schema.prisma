@@ -36,20 +36,23 @@ model User {
 model Session {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Project {
-  id          String       @id @default(uuid())
-  name        String
-  userId      String
-  user        User         @relation(fields: [userId], references: [id])
-  status      String       @default("idle") // idle, building, running, failed, stopped
-  tier        String       @default("free") // free, basic, pro, business
-  containerId String?
+  id                 String       @id @default(uuid())
+  name               String       @unique
+  userId             String
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status             String       @default("idle") // idle, building, running, failed, stopped
+  tier               String       @default("free") // free, basic, pro, business
+  containerId        String?
   port               Int?
   buildCommand       String?      @default("")
   startCommand       String?      @default("")
@@ -62,12 +65,15 @@ model Project {
   deployments        Deployment[]
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
 
 model Wallet {
   id           String        @id @default(uuid())
   userId       String        @unique
-  user         User          @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   balance      Int           @default(0)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -77,7 +83,7 @@ model Wallet {
 model Transaction {
   id                String   @id @default(uuid())
   walletId          String
-  wallet            Wallet   @relation(fields: [walletId], references: [id])
+  wallet            Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   amount            Int
   type              String   // purchase, tier_charge, refund, admin_grant
   description       String?
@@ -85,14 +91,20 @@ model Transaction {
   razorpayPaymentId String?
   projectId         String?
   createdAt         DateTime @default(now())
+
+  @@index([walletId])
+  @@index([razorpayPaymentId])
 }
 
 model Deployment {
   id        String   @id @default(uuid())
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id])
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   status    String
   source    String?  @default("zip") // zip, github, files
   logs      String?  @default("")
   createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@index([status])
 }

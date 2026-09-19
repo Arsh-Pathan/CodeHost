@@ -134,7 +134,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
     return () => clearTimeout(timer);
   }, [newName, project?.name]);
 
-  const fetchProjectData = async () => {
+  const fetchInitialData = async () => {
     try {
       const [meRes, projRes, depRes, tierRes] = await Promise.all([
         fetchApi('/auth/me'),
@@ -171,11 +171,31 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
     }
   };
 
+  const pollStatus = async () => {
+    // Skip polling if tab is backgrounded
+    if (typeof document !== 'undefined' && document.hidden) return;
+    try {
+      const [projRes, depRes] = await Promise.all([
+        fetchApi(`/projects/${params.id}`),
+        fetchApi(`/deployments/${params.id}`),
+      ]);
+      setProject(projRes.project);
+      setDeployments(depRes.deployments);
+    } catch {}
+  };
+
+  const fetchProjectData = pollStatus;
+
   useEffect(() => {
-    fetchProjectData();
-    const interval = setInterval(fetchProjectData, 3000);
-    return () => clearInterval(interval);
+    fetchInitialData();
   }, [params.id, router]);
+
+  useEffect(() => {
+    const isBuilding = project?.status === 'building' || project?.status === 'queued';
+    const pollInterval = isBuilding ? 3000 : 10000;
+    const interval = setInterval(pollStatus, pollInterval);
+    return () => clearInterval(interval);
+  }, [params.id, project?.status]);
 
   useEffect(() => {
     const socket = io(API_URL);

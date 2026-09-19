@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import AdmZip from 'adm-zip';
 import tar from 'tar-fs';
 import { docker } from '@codehost/docker';
@@ -12,17 +12,34 @@ import { io } from '../index.js';
 export class BuilderService {
   private static extractZip(zipPath: string, extractPath: string) {
     const zip = new AdmZip(zipPath);
+    const resolvedBase = path.resolve(extractPath);
+    const entries = zip.getEntries();
+
+    for (const entry of entries) {
+      const entryTarget = path.resolve(resolvedBase, entry.entryName);
+      if (!entryTarget.startsWith(resolvedBase + path.sep) && entryTarget !== resolvedBase) {
+        throw new Error(`Security Violation: Malicious zip entry detected (${entry.entryName})`);
+      }
+    }
+
     zip.extractAllTo(extractPath, true);
   }
 
   private static cloneRepo(repoUrl: string, branch: string, targetDir: string, subdir?: string): string {
-    // Sanitize inputs to prevent command injection
-    const sanitizedUrl = repoUrl.replace(/[;&|`$()]/g, '');
-    const sanitizedBranch = branch.replace(/[;&|`$()]/g, '');
+    const cleanUrl = repoUrl.trim();
+    const cleanBranch = branch.trim();
+
+    if (!/^https?:\/\/[a-zA-Z0-9._~:/?#[\]@!$&'*+,;=-]+$/.test(cleanUrl)) {
+      throw new Error('Invalid repository URL scheme. Only HTTP and HTTPS URLs are permitted.');
+    }
+    if (!/^[a-zA-Z0-9._/-]+$/.test(cleanBranch) || cleanBranch.startsWith('-')) {
+      throw new Error('Invalid git branch format.');
+    }
 
     try {
-      execSync(
-        `git clone --depth 1 --branch "${sanitizedBranch}" "${sanitizedUrl}" "${targetDir}"`,
+      execFileSync(
+        'git',
+        ['clone', '--depth', '1', '--branch', cleanBranch, '--', cleanUrl, targetDir],
         { timeout: 120000, stdio: 'pipe' }
       );
     } catch (error: any) {
@@ -35,7 +52,10 @@ export class BuilderService {
 
     // If a subdirectory is specified, return the path to it
     if (subdir) {
-      const subdirPath = path.join(targetDir, subdir);
+      const subdirPath = path.resolve(targetDir, subdir);
+      if (!subdirPath.startsWith(path.resolve(targetDir) + path.sep)) {
+        throw new Error(`Invalid subdirectory path: "${subdir}"`);
+      }
       if (!fs.existsSync(subdirPath)) {
         throw new Error(`Subdirectory "${subdir}" not found in repository`);
       }
@@ -123,14 +143,22 @@ EXPOSE 80
       `;
     }
 
-    // ── Inject env vars ──────────────────────────────────────────────
+    // ── Inject env vars (sanitized against injection) ────────────────
     if (project.envVars && typeof project.envVars === 'object') {
-      const envLines = Object.entries(project.envVars)
-        .map(([key, value]) => `ENV ${key}="${value}"`)
+      const validEnvLines = Object.entries(project.envVars)
+        .filter(([key]) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(key))
+        .map(([key, value]) => {
+          const sanitizedVal = String(value)
+            .replace(/[\r\n]/g, '')
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"');
+          return `ENV ${key}="${sanitizedVal}"`;
+        })
         .join('\n');
-      if (envLines) {
+
+      if (validEnvLines) {
         const lines = dockerfile.trim().split('\n');
-        lines.splice(1, 0, envLines);
+        lines.splice(1, 0, validEnvLines);
         dockerfile = lines.join('\n');
       }
     }

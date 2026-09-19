@@ -9,6 +9,8 @@ import { RESOURCE_TIERS } from '@codehost/config';
 import { sendServerStatusEmail } from '../lib/email.js';
 
 export class RunnerService {
+  private static activeLogStreams: Map<string, any> = new Map();
+
   public static async startContainer(projectId: string, deploymentId: string, imageName: string) {
     const emitLog = (message: string) => {
       io.to(`project:${projectId}`).emit('log', {
@@ -73,6 +75,8 @@ export class RunnerService {
           Memory: memoryLimit,
           MemorySwap: memoryLimit,
           NanoCpus: nanoCpus,
+          PidsLimit: 128,
+          SecurityOpt: ['no-new-privileges:true'],
           NetworkMode: 'proxy', // Connect to the proxy network
         },
         Labels: {
@@ -157,6 +161,8 @@ export class RunnerService {
             Memory: memoryLimit,
             MemorySwap: memoryLimit,
             NanoCpus: nanoCpus,
+            PidsLimit: 128,
+            SecurityOpt: ['no-new-privileges:true'],
             NetworkMode: 'proxy',
           },
           Labels: {
@@ -194,6 +200,17 @@ export class RunnerService {
       emitLog('> Your app is now live!');
       logger.info(`Started container ${containerName} on port ${mappedPort} (internal: ${actualPort || containerPort})`);
 
+      // Clean up any existing log stream for this project to prevent memory & socket leaks
+      if (this.activeLogStreams.has(projectId)) {
+        try {
+          const oldStream = this.activeLogStreams.get(projectId);
+          if (oldStream && typeof oldStream.destroy === 'function') {
+            oldStream.destroy();
+          }
+        } catch {}
+        this.activeLogStreams.delete(projectId);
+      }
+
       // Attach container logs stream to websocket
       const logStream = await container.logs({
         stdout: true,
@@ -201,6 +218,8 @@ export class RunnerService {
         follow: true,
         tail: 50,
       });
+
+      this.activeLogStreams.set(projectId, logStream);
 
       docker.modem.demuxStream(logStream,
         { write: (chunk: any) => { emitLog(chunk.toString()); return true; } } as any,
@@ -363,6 +382,16 @@ export class RunnerService {
   }
 
   public static async stopContainer(projectId: string) {
+    if (this.activeLogStreams.has(projectId)) {
+      try {
+        const stream = this.activeLogStreams.get(projectId);
+        if (stream && typeof stream.destroy === 'function') {
+          stream.destroy();
+        }
+      } catch {}
+      this.activeLogStreams.delete(projectId);
+    }
+
     try {
       const containerName = `codehost-run-${projectId}`;
       const container = docker.getContainer(containerName);

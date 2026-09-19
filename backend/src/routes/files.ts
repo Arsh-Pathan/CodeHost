@@ -12,6 +12,26 @@ router.use(requireAuth);
 
 const getSourceDir = (projectId: string) => path.join(process.cwd(), 'storage', 'projects', projectId, 'source');
 
+const assertSafePath = async (baseDir: string, relativePath: string): Promise<string> => {
+  const resolvedBase = path.resolve(baseDir);
+  const resolvedPath = path.resolve(resolvedBase, relativePath);
+
+  // Prevent path traversal outside baseDir
+  if (!resolvedPath.startsWith(resolvedBase + path.sep) && resolvedPath !== resolvedBase) {
+    throw new Error('Forbidden path');
+  }
+
+  // If the file exists, verify canonical path (prevents symlink attacks)
+  if (await fs.pathExists(resolvedPath)) {
+    const realTarget = await fs.realpath(resolvedPath);
+    if (!realTarget.startsWith(resolvedBase + path.sep) && realTarget !== resolvedBase) {
+      throw new Error('Forbidden path: symlink target escapes project root');
+    }
+  }
+
+  return resolvedPath;
+};
+
 // List files in a project
 router.get('/:projectId', async (req: AuthRequest, res) => {
   try {
@@ -72,11 +92,11 @@ router.get('/:projectId/content', async (req: AuthRequest, res) => {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== req.user!.id) return res.status(404).json({ error: 'Project not found' });
 
-    const fullPath = path.join(getSourceDir(projectId), filePath);
-    
-    // Security check: ensure path is within sourceDir
-    if (!fullPath.startsWith(getSourceDir(projectId))) {
-      return res.status(403).json({ error: 'Forbidden path' });
+    let fullPath: string;
+    try {
+      fullPath = await assertSafePath(getSourceDir(projectId), filePath);
+    } catch (e: any) {
+      return res.status(403).json({ error: e.message || 'Forbidden path' });
     }
 
     if (!await fs.pathExists(fullPath)) return res.status(404).json({ error: 'File not found' });
@@ -101,9 +121,11 @@ router.post('/:projectId', async (req: AuthRequest, res) => {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== req.user!.id) return res.status(404).json({ error: 'Project not found' });
 
-    const fullPath = path.join(getSourceDir(projectId), filePath);
-    if (!fullPath.startsWith(getSourceDir(projectId))) {
-      return res.status(403).json({ error: 'Forbidden path' });
+    let fullPath: string;
+    try {
+      fullPath = await assertSafePath(getSourceDir(projectId), filePath);
+    } catch (e: any) {
+      return res.status(403).json({ error: e.message || 'Forbidden path' });
     }
 
     await fs.ensureDir(path.dirname(fullPath));
@@ -127,9 +149,11 @@ router.delete('/:projectId', async (req: AuthRequest, res) => {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== req.user!.id) return res.status(404).json({ error: 'Project not found' });
 
-    const fullPath = path.join(getSourceDir(projectId), filePath);
-    if (!fullPath.startsWith(getSourceDir(projectId))) {
-      return res.status(403).json({ error: 'Forbidden path' });
+    let fullPath: string;
+    try {
+      fullPath = await assertSafePath(getSourceDir(projectId), filePath);
+    } catch (e: any) {
+      return res.status(403).json({ error: e.message || 'Forbidden path' });
     }
 
     await fs.remove(fullPath);

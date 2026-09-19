@@ -192,26 +192,29 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
         });
       }
 
-      // Securely read credits and planType from order details or fallback
+      // Securely read credits and planType strictly from verified Razorpay order
       let creditsToAdd = 0;
       let isHackathon = requestedPlanType === 'hackathon';
+
       try {
         const client = getRazorpayClient();
         const orderData = await client.orders.fetch(orderId);
         if (orderData && orderData.notes) {
-          if (orderData.notes.credits) {
-            creditsToAdd = parseInt(String(orderData.notes.credits), 10);
-          }
           if (orderData.notes.planType === 'hackathon') {
             isHackathon = true;
+            creditsToAdd = 50;
+          } else if (orderData.notes.credits) {
+            creditsToAdd = parseInt(String(orderData.notes.credits), 10);
           }
         }
+        // If credits were not in notes, derive strictly from order amount (in paise)
+        if (!creditsToAdd || isNaN(creditsToAdd)) {
+          const paidInr = (Number(orderData?.amount) || 0) / 100;
+          creditsToAdd = Math.max(10, Math.floor(paidInr / CREDIT_PRICE_INR));
+        }
       } catch (fetchErr) {
-        // Fetch failed, use request credits
-      }
-
-      if (!creditsToAdd || isNaN(creditsToAdd)) {
-        creditsToAdd = credits ? Math.max(10, Number(credits)) : 100;
+        logger.error({ fetchErr, orderId }, 'Failed to fetch order from Razorpay during verification');
+        return res.status(502).json({ error: 'Failed to verify payment with Razorpay. Please retry in a few seconds.' });
       }
 
       const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
