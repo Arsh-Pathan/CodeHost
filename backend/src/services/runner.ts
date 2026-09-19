@@ -402,4 +402,52 @@ export class RunnerService {
       logger.warn(`Could not stop container for ${projectId}: ${e.message}`);
     }
   }
+
+  public static async restartContainer(projectId: string): Promise<boolean> {
+    try {
+      const containerName = `codehost-run-${projectId}`;
+      const container = docker.getContainer(containerName);
+      await container.restart({ t: 10 });
+      await prisma.project.update({
+        where: { id: projectId },
+        data: { status: 'running' }
+      });
+      return true;
+    } catch (e: any) {
+      logger.error(`Restart container failed for ${projectId}: ${e.message}`);
+      throw e;
+    }
+  }
+
+  public static async startExistingContainer(projectId: string): Promise<boolean> {
+    try {
+      const containerName = `codehost-run-${projectId}`;
+      const container = docker.getContainer(containerName);
+      await container.start();
+      await prisma.project.update({
+        where: { id: projectId },
+        data: { status: 'running' }
+      });
+      return true;
+    } catch (e: any) {
+      logger.error(`Start container failed for ${projectId}: ${e.message}`);
+      throw e;
+    }
+  }
+
+  public static async getLogs(projectId: string, tail: number = 100): Promise<string> {
+    try {
+      const containerName = `codehost-run-${projectId}`;
+      const container = docker.getContainer(containerName);
+      const logsBuffer = await container.logs({
+        stdout: true,
+        stderr: true,
+        tail,
+        timestamps: true,
+      });
+      return logsBuffer.toString('utf8');
+    } catch (e: any) {
+      return `[System] Could not retrieve container logs: ${e.message}`;
+    }
+  }
 }
