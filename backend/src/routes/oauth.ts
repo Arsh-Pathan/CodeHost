@@ -53,20 +53,34 @@ async function findOrCreateOAuthUser(
   provider: string,
   providerId: string,
   email: string,
-  name: string | null
+  name: string | null,
+  avatarUrl: string | null = null
 ) {
   // 1. Look up by provider + providerId
   let user = await prisma.user.findFirst({
     where: { provider, providerId },
   });
-  if (user) return user;
+  if (user) {
+    if (avatarUrl && user.avatarUrl !== avatarUrl) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { avatarUrl },
+      });
+    }
+    return user;
+  }
 
   // 2. Look up by email (auto-link)
   user = await prisma.user.findUnique({ where: { email } });
   if (user) {
     user = await prisma.user.update({
       where: { id: user.id },
-      data: { provider, providerId, emailVerified: true },
+      data: { 
+        provider, 
+        providerId, 
+        emailVerified: true,
+        ...(avatarUrl ? { avatarUrl } : {})
+      },
     });
     return user;
   }
@@ -80,6 +94,7 @@ async function findOrCreateOAuthUser(
       email,
       username,
       name,
+      avatarUrl,
       provider,
       providerId,
       emailVerified: true,
@@ -166,12 +181,12 @@ router.get('/google/callback', async (req, res) => {
       Buffer.from(tokenData.id_token.split('.')[1], 'base64url').toString()
     );
 
-    const { email, name, sub } = payload;
+    const { email, name, sub, picture } = payload;
     if (!email) {
       return res.redirect(`${env.APP_URL}/login?error=oauth_no_email`);
     }
 
-    const user = await findOrCreateOAuthUser('google', sub, email, name || null);
+    const user = await findOrCreateOAuthUser('google', sub, email, name || null, picture || null);
     await handleOAuthSuccess(res, user);
   } catch (error) {
     logger.error({ error }, 'Google OAuth callback error');
@@ -259,7 +274,8 @@ router.get('/github/callback', async (req, res) => {
       'github',
       String(profile.id),
       primaryEmail,
-      profile.name || profile.login || null
+      profile.name || profile.login || null,
+      profile.avatar_url || null
     );
     await handleOAuthSuccess(res, user);
   } catch (error) {

@@ -278,6 +278,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
                 email: true, 
                 username: true, 
                 name: true, 
+                avatarUrl: true,
                 role: true, 
                 tier: true,
                 tierExpiresAt: true,
@@ -293,6 +294,39 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
         res.json({ user });
     } catch (error) {
         logger.error({ error }, 'Get me error');
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.patch('/profile', requireAuth, async (req: AuthRequest, res) => {
+    try {
+        const { name, avatarUrl } = req.body;
+        const updateData: any = {};
+        if (typeof name === 'string') updateData.name = name.trim().slice(0, 50);
+        if (typeof avatarUrl === 'string') updateData.avatarUrl = avatarUrl.trim().slice(0, 500);
+
+        const user = await prisma.user.update({
+            where: { id: req.user!.id },
+            data: updateData,
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                name: true,
+                avatarUrl: true,
+                role: true,
+                tier: true,
+                tierExpiresAt: true,
+                serverLimit: true,
+                emailVerified: true,
+                provider: true,
+                createdAt: true,
+            }
+        });
+
+        res.json({ user });
+    } catch (error) {
+        logger.error({ error }, 'Update profile error');
         res.status(500).json({ error: 'Internal server error' });
     }
 });
