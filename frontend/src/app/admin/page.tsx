@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchApi } from '@/lib/api';
 import UserAvatar from '@/components/UserAvatar';
+import { Logo } from '@/components/Logo';
 import {
   Users,
   Layout,
@@ -62,7 +63,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend
 } from 'recharts';
 
 // Type definitions
@@ -391,7 +391,7 @@ export default function AdminPage() {
   };
 
   const handleKillProject = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to kill container ${name}?`)) return;
+    if (!confirm(`Are you sure you want to stop container ${name}?`)) return;
     setActionLoading(`kill-${id}`);
     try {
       await fetchApi(`/admin/projects/${id}/kill`, { method: 'POST' });
@@ -599,44 +599,29 @@ export default function AdminPage() {
     return `${mins}m`;
   };
 
-  const formatBytes = (bytes: number) => {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  };
-
-  const tierColors: Record<string, { bg: string; text: string; border: string }> = {
-    free: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' },
-    basic: { bg: 'bg-blue-50 text-blue-700', text: 'text-blue-700', border: 'border-blue-200' },
-    pro: { bg: 'bg-purple-50 text-purple-700', text: 'text-purple-700', border: 'border-purple-200' },
-    business: { bg: 'bg-emerald-50 text-emerald-700', text: 'text-emerald-700', border: 'border-emerald-200' },
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
-        <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-        <p className="text-sm font-semibold tracking-wider uppercase text-slate-400">Loading CodeHost Control Center...</p>
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center text-slate-800">
+        <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+        <p className="text-xs font-bold tracking-wider uppercase text-slate-400">Loading CodeHost Control Center...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-blue-500 selection:text-white pb-20">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] selection:bg-blue-100 selection:text-blue-900 pb-20 font-sans">
       
       {/* Toast Notification */}
       {notification && (
         <div className="fixed bottom-6 right-6 z-50 animate-bounce">
-          <div className={`flex items-center space-x-3 px-4 py-3 rounded-2xl shadow-2xl border backdrop-blur-md ${
+          <div className={`flex items-center space-x-3 px-4 py-3 rounded-2xl shadow-xl border backdrop-blur-md ${
             notification.type === 'success'
-              ? 'bg-emerald-950/90 border-emerald-500/30 text-emerald-300'
-              : 'bg-rose-950/90 border-rose-500/30 text-rose-300'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-500/10'
+              : 'bg-rose-50 border-rose-200 text-rose-800 shadow-rose-500/10'
           }`}>
-            {notification.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+            {notification.type === 'success' ? <CheckCircle2 size={18} className="text-emerald-600" /> : <AlertTriangle size={18} className="text-rose-600" />}
             <span className="text-xs font-bold">{notification.message}</span>
-            <button onClick={() => setNotification(null)} className="opacity-60 hover:opacity-100">
+            <button onClick={() => setNotification(null)} className="opacity-60 hover:opacity-100 ml-2">
               <X size={14} />
             </button>
           </div>
@@ -644,50 +629,51 @@ export default function AdminPage() {
       )}
 
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             
-            {/* Left: Brand & Return */}
+            {/* Left: Brand & Exit */}
             <div className="flex items-center space-x-4">
               <Link
                 href="/dashboard"
-                className="flex items-center space-x-2 text-xs font-bold text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700/60 transition-all"
+                className="flex items-center space-x-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 px-3 py-1.5 rounded-xl border border-slate-200 transition-all"
               >
                 <ArrowLeft size={14} />
                 <span>Exit Console</span>
               </Link>
-              <div className="h-4 w-px bg-slate-800" />
-              <div className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <Shield size={16} className="text-white" />
-                </div>
+              <div className="h-5 w-px bg-slate-200" />
+              
+              <div className="flex items-center space-x-3">
+                <Logo className="w-8 h-8 shrink-0" />
                 <div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-extrabold tracking-tight text-white">CodeHost</span>
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                      Fleet Control
+                    <span className="text-base font-black tracking-tight text-[#0F172A]">
+                      Code<span className="text-[#2563EB]">Host</span>
+                    </span>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                      Fleet Admin
                     </span>
                   </div>
-                  <div className="flex items-center space-x-1.5 text-[10px] text-slate-400">
+                  <div className="flex items-center space-x-1.5 text-[10px] text-slate-500 font-medium">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
-                    <span>Host Node Online</span>
+                    <span>Node Online</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Center: Tabs */}
-            <nav className="hidden md:flex items-center space-x-1 bg-slate-950/60 p-1 rounded-2xl border border-slate-800/80">
+            <nav className="hidden md:flex items-center space-x-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/80">
               <button
                 onClick={() => setActiveTab('overview')}
                 className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === 'overview'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
                 <Activity size={14} />
@@ -697,13 +683,13 @@ export default function AdminPage() {
                 onClick={() => setActiveTab('fleet')}
                 className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === 'fleet'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
                 <Box size={14} />
                 <span>Fleet</span>
-                <span className="ml-1 text-[10px] px-1.5 py-0.2 bg-slate-800 rounded-md text-slate-300">
+                <span className="ml-1 text-[10px] px-1.5 py-0.2 bg-slate-200 rounded-md text-slate-700 font-semibold">
                   {projects.length}
                 </span>
               </button>
@@ -711,8 +697,8 @@ export default function AdminPage() {
                 onClick={() => setActiveTab('revenue')}
                 className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === 'revenue'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
                 <DollarSign size={14} />
@@ -722,13 +708,13 @@ export default function AdminPage() {
                 onClick={() => setActiveTab('users')}
                 className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === 'users'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
                 <Users size={14} />
                 <span>Users</span>
-                <span className="ml-1 text-[10px] px-1.5 py-0.2 bg-slate-800 rounded-md text-slate-300">
+                <span className="ml-1 text-[10px] px-1.5 py-0.2 bg-slate-200 rounded-md text-slate-700 font-semibold">
                   {users.length}
                 </span>
               </button>
@@ -736,8 +722,8 @@ export default function AdminPage() {
                 onClick={() => setActiveTab('host')}
                 className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === 'host'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
                 <Server size={14} />
@@ -751,21 +737,21 @@ export default function AdminPage() {
                 onClick={() => setAutoRefresh(!autoRefresh)}
                 className={`flex items-center space-x-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl border transition-all ${
                   autoRefresh
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                    : 'bg-slate-800/50 border-slate-700/50 text-slate-500'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    : 'bg-slate-100 border-slate-200 text-slate-500'
                 }`}
                 title="Toggle 10s auto-refresh"
               >
-                <Radio size={12} className={autoRefresh ? 'animate-pulse text-emerald-400' : ''} />
+                <Radio size={12} className={autoRefresh ? 'animate-pulse text-emerald-600' : ''} />
                 <span className="hidden sm:inline">{autoRefresh ? 'Auto 10s' : 'Paused'}</span>
               </button>
 
               <button
                 onClick={() => fetchAllData()}
                 disabled={refreshing}
-                className="flex items-center space-x-1.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl border border-slate-700 transition-all disabled:opacity-50"
+                className="flex items-center space-x-1.5 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs transition-all disabled:opacity-50"
               >
-                <RefreshCw size={12} className={refreshing ? 'animate-spin text-blue-400' : ''} />
+                <RefreshCw size={12} className={refreshing ? 'animate-spin text-blue-600' : ''} />
                 <span className="hidden sm:inline">Refresh</span>
               </button>
             </div>
@@ -773,13 +759,13 @@ export default function AdminPage() {
         </div>
 
         {/* Mobile Tab Bar */}
-        <div className="flex md:hidden overflow-x-auto px-4 py-2 border-t border-slate-800/60 space-x-2">
+        <div className="flex md:hidden overflow-x-auto px-4 py-2 border-t border-slate-200 bg-white space-x-2">
           {(['overview', 'fleet', 'revenue', 'users', 'host'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-3 py-1 rounded-lg text-xs font-bold capitalize whitespace-nowrap ${
-                activeTab === tab ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-400'
+                activeTab === tab ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
               }`}
             >
               {tab}
@@ -800,59 +786,67 @@ export default function AdminPage() {
             {/* KPI Ribbons */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 hover:border-slate-700 transition-all">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
                   <span>Gross Revenue</span>
-                  <DollarSign size={16} className="text-emerald-400" />
+                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+                    <DollarSign size={16} />
+                  </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
                   ₹{(revenueData?.summary?.totalRevenueInr || 0).toLocaleString()}
                 </div>
-                <div className="flex items-center space-x-1 text-[11px] text-emerald-400 font-semibold mt-2">
+                <div className="flex items-center space-x-1 text-[11px] text-emerald-600 font-semibold mt-2">
                   <TrendingUp size={12} />
                   <span>MRR: ₹{(revenueData?.summary?.estimatedMrr || 0).toLocaleString()}/mo</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 hover:border-slate-700 transition-all">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
                   <span>Containers Running</span>
-                  <Box size={16} className="text-blue-400" />
+                  <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
+                    <Box size={16} />
+                  </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
                   {stats?.activeContainers || 0}
-                  <span className="text-sm font-normal text-slate-500 ml-1.5">/ {stats?.projects || 0} total</span>
+                  <span className="text-sm font-normal text-slate-400 ml-1.5">/ {stats?.projects || 0} total</span>
                 </div>
-                <div className="flex items-center space-x-1 text-[11px] text-blue-400 font-semibold mt-2">
+                <div className="flex items-center space-x-1 text-[11px] text-blue-600 font-semibold mt-2">
                   <Zap size={12} />
-                  <span>{systemMetrics?.docker?.imagesTotal || 0} local Docker images</span>
+                  <span>{systemMetrics?.docker?.imagesTotal || 0} Docker images</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 hover:border-slate-700 transition-all">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
                   <span>Host CPU Usage</span>
-                  <Cpu size={16} className="text-indigo-400" />
+                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+                    <Cpu size={16} />
+                  </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
                   {systemMetrics?.cpu?.percent ?? 0}%
                 </div>
-                <div className="flex items-center space-x-1 text-[11px] text-slate-400 font-semibold mt-2">
+                <div className="flex items-center space-x-1 text-[11px] text-slate-500 font-semibold mt-2">
                   <span>{systemMetrics?.cpu?.cores || 1} Cores</span>
                   <span>•</span>
                   <span>Load: {(systemMetrics?.cpu?.loadAvg?.[0] ?? 0).toFixed(2)}</span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 hover:border-slate-700 transition-all">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
-                  <span>Host Memory</span>
-                  <HardDrive size={16} className="text-purple-400" />
+                  <span>Host Memory (RAM)</span>
+                  <div className="p-1.5 rounded-lg bg-purple-50 text-purple-600 border border-purple-100">
+                    <HardDrive size={16} />
+                  </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
                   {systemMetrics?.memory?.percent ?? 0}%
                 </div>
-                <div className="flex items-center space-x-1 text-[11px] text-purple-400 font-semibold mt-2">
+                <div className="flex items-center space-x-1 text-[11px] text-purple-600 font-semibold mt-2">
                   <span>{systemMetrics?.memory?.usedGb || '0'} / {systemMetrics?.memory?.totalGb || '0'} GB</span>
                 </div>
               </div>
@@ -863,19 +857,19 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Live CPU Utilization Area Chart */}
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-sm font-black text-white tracking-tight flex items-center space-x-2">
-                      <Cpu size={16} className="text-blue-400" />
+                    <h3 className="text-sm font-extrabold text-[#0F172A] tracking-tight flex items-center space-x-2">
+                      <Cpu size={16} className="text-blue-600" />
                       <span>CPU Utilization Real-Time Trend</span>
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-slate-500 mt-0.5">
                       {systemMetrics?.cpu?.model || 'Host Processor'} • {systemMetrics?.cpu?.cores || 1} Virtual Cores
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-xl font-extrabold text-blue-400">
+                    <span className="text-2xl font-black text-blue-600">
                       {systemMetrics?.cpu?.percent ?? 0}%
                     </span>
                   </div>
@@ -887,21 +881,21 @@ export default function AdminPage() {
                       <AreaChart data={systemMetrics.history}>
                         <defs>
                           <linearGradient id="cpuGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#2563EB" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="timestamp" stroke="#64748b" tick={{ fontSize: 10 }} />
-                        <YAxis stroke="#64748b" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="timestamp" stroke="#94a3b8" tick={{ fontSize: 10 }} />
+                        <YAxis stroke="#94a3b8" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 12, fontSize: 12 }}
+                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 12, fontSize: 12, color: '#fff' }}
                           formatter={(value: any) => [`${value}%`, 'CPU Usage']}
                         />
                         <Area
                           type="monotone"
                           dataKey="cpu"
-                          stroke="#3b82f6"
+                          stroke="#2563EB"
                           strokeWidth={2}
                           fillOpacity={1}
                           fill="url(#cpuGradient)"
@@ -914,19 +908,19 @@ export default function AdminPage() {
               </div>
 
               {/* Live RAM Utilization Area Chart */}
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-sm font-black text-white tracking-tight flex items-center space-x-2">
-                      <HardDrive size={16} className="text-purple-400" />
+                    <h3 className="text-sm font-extrabold text-[#0F172A] tracking-tight flex items-center space-x-2">
+                      <HardDrive size={16} className="text-purple-600" />
                       <span>Host Memory (RAM) History</span>
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-slate-500 mt-0.5">
                       {systemMetrics?.memory?.usedGb || '0'} GB Used of {systemMetrics?.memory?.totalGb || '0'} GB Total
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-xl font-extrabold text-purple-400">
+                    <span className="text-2xl font-black text-purple-600">
                       {systemMetrics?.memory?.percent ?? 0}%
                     </span>
                   </div>
@@ -938,21 +932,21 @@ export default function AdminPage() {
                       <AreaChart data={systemMetrics.history}>
                         <defs>
                           <linearGradient id="memGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
-                            <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="timestamp" stroke="#64748b" tick={{ fontSize: 10 }} />
-                        <YAxis stroke="#64748b" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="timestamp" stroke="#94a3b8" tick={{ fontSize: 10 }} />
+                        <YAxis stroke="#94a3b8" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 12, fontSize: 12 }}
+                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 12, fontSize: 12, color: '#fff' }}
                           formatter={(value: any) => [`${value}%`, 'Memory Usage']}
                         />
                         <Area
                           type="monotone"
                           dataKey="memory"
-                          stroke="#a855f7"
+                          stroke="#7c3aed"
                           strokeWidth={2}
                           fillOpacity={1}
                           fill="url(#memGradient)"
@@ -970,17 +964,19 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* Storage Breakdown Card */}
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-black text-white flex items-center space-x-2">
-                    <Database size={16} className="text-amber-400" />
+                  <h3 className="text-sm font-extrabold text-[#0F172A] flex items-center space-x-2">
+                    <Database size={16} className="text-amber-500" />
                     <span>Disk & Storage Footprint</span>
                   </h3>
-                  <span className="text-xs font-bold text-amber-400">{systemMetrics?.disk?.percent ?? 0}% Used</span>
+                  <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                    {systemMetrics?.disk?.percent ?? 0}% Used
+                  </span>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full bg-slate-800 rounded-full h-3 mb-4 overflow-hidden">
+                <div className="w-full bg-slate-100 rounded-full h-3 mb-4 overflow-hidden">
                   <div
                     className="bg-gradient-to-r from-blue-500 to-amber-500 h-3 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(100, systemMetrics?.disk?.percent ?? 0)}%` }}
@@ -988,67 +984,67 @@ export default function AdminPage() {
                 </div>
 
                 <div className="space-y-2 text-xs">
-                  <div className="flex justify-between text-slate-400">
+                  <div className="flex justify-between text-slate-500">
                     <span>Used Storage:</span>
-                    <span className="font-bold text-slate-200">{systemMetrics?.disk?.usedGb || '0'} GB</span>
+                    <span className="font-bold text-slate-900">{systemMetrics?.disk?.usedGb || '0'} GB</span>
                   </div>
-                  <div className="flex justify-between text-slate-400">
+                  <div className="flex justify-between text-slate-500">
                     <span>Free Space Available:</span>
-                    <span className="font-bold text-emerald-400">{systemMetrics?.disk?.freeGb || '0'} GB</span>
+                    <span className="font-bold text-emerald-600">{systemMetrics?.disk?.freeGb || '0'} GB</span>
                   </div>
-                  <div className="flex justify-between text-slate-400">
+                  <div className="flex justify-between text-slate-500">
                     <span>Total Volume Capacity:</span>
-                    <span className="font-bold text-slate-200">{systemMetrics?.disk?.totalGb || '0'} GB</span>
+                    <span className="font-bold text-slate-900">{systemMetrics?.disk?.totalGb || '0'} GB</span>
                   </div>
-                  <div className="flex justify-between text-slate-400 pt-2 border-t border-slate-800">
+                  <div className="flex justify-between text-slate-500 pt-2 border-t border-slate-100">
                     <span>Docker Daemon Footprint:</span>
-                    <span className="font-bold text-blue-400">{systemMetrics?.docker?.imagesTotal || 0} Images</span>
+                    <span className="font-bold text-blue-600">{systemMetrics?.docker?.imagesTotal || 0} Images</span>
                   </div>
                 </div>
               </div>
 
               {/* Fleet Capacity Status */}
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6">
-                <h3 className="text-sm font-black text-white flex items-center space-x-2 mb-4">
-                  <Sliders size={16} className="text-emerald-400" />
-                  <span>Platform Resource Health</span>
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
+                <h3 className="text-sm font-extrabold text-[#0F172A] flex items-center space-x-2 mb-4">
+                  <Sliders size={16} className="text-emerald-600" />
+                  <span>Platform Health Checks</span>
                 </h3>
                 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
                     <div className="flex items-center space-x-2.5">
                       <div className={`w-2.5 h-2.5 rounded-full ${health?.database?.status === 'healthy' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                      <span className="text-xs font-bold text-slate-300">PostgreSQL DB</span>
+                      <span className="text-xs font-bold text-slate-700">PostgreSQL DB</span>
                     </div>
-                    <span className="text-[11px] font-mono font-semibold text-slate-400">{health?.database?.message || 'Nominal'}</span>
+                    <span className="text-[11px] font-mono font-semibold text-slate-500">{health?.database?.message || 'Nominal'}</span>
                   </div>
 
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
                     <div className="flex items-center space-x-2.5">
                       <div className={`w-2.5 h-2.5 rounded-full ${health?.redis?.status === 'healthy' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                      <span className="text-xs font-bold text-slate-300">Redis In-Memory Cache</span>
+                      <span className="text-xs font-bold text-slate-700">Redis In-Memory Cache</span>
                     </div>
-                    <span className="text-[11px] font-mono font-semibold text-slate-400">{health?.redis?.message || 'Nominal'}</span>
+                    <span className="text-[11px] font-mono font-semibold text-slate-500">{health?.redis?.message || 'Nominal'}</span>
                   </div>
 
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
                     <div className="flex items-center space-x-2.5">
                       <div className={`w-2.5 h-2.5 rounded-full ${health?.docker?.status === 'healthy' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                      <span className="text-xs font-bold text-slate-300">Docker Engine</span>
+                      <span className="text-xs font-bold text-slate-700">Docker Daemon</span>
                     </div>
-                    <span className="text-[11px] font-mono font-semibold text-slate-400">v{systemMetrics?.docker?.serverVersion || '27.0'}</span>
+                    <span className="text-[11px] font-mono font-semibold text-slate-500">v{systemMetrics?.docker?.serverVersion || '27.0'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Fast Operations Bar */}
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
                 <div>
-                  <h3 className="text-sm font-black text-white flex items-center space-x-2 mb-2">
-                    <Zap size={16} className="text-yellow-400" />
+                  <h3 className="text-sm font-extrabold text-[#0F172A] flex items-center space-x-2 mb-1.5">
+                    <Zap size={16} className="text-amber-500" />
                     <span>Quick Fleet Operations</span>
                   </h3>
-                  <p className="text-[11px] text-slate-400 mb-4">
+                  <p className="text-[11px] text-slate-500 mb-4">
                     Instantly trigger cluster sanitation and cache purges without SSH.
                   </p>
                 </div>
@@ -1057,27 +1053,27 @@ export default function AdminPage() {
                   <button
                     onClick={handlePruneSystem}
                     disabled={actionLoading === 'prune'}
-                    className="flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all disabled:opacity-50"
+                    className="flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition-all disabled:opacity-50"
                   >
-                    {actionLoading === 'prune' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} className="text-rose-400" />}
+                    {actionLoading === 'prune' ? <Loader2 size={14} className="animate-spin text-rose-500" /> : <Trash2 size={14} className="text-rose-500" />}
                     <span>Run Docker System Prune</span>
                   </button>
 
                   <button
                     onClick={handleFlushRedis}
                     disabled={actionLoading === 'flush-redis'}
-                    className="flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all disabled:opacity-50"
+                    className="flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition-all disabled:opacity-50"
                   >
-                    {actionLoading === 'flush-redis' ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} className="text-amber-400" />}
+                    {actionLoading === 'flush-redis' ? <Loader2 size={14} className="animate-spin text-amber-500" /> : <RotateCw size={14} className="text-amber-500" />}
                     <span>Flush Redis Cache</span>
                   </button>
 
                   <button
                     onClick={handleClearSessions}
                     disabled={actionLoading === 'clear-sessions'}
-                    className="flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all disabled:opacity-50"
+                    className="flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition-all disabled:opacity-50"
                   >
-                    {actionLoading === 'clear-sessions' ? <Loader2 size={14} className="animate-spin" /> : <ShieldAlert size={14} className="text-blue-400" />}
+                    {actionLoading === 'clear-sessions' ? <Loader2 size={14} className="animate-spin text-blue-500" /> : <ShieldAlert size={14} className="text-blue-500" />}
                     <span>Purge Expired Sessions</span>
                   </button>
                 </div>
@@ -1095,7 +1091,7 @@ export default function AdminPage() {
           <div className="space-y-6">
             
             {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800/80">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
               
               {/* Search */}
               <div className="relative w-full sm:w-80">
@@ -1105,7 +1101,7 @@ export default function AdminPage() {
                   placeholder="Filter by project or owner email..."
                   value={projectSearch}
                   onChange={(e) => setProjectSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-medium text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                 />
               </div>
 
@@ -1114,7 +1110,7 @@ export default function AdminPage() {
                 <select
                   value={projectStatusFilter}
                   onChange={(e) => setProjectStatusFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 focus:outline-none focus:border-blue-500"
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500"
                 >
                   <option value="all">All Statuses</option>
                   <option value="running">Running</option>
@@ -1125,7 +1121,7 @@ export default function AdminPage() {
                 <select
                   value={projectTierFilter}
                   onChange={(e) => setProjectTierFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 focus:outline-none focus:border-blue-500"
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500"
                 >
                   <option value="all">All Tiers</option>
                   <option value="free">Free Tier</option>
@@ -1138,10 +1134,10 @@ export default function AdminPage() {
             </div>
 
             {/* Fleet Projects Table */}
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl overflow-hidden">
+            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950/80 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800">
+                  <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                     <tr>
                       <th className="px-5 py-3.5">Container / App</th>
                       <th className="px-5 py-3.5">Owner</th>
@@ -1151,10 +1147,10 @@ export default function AdminPage() {
                       <th className="px-5 py-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-slate-100">
                     {filteredProjects.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-5 py-12 text-center text-slate-500 font-semibold">
+                        <td colSpan={6} className="px-5 py-12 text-center text-slate-400 font-semibold">
                           No matching projects in compute fleet.
                         </td>
                       </tr>
@@ -1164,27 +1160,27 @@ export default function AdminPage() {
                         const currentTier = (p.tier || 'free').toLowerCase();
 
                         return (
-                          <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
+                          <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
                             <td className="px-5 py-4">
                               <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-mono font-bold text-blue-400 text-xs">
+                                <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center font-mono font-bold text-blue-600 text-xs">
                                   {p.framework?.slice(0, 2).toUpperCase() || 'CH'}
                                 </div>
                                 <div>
-                                  <div className="font-bold text-slate-100 flex items-center space-x-1.5">
+                                  <div className="font-bold text-[#0F172A] flex items-center space-x-1.5">
                                     <span>{p.name}</span>
                                     {p.customDomain && (
                                       <a
                                         href={`https://${p.customDomain}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-blue-400 hover:text-blue-300"
+                                        className="text-blue-600 hover:text-blue-500"
                                       >
                                         <ExternalLink size={12} />
                                       </a>
                                     )}
                                   </div>
-                                  <span className="text-[10px] text-slate-400 font-mono">ID: {p.id.slice(0, 10)}...</span>
+                                  <span className="text-[10px] text-slate-400 font-mono">ID: {p.id.slice(0, 8)}...</span>
                                 </div>
                               </div>
                             </td>
@@ -1193,7 +1189,7 @@ export default function AdminPage() {
                               <div className="flex items-center space-x-2">
                                 <UserAvatar user={p.user} size="xs" />
                                 <div>
-                                  <div className="font-semibold text-slate-200">{p.user?.username || 'Unknown'}</div>
+                                  <div className="font-semibold text-slate-800">{p.user?.username || 'Unknown'}</div>
                                   <div className="text-[10px] text-slate-400">{p.user?.email}</div>
                                 </div>
                               </div>
@@ -1201,16 +1197,16 @@ export default function AdminPage() {
 
                             <td className="px-5 py-4">
                               <div className="flex items-center space-x-2">
-                                <span className={`relative flex h-2 w-2`}>
+                                <span className="relative flex h-2 w-2">
                                   {isRunning && (
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                   )}
                                   <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                                    isRunning ? 'bg-emerald-500' : 'bg-slate-500'
+                                    isRunning ? 'bg-emerald-500' : 'bg-slate-400'
                                   }`}></span>
                                 </span>
                                 <span className={`font-mono font-bold capitalize text-[11px] ${
-                                  isRunning ? 'text-emerald-400' : 'text-slate-400'
+                                  isRunning ? 'text-emerald-700' : 'text-slate-500'
                                 }`}>
                                   {p.status}
                                 </span>
@@ -1222,7 +1218,7 @@ export default function AdminPage() {
                                 value={currentTier}
                                 onChange={(e) => handleUpdateProjectTier(p.id, e.target.value)}
                                 disabled={actionLoading === `tier-${p.id}`}
-                                className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg font-bold text-[10px] uppercase text-blue-400 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg font-bold text-[10px] uppercase text-blue-600 focus:outline-none focus:border-blue-500 disabled:opacity-50"
                               >
                                 <option value="free">Free (0.5 CPU / 512MB)</option>
                                 <option value="basic">Basic (1 CPU / 1GB)</option>
@@ -1231,7 +1227,7 @@ export default function AdminPage() {
                               </select>
                             </td>
 
-                            <td className="px-5 py-4 font-mono text-[11px] text-slate-300">
+                            <td className="px-5 py-4 font-mono text-[11px] text-slate-600">
                               Port {p.port || 'Auto'}
                             </td>
 
@@ -1244,7 +1240,7 @@ export default function AdminPage() {
                                     onClick={() => handleStartProject(p.id, p.name)}
                                     disabled={actionLoading === `start-${p.id}`}
                                     title="Start Container"
-                                    className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-all disabled:opacity-50"
+                                    className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-all disabled:opacity-50"
                                   >
                                     {actionLoading === `start-${p.id}` ? (
                                       <Loader2 size={14} className="animate-spin" />
@@ -1260,7 +1256,7 @@ export default function AdminPage() {
                                     onClick={() => handleRestartProject(p.id, p.name)}
                                     disabled={actionLoading === `restart-${p.id}`}
                                     title="Restart Container"
-                                    className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition-all disabled:opacity-50"
+                                    className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 transition-all disabled:opacity-50"
                                   >
                                     {actionLoading === `restart-${p.id}` ? (
                                       <Loader2 size={14} className="animate-spin" />
@@ -1274,7 +1270,7 @@ export default function AdminPage() {
                                 <button
                                   onClick={() => handleOpenLogs(p)}
                                   title="View Container Logs"
-                                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
+                                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all"
                                 >
                                   <Terminal size={14} />
                                 </button>
@@ -1285,7 +1281,7 @@ export default function AdminPage() {
                                     onClick={() => handleKillProject(p.id, p.name)}
                                     disabled={actionLoading === `kill-${p.id}`}
                                     title="Stop / Kill Container"
-                                    className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 transition-all disabled:opacity-50"
+                                    className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 transition-all disabled:opacity-50"
                                   >
                                     {actionLoading === `kill-${p.id}` ? (
                                       <Loader2 size={14} className="animate-spin" />
@@ -1300,7 +1296,7 @@ export default function AdminPage() {
                                   onClick={() => handleDeleteProject(p.id, p.name)}
                                   disabled={actionLoading === `delete-proj-${p.id}`}
                                   title="Permanently Delete Project"
-                                  className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all disabled:opacity-50"
+                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-all disabled:opacity-50"
                                 >
                                   {actionLoading === `delete-proj-${p.id}` ? (
                                     <Loader2 size={14} className="animate-spin" />
@@ -1332,9 +1328,9 @@ export default function AdminPage() {
             {/* Revenue Analytics Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Gross Collections</div>
-                <div className="text-2xl font-black text-emerald-400">
+                <div className="text-2xl font-black text-emerald-600">
                   ₹{(revenueData?.summary?.totalRevenueInr || 0).toLocaleString()}
                 </div>
                 <div className="text-[10px] text-slate-500 mt-1">
@@ -1342,25 +1338,25 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Estimated MRR</div>
-                <div className="text-2xl font-black text-blue-400">
+                <div className="text-2xl font-black text-blue-600">
                   ₹{(revenueData?.summary?.estimatedMrr || 0).toLocaleString()}
                 </div>
                 <div className="text-[10px] text-slate-500 mt-1">Monthly run-rate</div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ARPU (Per User)</div>
-                <div className="text-2xl font-black text-purple-400">
+                <div className="text-2xl font-black text-purple-600">
                   ₹{(revenueData?.summary?.arpu || 0).toLocaleString()}
                 </div>
                 <div className="text-[10px] text-slate-500 mt-1">Average revenue / user</div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Paid Conversion</div>
-                <div className="text-2xl font-black text-indigo-400">
+                <div className="text-2xl font-black text-indigo-600">
                   {revenueData?.summary?.conversionRate ?? 0}%
                 </div>
                 <div className="text-[10px] text-slate-500 mt-1">
@@ -1368,9 +1364,9 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Wallet Float</div>
-                <div className="text-2xl font-black text-amber-400">
+                <div className="text-2xl font-black text-amber-600">
                   ₹{(revenueData?.summary?.totalWalletFloatInr || 0).toLocaleString()}
                 </div>
                 <div className="text-[10px] text-slate-500 mt-1">
@@ -1383,14 +1379,14 @@ export default function AdminPage() {
             {/* 30-Day Revenue Trend Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              <div className="lg:col-span-2 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6">
+              <div className="lg:col-span-2 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-sm font-black text-white flex items-center space-x-2">
-                      <TrendingUp size={16} className="text-emerald-400" />
+                    <h3 className="text-sm font-extrabold text-[#0F172A] flex items-center space-x-2">
+                      <TrendingUp size={16} className="text-emerald-600" />
                       <span>30-Day Revenue Trajectory (₹ INR)</span>
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Aggregated daily purchase and subscription volume</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Aggregated daily purchase and subscription volume</p>
                   </div>
                 </div>
 
@@ -1400,21 +1396,21 @@ export default function AdminPage() {
                       <AreaChart data={revenueData.revenueTrend}>
                         <defs>
                           <linearGradient id="revGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#059669" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="#059669" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 10 }} />
-                        <YAxis stroke="#64748b" tick={{ fontSize: 10 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 10 }} />
+                        <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 12, fontSize: 12 }}
+                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 12, fontSize: 12, color: '#fff' }}
                           formatter={(val: any) => [`₹${val}`, 'Revenue']}
                         />
                         <Area
                           type="monotone"
                           dataKey="revenue"
-                          stroke="#10b981"
+                          stroke="#059669"
                           strokeWidth={2}
                           fillOpacity={1}
                           fill="url(#revGradient)"
@@ -1426,29 +1422,29 @@ export default function AdminPage() {
               </div>
 
               {/* Tier Distribution Breakdown */}
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6">
-                <h3 className="text-sm font-black text-white flex items-center space-x-2 mb-4">
-                  <Layers size={16} className="text-purple-400" />
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
+                <h3 className="text-sm font-extrabold text-[#0F172A] flex items-center space-x-2 mb-4">
+                  <Layers size={16} className="text-purple-600" />
                   <span>Tier Distribution</span>
                 </h3>
 
                 <div className="space-y-3">
                   {[
-                    { key: 'free', label: 'Free Tier', price: '₹0', color: 'text-slate-400' },
-                    { key: 'basic', label: 'Basic Plan', price: '₹249/mo', color: 'text-blue-400' },
-                    { key: 'pro', label: 'Pro Plan', price: '₹499/mo', color: 'text-purple-400' },
-                    { key: 'business', label: 'Business Plan', price: '₹999/mo', color: 'text-emerald-400' },
+                    { key: 'free', label: 'Free Tier', price: '₹0', color: 'text-slate-600 bg-slate-50' },
+                    { key: 'basic', label: 'Basic Plan', price: '₹249/mo', color: 'text-blue-700 bg-blue-50' },
+                    { key: 'pro', label: 'Pro Plan', price: '₹499/mo', color: 'text-purple-700 bg-purple-50' },
+                    { key: 'business', label: 'Business Plan', price: '₹999/mo', color: 'text-emerald-700 bg-emerald-50' },
                   ].map((t) => {
                     const data = revenueData?.tierBreakdown?.[t.key] || { users: 0, projects: 0, revenueInr: 0 };
                     return (
-                      <div key={t.key} className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
+                      <div key={t.key} className="p-3 bg-slate-50 border border-slate-200/70 rounded-xl">
                         <div className="flex items-center justify-between text-xs font-bold mb-1">
-                          <span className={t.color}>{t.label}</span>
-                          <span className="text-slate-300">{t.price}</span>
+                          <span className="font-extrabold text-[#0F172A]">{t.label}</span>
+                          <span className="text-slate-500 font-semibold">{t.price}</span>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500">
                           <span>{data.users} users • {data.projects} projects</span>
-                          <span className="font-semibold text-white">₹{data.revenueInr.toLocaleString()}</span>
+                          <span className="font-bold text-slate-800">₹{data.revenueInr.toLocaleString()}</span>
                         </div>
                       </div>
                     );
@@ -1459,16 +1455,16 @@ export default function AdminPage() {
             </div>
 
             {/* Transactions Ledger */}
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl overflow-hidden">
+            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs overflow-hidden">
               
               {/* Ledger Header & Search */}
-              <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="p-4 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-sm font-black text-white flex items-center space-x-2">
-                    <CreditCard size={16} className="text-blue-400" />
+                  <h3 className="text-sm font-extrabold text-[#0F172A] flex items-center space-x-2">
+                    <CreditCard size={16} className="text-blue-600" />
                     <span>Transactions Ledger</span>
                   </h3>
-                  <p className="text-[11px] text-slate-400">Search customer orders, credits, and Razorpay payment records</p>
+                  <p className="text-[11px] text-slate-500">Search customer orders, credits, and Razorpay payment records</p>
                 </div>
 
                 <div className="flex items-center space-x-3 w-full sm:w-auto">
@@ -1480,14 +1476,14 @@ export default function AdminPage() {
                       value={txSearch}
                       onChange={(e) => setTxSearch(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && fetchTransactions(1)}
-                      className="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                      className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
                   <select
                     value={txTypeFilter}
                     onChange={(e) => setTxTypeFilter(e.target.value)}
-                    className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-semibold text-slate-300 focus:outline-none focus:border-blue-500"
+                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500"
                   >
                     <option value="">All Types</option>
                     <option value="purchase">Purchase</option>
@@ -1500,7 +1496,7 @@ export default function AdminPage() {
               {/* Table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950/40 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800">
+                  <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                     <tr>
                       <th className="px-5 py-3">Customer</th>
                       <th className="px-5 py-3">Type</th>
@@ -1509,45 +1505,45 @@ export default function AdminPage() {
                       <th className="px-5 py-3">Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-slate-100">
                     {txLoading ? (
                       <tr>
                         <td colSpan={5} className="px-5 py-8 text-center text-slate-400 font-bold">
-                          <Loader2 size={18} className="animate-spin inline mr-2 text-blue-400" />
+                          <Loader2 size={18} className="animate-spin inline mr-2 text-blue-600" />
                           Loading ledger...
                         </td>
                       </tr>
                     ) : transactions.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-5 py-8 text-center text-slate-500 font-bold">
+                        <td colSpan={5} className="px-5 py-8 text-center text-slate-400 font-bold">
                           No transactions found.
                         </td>
                       </tr>
                     ) : (
                       transactions.map((tx) => (
-                        <tr key={tx.id} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="px-5 py-3 font-semibold text-slate-200">
+                        <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="px-5 py-3 font-semibold text-slate-800">
                             <div>{tx.wallet?.user?.username || 'Unknown'}</div>
                             <div className="text-[10px] text-slate-400">{tx.wallet?.user?.email || 'N/A'}</div>
                           </td>
                           <td className="px-5 py-3">
                             <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase ${
                               tx.type === 'purchase'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : tx.type === 'admin_grant'
-                                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                                : 'bg-slate-800 text-slate-400'
+                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                : 'bg-slate-100 text-slate-600'
                             }`}>
                               {tx.type}
                             </span>
                           </td>
-                          <td className="px-5 py-3 font-mono font-bold text-slate-100">
+                          <td className="px-5 py-3 font-mono font-bold text-slate-900">
                             {tx.amount > 0 ? `+${tx.amount}` : tx.amount} credits
                           </td>
-                          <td className="px-5 py-3 font-mono text-[10px] text-slate-400">
+                          <td className="px-5 py-3 font-mono text-[10px] text-slate-500">
                             {tx.razorpayPaymentId || tx.razorpayOrderId || tx.description || 'System auto'}
                           </td>
-                          <td className="px-5 py-3 text-slate-400 text-[11px]">
+                          <td className="px-5 py-3 text-slate-500 text-[11px]">
                             {new Date(tx.createdAt).toLocaleString()}
                           </td>
                         </tr>
@@ -1558,20 +1554,20 @@ export default function AdminPage() {
               </div>
 
               {/* Pagination */}
-              <div className="p-3 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+              <div className="p-3 bg-slate-50/80 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
                 <span>Page {txPage} of {txTotalPages}</span>
                 <div className="flex items-center space-x-2">
                   <button
                     disabled={txPage <= 1 || txLoading}
                     onClick={() => fetchTransactions(txPage - 1)}
-                    className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+                    className="p-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
                   >
                     <ChevronLeft size={16} />
                   </button>
                   <button
                     disabled={txPage >= txTotalPages || txLoading}
                     onClick={() => fetchTransactions(txPage + 1)}
-                    className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40"
+                    className="p-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
                   >
                     <ChevronRight size={16} />
                   </button>
@@ -1590,7 +1586,7 @@ export default function AdminPage() {
           <div className="space-y-6">
             
             {/* Filter & Action Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800/80">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
               
               <div className="relative w-full sm:w-80">
                 <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -1599,7 +1595,7 @@ export default function AdminPage() {
                   placeholder="Search by email or username..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-medium text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                 />
               </div>
 
@@ -1607,7 +1603,7 @@ export default function AdminPage() {
                 <select
                   value={userRoleFilter}
                   onChange={(e) => setUserRoleFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 focus:outline-none focus:border-blue-500"
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500"
                 >
                   <option value="all">All Roles</option>
                   <option value="USER">User</option>
@@ -1617,7 +1613,7 @@ export default function AdminPage() {
                 <select
                   value={userTierFilter}
                   onChange={(e) => setUserTierFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 focus:outline-none focus:border-blue-500"
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500"
                 >
                   <option value="all">All Tiers</option>
                   <option value="free">Free</option>
@@ -1638,10 +1634,10 @@ export default function AdminPage() {
             </div>
 
             {/* Users Directory Table */}
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl overflow-hidden">
+            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950/80 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800">
+                  <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                     <tr>
                       <th className="px-5 py-3.5">User Profile</th>
                       <th className="px-5 py-3.5">Role</th>
@@ -1651,10 +1647,10 @@ export default function AdminPage() {
                       <th className="px-5 py-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-slate-100">
                     {filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-5 py-12 text-center text-slate-500 font-semibold">
+                        <td colSpan={6} className="px-5 py-12 text-center text-slate-400 font-semibold">
                           No matching users found.
                         </td>
                       </tr>
@@ -1662,15 +1658,15 @@ export default function AdminPage() {
                       filteredUsers.map((u) => {
                         const tierKey = (u.tier || 'free').toLowerCase();
                         return (
-                          <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
+                          <tr key={u.id} className="hover:bg-slate-50/70 transition-colors">
                             <td className="px-5 py-4">
                               <div className="flex items-center space-x-3">
                                 <UserAvatar user={u} size="sm" />
                                 <div>
-                                  <div className="font-bold text-slate-100 flex items-center space-x-1.5">
+                                  <div className="font-bold text-[#0F172A] flex items-center space-x-1.5">
                                     <span>{u.username}</span>
                                     {u.emailVerified && (
-                                      <CheckCircle2 size={12} className="text-blue-400" />
+                                      <CheckCircle2 size={12} className="text-blue-600" />
                                     )}
                                   </div>
                                   <div className="text-[10px] text-slate-400">{u.email}</div>
@@ -1681,8 +1677,8 @@ export default function AdminPage() {
                             <td className="px-5 py-4">
                               <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
                                 u.role === 'ADMIN'
-                                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                                  : 'bg-slate-800 text-slate-300'
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  : 'bg-slate-100 text-slate-600'
                               }`}>
                                 {u.role}
                               </span>
@@ -1692,12 +1688,12 @@ export default function AdminPage() {
                               <div className="flex items-center space-x-2">
                                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
                                   tierKey === 'business'
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                     : tierKey === 'pro'
-                                    ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
                                     : tierKey === 'basic'
-                                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                    : 'bg-slate-800 text-slate-400'
+                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                    : 'bg-slate-100 text-slate-600'
                                 }`}>
                                   {u.tier || 'FREE'}
                                 </span>
@@ -1706,7 +1702,7 @@ export default function AdminPage() {
                                     setTierModalUser(u);
                                     setSelectedUserTier(u.tier || 'free');
                                   }}
-                                  className="text-[10px] text-blue-400 hover:text-blue-300 underline font-semibold"
+                                  className="text-[10px] text-blue-600 hover:text-blue-500 underline font-semibold"
                                 >
                                   Change
                                 </button>
@@ -1715,12 +1711,12 @@ export default function AdminPage() {
 
                             <td className="px-5 py-4">
                               <div className="flex items-center space-x-2">
-                                <span className="font-semibold text-slate-200">
+                                <span className="font-semibold text-slate-800">
                                   {u._count?.projects || 0} / {u.serverLimit}
                                 </span>
                                 <button
                                   onClick={() => handleUpdateLimit(u.id, u.serverLimit)}
-                                  className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
+                                  className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700"
                                   title="Edit quota"
                                 >
                                   <Settings size={12} />
@@ -1730,7 +1726,7 @@ export default function AdminPage() {
 
                             <td className="px-5 py-4">
                               <div className="flex items-center space-x-2">
-                                <span className="font-mono font-bold text-slate-200">
+                                <span className="font-mono font-bold text-slate-900">
                                   {u.wallet?.balance ?? 0} cr
                                 </span>
                                 <button
@@ -1738,7 +1734,7 @@ export default function AdminPage() {
                                     setCreditModalUser(u);
                                     setCreditAmount(100);
                                   }}
-                                  className="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-bold border border-emerald-500/20"
+                                  className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[10px] font-bold border border-emerald-200"
                                 >
                                   + Credits
                                 </button>
@@ -1749,7 +1745,7 @@ export default function AdminPage() {
                               <button
                                 onClick={() => handleDeleteUser(u.id, u.email)}
                                 disabled={actionLoading === `delete-user-${u.id}`}
-                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all disabled:opacity-50"
+                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-all disabled:opacity-50"
                                 title="Delete user"
                               >
                                 {actionLoading === `delete-user-${u.id}` ? (
@@ -1780,38 +1776,38 @@ export default function AdminPage() {
             {/* Host Node Specs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Node Architecture</span>
-                <div className="text-lg font-black text-white mt-1">
+                <div className="text-lg font-black text-[#0F172A] mt-1">
                   {systemMetrics?.host?.arch?.toUpperCase() || 'X64'}
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">
+                <div className="text-[11px] text-slate-500 mt-0.5">
                   {systemMetrics?.host?.platform} • {systemMetrics?.host?.release}
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Server Hostname</span>
-                <div className="text-lg font-black text-white mt-1 truncate">
+                <div className="text-lg font-black text-[#0F172A] mt-1 truncate">
                   {systemMetrics?.host?.hostname || 'codehost-vps'}
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">Node.js {systemMetrics?.host?.nodeVersion || 'v20'}</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">Node.js {systemMetrics?.host?.nodeVersion || 'v20'}</div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">System Uptime</span>
-                <div className="text-lg font-black text-emerald-400 mt-1">
+                <div className="text-lg font-black text-emerald-600 mt-1">
                   {formatUptime(systemMetrics?.host?.uptimeSeconds || 0)}
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">Continuous host uptime</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">Continuous host uptime</div>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Docker Daemon</span>
-                <div className="text-lg font-black text-blue-400 mt-1">
+                <div className="text-lg font-black text-blue-600 mt-1">
                   {systemMetrics?.docker?.containersRunning || 0} Containers
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">
+                <div className="text-[11px] text-slate-500 mt-0.5">
                   v{systemMetrics?.docker?.serverVersion || '27.0'} Active
                 </div>
               </div>
@@ -1821,60 +1817,60 @@ export default function AdminPage() {
             {/* Health & Infrastructure Status */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
                     <Database size={18} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white">PostgreSQL Storage</h4>
-                    <span className="text-[10px] text-emerald-400 font-semibold">Healthy & Connected</span>
+                    <h4 className="text-sm font-bold text-[#0F172A]">PostgreSQL Storage</h4>
+                    <span className="text-[10px] text-emerald-600 font-semibold">Healthy & Connected</span>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Prisma ORM connected to primary cluster with connection pooling.
                 </p>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                  <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
                     <Zap size={18} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white">Redis Cache Store</h4>
-                    <span className="text-[10px] text-emerald-400 font-semibold">Ping Latency: ~1ms</span>
+                    <h4 className="text-sm font-bold text-[#0F172A]">Redis Cache Store</h4>
+                    <span className="text-[10px] text-emerald-600 font-semibold">Ping Latency: ~1ms</span>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-xs text-slate-500 mb-4">
                   Used for real-time telemetry buffering, rate limiting, and session caching.
                 </p>
                 <button
                   onClick={handleFlushRedis}
                   disabled={actionLoading === 'flush-redis'}
-                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-all disabled:opacity-50"
+                  className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition-all disabled:opacity-50"
                 >
                   Flush Redis In-Memory Keys
                 </button>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
                     <Box size={18} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white">Docker Fleet Pruning</h4>
-                    <span className="text-[10px] text-amber-400 font-semibold">{systemMetrics?.docker?.imagesTotal || 0} images stored</span>
+                    <h4 className="text-sm font-bold text-[#0F172A]">Docker Fleet Pruning</h4>
+                    <span className="text-[10px] text-amber-600 font-semibold">{systemMetrics?.docker?.imagesTotal || 0} images stored</span>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 mb-4">
+                <p className="text-xs text-slate-500 mb-4">
                   Purge dangling builder images and stopped dead containers to free disk space.
                 </p>
                 <button
                   onClick={handlePruneSystem}
                   disabled={actionLoading === 'prune'}
-                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-all disabled:opacity-50"
+                  className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition-all disabled:opacity-50"
                 >
                   Run Full Docker Prune
                 </button>
@@ -1891,21 +1887,23 @@ export default function AdminPage() {
       {/* MODAL: CONTAINER LIVE LOG INSPECTOR */}
       {/* ============================================================ */}
       {logModalProject && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center space-x-3">
-                <Terminal size={18} className="text-emerald-400" />
+                <div className="p-2 rounded-xl bg-slate-900 text-emerald-400">
+                  <Terminal size={16} />
+                </div>
                 <div>
-                  <h3 className="text-sm font-black text-white flex items-center space-x-2">
+                  <h3 className="text-sm font-extrabold text-[#0F172A] flex items-center space-x-2">
                     <span>Logs: {logModalProject.name}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono">
                       ID: {logModalProject.id.slice(0, 8)}
                     </span>
                   </h3>
-                  <p className="text-[11px] text-slate-400">Streaming raw container stdout / stderr output</p>
+                  <p className="text-[11px] text-slate-500">Streaming raw container stdout / stderr output</p>
                 </div>
               </div>
 
@@ -1913,7 +1911,7 @@ export default function AdminPage() {
                 <select
                   value={logTail}
                   onChange={(e) => setLogTail(parseInt(e.target.value))}
-                  className="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-slate-300 focus:outline-none"
+                  className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 focus:outline-none"
                 >
                   <option value={50}>Tail 50</option>
                   <option value={100}>Tail 100</option>
@@ -1924,15 +1922,15 @@ export default function AdminPage() {
                 <button
                   onClick={handleRefreshLogs}
                   disabled={logsLoading}
-                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all disabled:opacity-50"
+                  className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition-all disabled:opacity-50"
                   title="Refresh logs"
                 >
-                  <RefreshCw size={14} className={logsLoading ? 'animate-spin text-blue-400' : ''} />
+                  <RefreshCw size={14} className={logsLoading ? 'animate-spin text-blue-600' : ''} />
                 </button>
 
                 <button
                   onClick={() => setLogModalProject(null)}
-                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+                  className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition-all"
                 >
                   <X size={16} />
                 </button>
@@ -1954,11 +1952,11 @@ export default function AdminPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3 border-t border-slate-800 bg-slate-950 flex items-center justify-between text-xs text-slate-400">
+            <div className="px-6 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
               <span className="font-mono text-[11px]">Container Status: {logModalProject.status}</span>
               <button
                 onClick={() => setLogModalProject(null)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all"
+                className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all"
               >
                 Close Inspector
               </button>
@@ -1972,11 +1970,11 @@ export default function AdminPage() {
       {/* MODAL: ADD NEW USER */}
       {/* ============================================================ */}
       {showAddUserModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-black text-white">Create New User</h3>
-              <button onClick={() => setShowAddUserModal(false)} className="text-slate-400 hover:text-white">
+              <h3 className="text-base font-extrabold text-[#0F172A]">Create New User</h3>
+              <button onClick={() => setShowAddUserModal(false)} className="text-slate-400 hover:text-slate-700">
                 <X size={18} />
               </button>
             </div>
@@ -1989,7 +1987,7 @@ export default function AdminPage() {
                   required
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
                 />
               </div>
 
@@ -2000,7 +1998,7 @@ export default function AdminPage() {
                   required
                   value={newUser.username}
                   onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
                 />
               </div>
 
@@ -2012,7 +2010,7 @@ export default function AdminPage() {
                   minLength={6}
                   value={newUser.password}
                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
                 />
               </div>
 
@@ -2022,7 +2020,7 @@ export default function AdminPage() {
                   <select
                     value={newUser.role}
                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500"
                   >
                     <option value="USER">User</option>
                     <option value="ADMIN">Admin</option>
@@ -2037,23 +2035,23 @@ export default function AdminPage() {
                     required
                     value={newUser.serverLimit}
                     onChange={(e) => setNewUser({ ...newUser, serverLimit: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddUserModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading === 'create-user'}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 disabled:opacity-50"
                 >
                   {actionLoading === 'create-user' ? 'Creating...' : 'Create Account'}
                 </button>
@@ -2067,14 +2065,14 @@ export default function AdminPage() {
       {/* MODAL: USER TIER OVERRIDE */}
       {/* ============================================================ */}
       {tierModalUser && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-base font-black text-white">Override Subscription Tier</h3>
-                <p className="text-[11px] text-slate-400">{tierModalUser.email}</p>
+                <h3 className="text-base font-extrabold text-[#0F172A]">Override Subscription Tier</h3>
+                <p className="text-[11px] text-slate-500">{tierModalUser.email}</p>
               </div>
-              <button onClick={() => setTierModalUser(null)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setTierModalUser(null)} className="text-slate-400 hover:text-slate-700">
                 <X size={18} />
               </button>
             </div>
@@ -2085,7 +2083,7 @@ export default function AdminPage() {
                 <select
                   value={selectedUserTier}
                   onChange={(e) => setSelectedUserTier(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-500"
                 >
                   <option value="free">Free Tier</option>
                   <option value="basic">Basic (₹249/mo)</option>
@@ -2101,22 +2099,22 @@ export default function AdminPage() {
                   min={1}
                   value={tierDurationDays}
                   onChange={(e) => setTierDurationDays(parseInt(e.target.value) || 30)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setTierModalUser(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveUserTier}
                   disabled={actionLoading === 'save-tier'}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 disabled:opacity-50"
                 >
                   {actionLoading === 'save-tier' ? 'Updating...' : 'Save Tier'}
                 </button>
@@ -2130,14 +2128,14 @@ export default function AdminPage() {
       {/* MODAL: GRANT / ADJUST USER CREDITS */}
       {/* ============================================================ */}
       {creditModalUser && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-base font-black text-white">Adjust Wallet Credits</h3>
-                <p className="text-[11px] text-slate-400">{creditModalUser.email} (Current: {creditModalUser.wallet?.balance ?? 0} cr)</p>
+                <h3 className="text-base font-extrabold text-[#0F172A]">Adjust Wallet Credits</h3>
+                <p className="text-[11px] text-slate-500">{creditModalUser.email} (Current: {creditModalUser.wallet?.balance ?? 0} cr)</p>
               </div>
-              <button onClick={() => setCreditModalUser(null)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setCreditModalUser(null)} className="text-slate-400 hover:text-slate-700">
                 <X size={18} />
               </button>
             </div>
@@ -2151,7 +2149,7 @@ export default function AdminPage() {
                   type="number"
                   value={creditAmount}
                   onChange={(e) => setCreditAmount(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -2161,22 +2159,22 @@ export default function AdminPage() {
                   type="text"
                   value={creditReason}
                   onChange={(e) => setCreditReason(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setCreditModalUser(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleGrantCredits}
                   disabled={actionLoading === 'grant-credits'}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/20 disabled:opacity-50"
                 >
                   {actionLoading === 'grant-credits' ? 'Adjusting...' : 'Apply Credits'}
                 </button>
