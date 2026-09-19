@@ -189,6 +189,12 @@ interface TransactionItem {
 
 export default function AdminPage() {
   const router = useRouter();
+
+  // Authentication & Access Control States
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  // Tab & Loading States
   const [activeTab, setActiveTab] = useState<'overview' | 'fleet' | 'revenue' | 'users' | 'host'>('overview');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -260,8 +266,10 @@ export default function AdminPage() {
   const fetchAllData = async (isBackground = false) => {
     if (!isBackground) setRefreshing(true);
     try {
-      const [statsRes, healthRes, projectsRes, usersRes, metricsRes, revenueRes] = await Promise.all([
-        fetchApi('/admin/stats').catch(() => null),
+      // Must succeed; if non-admin or unauthorized, will throw 401/403
+      const statsRes = await fetchApi('/admin/stats');
+      
+      const [healthRes, projectsRes, usersRes, metricsRes, revenueRes] = await Promise.all([
         fetchApi('/admin/health').catch(() => null),
         fetchApi('/admin/projects').catch(() => ({ projects: [] })),
         fetchApi('/admin/users').catch(() => ({ users: [] })),
@@ -277,8 +285,11 @@ export default function AdminPage() {
       if (revenueRes) setRevenueData(revenueRes);
     } catch (err: any) {
       if (err.status === 403 || err.status === 401) {
-        router.push('/dashboard');
-      } else if (!isBackground) {
+        setIsAuthorized(false);
+        router.replace('/dashboard');
+        return;
+      }
+      if (!isBackground) {
         showToast('error', 'Failed to refresh admin data');
       }
     } finally {
@@ -286,6 +297,49 @@ export default function AdminPage() {
       setRefreshing(false);
     }
   };
+
+  // Strict Admin Authorization Verification
+  useEffect(() => {
+    let isCancelled = false;
+
+    const verifyAdminAccess = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        if (!token) {
+          router.replace('/login');
+          return;
+        }
+
+        const authData = await fetchApi('/auth/me');
+        if (isCancelled) return;
+
+        if (!authData?.user || authData.user.role !== 'ADMIN') {
+          // Reject normal users immediately
+          setIsAuthorized(false);
+          setIsCheckingAuth(false);
+          router.replace('/dashboard');
+          return;
+        }
+
+        // Verified ADMIN
+        setIsAuthorized(true);
+        setIsCheckingAuth(false);
+        fetchAllData();
+      } catch (err: any) {
+        if (!isCancelled) {
+          setIsAuthorized(false);
+          setIsCheckingAuth(false);
+          router.replace('/dashboard');
+        }
+      }
+    };
+
+    verifyAdminAccess();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   // Fetch transactions ledger
   const fetchTransactions = async (page = 1) => {
@@ -310,14 +364,9 @@ export default function AdminPage() {
     }
   };
 
-  // Initial load
-  useEffect(() => {
-    fetchAllData();
-  }, []);
-
   // Auto-refresh interval (10s)
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || !isAuthorized) return;
     const interval = setInterval(() => {
       fetchAllData(true);
       if (activeTab === 'revenue') {
@@ -325,14 +374,14 @@ export default function AdminPage() {
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [autoRefresh, activeTab, txPage]);
+  }, [autoRefresh, activeTab, txPage, isAuthorized]);
 
   // Load transactions when revenue tab opens
   useEffect(() => {
-    if (activeTab === 'revenue') {
+    if (activeTab === 'revenue' && isAuthorized) {
       fetchTransactions(1);
     }
-  }, [activeTab, txTypeFilter]);
+  }, [activeTab, txTypeFilter, isAuthorized]);
 
   // Open Log Viewer
   const handleOpenLogs = async (project: AdminProject) => {
@@ -599,6 +648,38 @@ export default function AdminPage() {
     return `${mins}m`;
   };
 
+  // 1. Initial Authentication Check Gate
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center text-slate-800">
+        <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+        <p className="text-xs font-bold tracking-wider uppercase text-slate-400">Verifying administrative access...</p>
+      </div>
+    );
+  }
+
+  // 2. Unauthorized Barrier (Block Normal Users)
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center text-slate-800 p-4">
+        <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 mb-4 shadow-sm">
+          <ShieldAlert size={32} />
+        </div>
+        <h1 className="text-xl font-extrabold text-[#0F172A] mb-2">Access Denied</h1>
+        <p className="text-sm text-slate-500 max-w-sm text-center mb-6">
+          This control center is strictly restricted to platform administrators. Redirecting to user console...
+        </p>
+        <Link
+          href="/dashboard"
+          className="px-5 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-500 transition-all shadow-md shadow-blue-500/20"
+        >
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
+  // 3. Admin Data Loading State
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center text-slate-800">
