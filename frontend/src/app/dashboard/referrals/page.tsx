@@ -77,7 +77,7 @@ export default function ReferralsPage() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const promoMessage = `🎁 Join me on CodeHost! Get ${stats?.bonusForReferee || 50} free credits to deploy Node.js, Python, or Docker apps with automated HTTPS and free subdomains:\n${stats?.referralUrl || 'https://code-host.online/signup'}`;
+  const promoMessage = `Join me on CodeHost! Get ${stats?.bonusForReferee || 50} free credits to deploy Node.js, Python, or Docker apps with automated HTTPS and free subdomains:\n${stats?.referralUrl || 'https://code-host.online/signup'}`;
 
   const handleCopyPromo = () => {
     navigator.clipboard.writeText(promoMessage);

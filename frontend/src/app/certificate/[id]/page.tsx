@@ -128,12 +128,12 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
   }&certUrl=${encodeURIComponent(data.certUrl)}&certId=${encodeURIComponent(data.certNumber)}`;
 
   const twitterShareText = encodeURIComponent(
-    `🎓 Proud to share that I have officially deployed and launched my project to the cloud with @CodeHost!\n\nVerify certificate: `
+    `Proud to share that I have officially deployed and launched my project to the cloud with @CodeHost!\n\nVerify certificate: `
   );
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${twitterShareText}&url=${encodeURIComponent(data.certUrl)}`;
 
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(
-    `🎓 Check out my official Cloud Deployment Certificate on CodeHost:\n${data.certUrl}`
+    `Check out my official Cloud Deployment Certificate on CodeHost:\n${data.certUrl}`
   )}`;
 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(

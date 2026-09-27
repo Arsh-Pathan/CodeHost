@@ -205,7 +205,7 @@ export default function ProfilePage() {
                   <h2 className="text-lg font-black text-slate-900">Student Cloud Deployment Certificate</h2>
                   {certStatus?.claimed && (
                     <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider rounded-full">
-                      ✓ Issued &amp; Verified
+                      Issued &amp; Verified
                     </span>
                   )}
                 </div>
@@ -271,7 +271,7 @@ export default function ProfilePage() {
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50 shrink-0"
                 >
                   <Award size={16} />
-                  <span>{claimingCert ? 'Generating...' : 'Claim My Certificate 🎓'}</span>
+                  <span>{claimingCert ? 'Generating...' : 'Claim My Certificate'}</span>
                 </button>
               </div>
             ) : (

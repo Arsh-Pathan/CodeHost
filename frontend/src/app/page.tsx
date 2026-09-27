@@ -143,7 +143,7 @@ app.listen(3000);`,
 <html lang="en">
 <head><title>Developer Portfolio</title></head>
 <body class="bg-slate-900 text-white font-sans flex items-center justify-center min-h-screen">
-  <h1 className="text-4xl font-black">Hi, I ship on CodeHost 🚀</h1>
+  <h1 className="text-4xl font-black">Hi, I ship on CodeHost</h1>
 </body>
 </html>`,
     slug: 'dev-portfolio',
