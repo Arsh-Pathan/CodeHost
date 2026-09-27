@@ -188,6 +188,7 @@ router.get('/verify/:idOrCode', async (req, res) => {
       valid: true,
       certificate: {
         id: cert.id,
+        userId: cert.userId,
         certNumber: cert.certNumber,
         recipientName: cert.recipientName,
         projectName: cert.projectName || 'Production Cloud Services',

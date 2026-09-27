@@ -47,6 +47,7 @@ interface CertificateData {
   recipientName: string;
   projectName?: string;
   title: string;
+  userId?: string;
   description: string;
   framework?: string;
   liveUrl?: string;
@@ -60,6 +61,7 @@ interface CertificateData {
 export default function CertificatePage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise);
   const [data, setData] = useState<CertificateData | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -68,11 +70,17 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
     async function loadCertificate() {
       try {
         setLoading(true);
-        const res = await fetchApi(`/certificates/verify/${encodeURIComponent(params.id)}`);
+        const [res, authRes] = await Promise.all([
+          fetchApi(`/certificates/verify/${encodeURIComponent(params.id)}`),
+          fetchApi('/auth/me').catch(() => null),
+        ]);
         if (res.valid && res.certificate) {
           setData(res.certificate);
         } else {
           setError(res.error || 'Certificate not found or invalid.');
+        }
+        if (authRes?.user) {
+          setCurrentUser(authRes.user);
         }
       } catch (err: any) {
         setError(err.message || 'Unable to verify certificate.');
@@ -132,6 +140,14 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
     day: 'numeric',
     year: 'numeric',
   });
+
+  const isOwner = Boolean(
+    currentUser && (
+      (data.userId && currentUser.id === data.userId) ||
+      (data.authorUsername && currentUser.username === data.authorUsername) ||
+      (data.authorReferralCode && currentUser.referralCode === data.authorReferralCode)
+    )
+  );
 
   const referralSignupUrl = data.authorReferralCode
     ? `https://code-host.online/signup?ref=${encodeURIComponent(data.authorReferralCode)}`
@@ -488,30 +504,32 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
           </div>
         </div>
 
-        {/* ─── VIRAL INVITATION CALLOUT (No Gradients) ─── */}
-        <div className="bg-[#2563EB] text-white rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 print:hidden">
-          <div className="space-y-2 text-center md:text-left">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 rounded-full text-xs font-bold text-white">
-              <Sparkles size={14} className="text-amber-300" />
-              <span>Free Student &amp; Developer Cloud Hosting</span>
+        {/* ─── VIRAL INVITATION CALLOUT (No Gradients) - Only shown to other visitors ─── */}
+        {!isOwner && (
+          <div className="bg-[#2563EB] text-white rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 print:hidden">
+            <div className="space-y-2 text-center md:text-left">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 rounded-full text-xs font-bold text-white">
+                <Sparkles size={14} className="text-amber-300" />
+                <span>Free Student &amp; Developer Cloud Hosting</span>
+              </div>
+              <h3 className="text-2xl font-black tracking-tight leading-tight">
+                Want your own verified Cloud Deployment Certificate?
+              </h3>
+              <p className="text-sm text-blue-100 max-w-xl">
+                Deploy your Node.js, Python, or Docker app in 60 seconds with instant HTTPS. Join with 
+                <strong> {data.recipientName}</strong>&apos;s invite and get <strong>+50 free credits</strong> immediately!
+              </p>
             </div>
-            <h3 className="text-2xl font-black tracking-tight leading-tight">
-              Want your own verified Cloud Deployment Certificate?
-            </h3>
-            <p className="text-sm text-blue-100 max-w-xl">
-              Deploy your Node.js, Python, or Docker app in 60 seconds with instant HTTPS. Join with 
-              <strong> {data.recipientName}</strong>&apos;s invite and get <strong>+50 free credits</strong> immediately!
-            </p>
-          </div>
 
-          <Link
-            href={referralSignupUrl}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white hover:bg-slate-100 text-[#2563EB] font-black text-sm rounded-xl shadow-sm transition transform active:scale-98 shrink-0 cursor-pointer"
-          >
-            <span>Deploy Free &amp; Claim 50 Credits</span>
-            <ArrowRight size={16} />
-          </Link>
-        </div>
+            <Link
+              href={referralSignupUrl}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white hover:bg-slate-100 text-[#2563EB] font-black text-sm rounded-xl shadow-sm transition transform active:scale-98 shrink-0 cursor-pointer"
+            >
+              <span>Deploy Free &amp; Claim 50 Credits</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="text-center text-xs text-slate-400 pt-2 print:hidden flex flex-col sm:flex-row items-center justify-between gap-2 max-w-[1020px] mx-auto">
