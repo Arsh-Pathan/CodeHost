@@ -132,19 +132,19 @@ model Referral {
 }
 
 model Certificate {
-  id            String   @id @default(uuid())
-  certNumber    String   @unique
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projectId     String
-  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectName   String
+  id            String    @id @default(uuid())
+  certNumber    String    @unique
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId     String?
+  project       Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectName   String?
   recipientName String
-  title         String   @default("Certified Cloud Deployer")
-  description   String   @default("Successfully deployed a production cloud application on CodeHost infrastructure.")
-  framework     String?  @default("Fullstack App")
-  liveUrl       String
-  issuedAt      DateTime @default(now())
+  title         String    @default("Certified Cloud Deployer")
+  description   String    @default("Demonstrated practical competence in cloud deployment, container orchestration, and web service management on CodeHost cloud infrastructure.")
+  framework     String?   @default("Cloud Virtualization & Production Services")
+  liveUrl       String?
+  issuedAt      DateTime  @default(now())
 
   @@index([userId])
   @@index([certNumber])

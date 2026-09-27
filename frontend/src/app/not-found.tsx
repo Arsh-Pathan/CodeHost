@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LogoWithText } from '@/components/Logo';
 import { 
   ArrowLeft, 
   Home, 
@@ -19,9 +20,7 @@ export default function NotFound() {
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-black tracking-tight text-slate-900">
-              Code<span className="text-[#2563EB]">Host</span>
-            </span>
+            <LogoWithText />
           </Link>
 
           <div className="flex items-center gap-3">

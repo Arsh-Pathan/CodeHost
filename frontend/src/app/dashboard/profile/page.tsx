@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { fetchApi } from '@/lib/api';
 import PanelLayout from '@/components/PanelLayout';
 import { 
@@ -12,7 +13,12 @@ import {
   Loader2, 
   Key, 
   Github, 
-  CheckCircle2
+  CheckCircle2,
+  Award,
+  ExternalLink,
+  Copy,
+  Check,
+  Sparkles
 } from 'lucide-react';
 import UserAvatar, { GoogleIcon } from '@/components/UserAvatar';
 
@@ -25,10 +31,25 @@ export default function ProfilePage() {
   const [avatarType, setAvatarType] = useState<AvatarType>('google');
   const [isSavedNotice, setIsSavedNotice] = useState(false);
 
+  const [certStatus, setCertStatus] = useState<{
+    claimed: boolean;
+    eligible: boolean;
+    certificate: any;
+    qualifyingProject: string | null;
+  } | null>(null);
+  const [claimingCert, setClaimingCert] = useState(false);
+  const [copiedCertLink, setCopiedCertLink] = useState(false);
+
   useEffect(() => {
-    fetchApi('/auth/me')
-      .then((res) => {
-        setUser(res.user);
+    Promise.all([
+      fetchApi('/auth/me'),
+      fetchApi('/certificates/my-status').catch(() => null),
+    ])
+      .then(([authRes, certRes]) => {
+        setUser(authRes.user);
+        if (certRes) {
+          setCertStatus(certRes);
+        }
         const stored = localStorage.getItem('codehost_avatar_type') as AvatarType;
         if (stored === 'google' || stored === 'github') {
           setAvatarType(stored);
@@ -42,6 +63,34 @@ export default function ProfilePage() {
       })
       .finally(() => setLoading(false));
   }, [router]);
+
+  const handleClaimCertificate = async () => {
+    setClaimingCert(true);
+    try {
+      const res = await fetchApi('/certificates/claim', { method: 'POST' });
+      if (res.success && res.certificate) {
+        setCertStatus({
+          claimed: true,
+          eligible: true,
+          certificate: res.certificate,
+          qualifyingProject: res.certificate.projectName,
+        });
+        window.open(res.certificate.certUrl || `/certificate/${res.certificate.id}`, '_blank');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to claim certificate');
+    } finally {
+      setClaimingCert(false);
+    }
+  };
+
+  const handleCopyCertLink = () => {
+    if (!certStatus?.certificate) return;
+    const url = certStatus.certificate.certUrl || `https://code-host.online/certificate/${certStatus.certificate.id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedCertLink(true);
+    setTimeout(() => setCopiedCertLink(false), 2000);
+  };
 
   const selectAvatarType = (type: AvatarType) => {
     setAvatarType(type);
@@ -142,6 +191,112 @@ export default function ProfilePage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Official Student Cloud Deployment Certificate Card */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+                <Award size={24} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-black text-slate-900">Student Cloud Deployment Certificate</h2>
+                  {certStatus?.claimed && (
+                    <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider rounded-full">
+                      ✓ Issued &amp; Verified
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Official tamper-proof credential for your student developer portfolio &amp; LinkedIn.
+                </p>
+              </div>
+            </div>
+
+            {certStatus?.claimed && certStatus?.certificate?.certNumber && (
+              <span className="font-mono text-xs font-black px-3 py-1 bg-slate-100 text-slate-800 rounded-xl border border-slate-200 self-start sm:self-auto">
+                {certStatus.certificate.certNumber}
+              </span>
+            )}
+          </div>
+
+          <div className="pt-6">
+            {certStatus?.claimed ? (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-700">
+                    Credential: <span className="text-[#2563EB]">Certified Cloud Deployer</span>
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Issued to <strong>{user?.name || user?.username}</strong> • Verified on CodeHost Cloud Infrastructure.
+                  </p>
+                  {certStatus.qualifyingProject && (
+                    <p className="text-[11px] text-slate-400">
+                      Qualifying project: <span className="font-mono text-slate-600">{certStatus.qualifyingProject}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={handleCopyCertLink}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition cursor-pointer"
+                  >
+                    {copiedCertLink ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                    <span>{copiedCertLink ? 'Copied Link' : 'Copy Link'}</span>
+                  </button>
+
+                  <Link
+                    href={`/certificate/${certStatus.certificate.id}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer active:scale-98"
+                  >
+                    <span>View Certificate</span>
+                    <ExternalLink size={14} />
+                  </Link>
+                </div>
+              </div>
+            ) : certStatus?.eligible ? (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-emerald-50/60 p-5 rounded-2xl border border-emerald-200">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
+                    <Sparkles size={14} className="text-emerald-600" />
+                    <span>Certificate Unlocked &amp; Ready to Claim!</span>
+                  </div>
+                  <p className="text-xs text-emerald-800/80">
+                    You deployed on CodeHost! Claim your official verified certificate with a scannable QR code and add it to your LinkedIn profile.
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleClaimCertificate}
+                  disabled={claimingCert}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  <Award size={16} />
+                  <span>{claimingCert ? 'Generating...' : 'Claim My Certificate 🎓'}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-700">How to earn your certificate</p>
+                  <p className="text-xs text-slate-500">
+                    Deploy any project on CodeHost (Node.js, Python, or Docker) to unlock your verified credential with an immutable serial number and QR verification.
+                  </p>
+                </div>
+
+                <Link
+                  href="/dashboard/new"
+                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shrink-0"
+                >
+                  <span>Deploy a Project →</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 

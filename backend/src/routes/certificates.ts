@@ -9,74 +9,135 @@ import { sendCertificateAwardEmail } from '../lib/email.js';
 const router = Router();
 
 /**
+ * GET /certificates/my-status
+ * Check account certificate status & deployment eligibility
+ */
+router.get('/my-status', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+
+    // Check if user already has an issued certificate
+    const cert = await prisma.certificate.findUnique({
+      where: { userId },
+    });
+
+    if (cert) {
+      return res.json({
+        claimed: true,
+        eligible: true,
+        certificate: {
+          ...cert,
+          certUrl: `${env.APP_URL}/certificate/${cert.id}`,
+        },
+      });
+    }
+
+    // Check if user has deployed at least 1 project on CodeHost
+    const qualifyingProject = await prisma.project.findFirst({
+      where: {
+        userId,
+        OR: [
+          { status: 'running' },
+          { deployments: { some: { status: 'running' } } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, name: true, status: true },
+    });
+
+    res.json({
+      claimed: false,
+      eligible: Boolean(qualifyingProject),
+      qualifyingProject: qualifyingProject?.name || null,
+      certificate: null,
+    });
+  } catch (error) {
+    logger.error({ error }, 'Failed to check certificate status');
+    res.status(500).json({ error: 'Failed to check certificate status' });
+  }
+});
+
+/**
  * POST /certificates/claim
- * Claim official Certified Cloud Deployer certificate for a live project
+ * Claim official Certified Cloud Deployer certificate for student account
  */
 router.post('/claim', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { projectId } = req.body;
-    if (!projectId) {
-      return res.status(400).json({ error: 'Project ID is required' });
-    }
-
     const userId = req.user!.id;
-    const project = await prisma.project.findFirst({
-      where: { id: projectId, userId },
-      include: { user: true },
+
+    // Return existing certificate if already claimed (one certificate per account)
+    let cert = await prisma.certificate.findUnique({
+      where: { userId },
     });
 
-    if (!project) {
-      return res.status(404).json({ error: 'Project not found or unauthorized' });
-    }
-
-    // Project must have been deployed or running
-    const hasSuccessfulDeployment = await prisma.deployment.findFirst({
-      where: { projectId, status: 'running' },
-    });
-
-    if (project.status !== 'running' && !hasSuccessfulDeployment) {
-      return res.status(400).json({
-        error: 'Project must be successfully deployed and running to claim a certificate',
-      });
-    }
-
-    // Idempotency: return existing certificate if already claimed
-    let cert = await prisma.certificate.findFirst({
-      where: { projectId, userId },
-    });
-
-    if (!cert) {
-      const randomSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
-      const certNumber = `CH-CERT-${randomSuffix}`;
-      const recipientName = project.user.name || project.user.username;
-      const liveUrl = `https://${project.name.toLowerCase()}.code-host.online`;
-
-      cert = await prisma.certificate.create({
-        data: {
-          certNumber,
-          userId,
-          projectId,
-          projectName: project.name,
-          recipientName,
-          title: 'Certified Cloud Deployer',
-          description: 'Successfully deployed a production cloud application on CodeHost infrastructure with automated HTTPS and isolated container virtualization.',
-          framework: project.startCommand?.includes('python') || project.buildCommand?.includes('pip') ? 'Python Cloud Microservice' : 'Next.js / Node.js Production App',
-          liveUrl,
+    if (cert) {
+      return res.json({
+        success: true,
+        certificate: {
+          ...cert,
+          certUrl: `${env.APP_URL}/certificate/${cert.id}`,
         },
       });
-
-      // Send award email asynchronously
-      const certUrl = `${env.APP_URL}/certificate/${cert.id}`;
-      sendCertificateAwardEmail(project.user.email, {
-        recipientName,
-        projectName: project.name,
-        liveUrl,
-        certNumber,
-        certUrl,
-      }).catch((err) => logger.warn({ err }, 'Failed to send certificate award email'));
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, username: true, email: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if user has deployed at least 1 project on CodeHost
+    const qualifyingProject = await prisma.project.findFirst({
+      where: {
+        userId,
+        OR: [
+          { status: 'running' },
+          { deployments: { some: { status: 'running' } } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!qualifyingProject) {
+      return res.status(400).json({
+        error: 'You must successfully deploy at least one project on CodeHost to claim your certificate.',
+      });
+    }
+
+    const randomSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
+    const certNumber = `CH-CERT-${randomSuffix}`;
+    const recipientName = user.name || user.username;
+    const liveUrl = `https://${qualifyingProject.name.toLowerCase()}.code-host.online`;
+
+    cert = await prisma.certificate.create({
+      data: {
+        certNumber,
+        userId,
+        projectId: qualifyingProject.id,
+        projectName: qualifyingProject.name,
+        recipientName,
+        title: 'Certified Cloud Deployer',
+        description: 'Demonstrated practical competence in cloud deployment, container orchestration, and web service management on CodeHost cloud infrastructure.',
+        framework: qualifyingProject.startCommand?.includes('python') || qualifyingProject.buildCommand?.includes('pip')
+          ? 'Python Cloud Microservice'
+          : 'Fullstack Web Application & Containers',
+        liveUrl,
+      },
+    });
+
+    // Send award email asynchronously
     const certUrl = `${env.APP_URL}/certificate/${cert.id}`;
+    sendCertificateAwardEmail(user.email, {
+      recipientName,
+      projectName: qualifyingProject.name,
+      liveUrl,
+      certNumber,
+      certUrl,
+    }).catch((err) => logger.warn({ err }, 'Failed to send certificate award email'));
+
     res.json({
       success: true,
       certificate: {
@@ -87,36 +148,6 @@ router.post('/claim', requireAuth, async (req: AuthRequest, res) => {
   } catch (error) {
     logger.error({ error }, 'Failed to claim certificate');
     res.status(500).json({ error: 'Internal server error claiming certificate' });
-  }
-});
-
-/**
- * GET /certificates/project/:projectId
- * Get certificate status for a project
- */
-router.get('/project/:projectId', requireAuth, async (req: AuthRequest, res) => {
-  try {
-    const { projectId } = req.params;
-    const userId = req.user!.id;
-
-    const cert = await prisma.certificate.findFirst({
-      where: { projectId, userId },
-    });
-
-    if (!cert) {
-      return res.json({ claimed: false });
-    }
-
-    res.json({
-      claimed: true,
-      certificate: {
-        ...cert,
-        certUrl: `${env.APP_URL}/certificate/${cert.id}`,
-      },
-    });
-  } catch (error) {
-    logger.error({ error }, 'Failed to get project certificate');
-    res.status(500).json({ error: 'Failed to retrieve certificate' });
   }
 });
 
@@ -159,11 +190,11 @@ router.get('/verify/:idOrCode', async (req, res) => {
         id: cert.id,
         certNumber: cert.certNumber,
         recipientName: cert.recipientName,
-        projectName: cert.projectName,
+        projectName: cert.projectName || 'Production Cloud Services',
         title: cert.title,
         description: cert.description,
         framework: cert.framework,
-        liveUrl: cert.liveUrl,
+        liveUrl: cert.liveUrl || 'https://code-host.online',
         issuedAt: cert.issuedAt,
         authorUsername: cert.user.username,
         authorAvatar: cert.user.avatarUrl,
