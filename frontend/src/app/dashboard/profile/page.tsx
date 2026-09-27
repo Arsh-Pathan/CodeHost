@@ -35,7 +35,7 @@ export default function ProfilePage() {
     claimed: boolean;
     eligible: boolean;
     certificate: any;
-    qualifyingProject: string | null;
+    qualifyingProject?: string | null;
   } | null>(null);
   const [claimingCert, setClaimingCert] = useState(false);
   const [copiedCertLink, setCopiedCertLink] = useState(false);
@@ -73,7 +73,6 @@ export default function ProfilePage() {
           claimed: true,
           eligible: true,
           certificate: res.certificate,
-          qualifyingProject: res.certificate.projectName,
         });
         window.open(res.certificate.certUrl || `/certificate/${res.certificate.id}`, '_blank');
       }
@@ -233,11 +232,6 @@ export default function ProfilePage() {
                   <p className="text-xs text-slate-500">
                     Issued to <strong>{user?.name || user?.username}</strong> • Verified on CodeHost Cloud Infrastructure.
                   </p>
-                  {certStatus.qualifyingProject && (
-                    <p className="text-[11px] text-slate-400">
-                      Qualifying project: <span className="font-mono text-slate-600">{certStatus.qualifyingProject}</span>
-                    </p>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
