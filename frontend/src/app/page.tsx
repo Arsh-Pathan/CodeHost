@@ -39,7 +39,10 @@ import {
   Flame,
   Rocket,
   Radio,
-  FileCode
+  FileCode,
+  Menu,
+  X,
+  Gift
 } from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -189,6 +192,7 @@ ALLOWED_HOSTS = ['.code-host.online', 'localhost']`,
 ];
 
 export default function Home() {
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [serverCount, setServerCount] = React.useState(0);
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [openFaq, setOpenFaq] = React.useState<number | null>(0);

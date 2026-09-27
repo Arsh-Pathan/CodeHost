@@ -29,7 +29,8 @@ import {
   GitBranch,
   RotateCcw,
   X,
-  Check
+  Check,
+  Award
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
@@ -119,6 +120,10 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
   const [checkingName, setCheckingName] = useState(false);
 
+  // Certificate state
+  const [certificate, setCertificate] = useState<{ id: string; certNumber: string; certUrl: string } | null>(null);
+  const [claimingCert, setClaimingCert] = useState(false);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (newName.length >= 3 && newName !== project?.name) {
@@ -136,17 +141,21 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
 
   const fetchInitialData = async () => {
     try {
-      const [meRes, projRes, depRes, tierRes] = await Promise.all([
+      const [meRes, projRes, depRes, tierRes, certRes] = await Promise.all([
         fetchApi('/auth/me'),
         fetchApi(`/projects/${params.id}`),
         fetchApi(`/deployments/${params.id}`),
         fetchApi('/billing/tiers'),
+        fetchApi(`/certificates/project/${params.id}`).catch(() => ({ claimed: false })),
       ]);
 
       setUser(meRes.user);
       setProject(projRes.project);
       setDeployments(depRes.deployments);
       setTiers(tierRes.tiers);
+      if (certRes?.claimed && certRes?.certificate) {
+        setCertificate(certRes.certificate);
+      }
       if (!selectedTier) setSelectedTier(projRes.project.tier || 'free');
 
       setSettings({
@@ -242,6 +251,28 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       setError(err.message);
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleClaimCertificate = async () => {
+    if (certificate) {
+      window.open(`/certificate/${certificate.id}`, '_blank');
+      return;
+    }
+    setClaimingCert(true);
+    try {
+      const res = await fetchApi('/certificates/claim', {
+        method: 'POST',
+        body: JSON.stringify({ projectId: params.id }),
+      });
+      if (res.success && res.certificate) {
+        setCertificate(res.certificate);
+        window.open(`/certificate/${res.certificate.id}`, '_blank');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to claim certificate');
+    } finally {
+      setClaimingCert(false);
     }
   };
 
@@ -420,6 +451,17 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                 {actionLoading === 'stop' ? <Loader2 size={16} className="animate-spin mr-2" /> : <Square size={16} className="mr-2 text-red-500" />}
                 Stop
              </button>
+             {project.status === 'running' && (
+                <button
+                   onClick={handleClaimCertificate}
+                   disabled={claimingCert}
+                   className="flex items-center px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl text-sm font-bold text-amber-900 transition-all hover:-translate-y-0.5 shadow-xs cursor-pointer disabled:opacity-50"
+                   title="Official verified student & developer cloud certificate"
+                >
+                   <Award size={16} className="mr-2 text-amber-600" />
+                   {claimingCert ? 'Generating...' : certificate ? 'View Certificate 🎓' : 'Claim Certificate 🎓'}
+                </button>
+             )}
              <a
                 href={`https://${project.name.toLowerCase()}.code-host.online`}
                 target="_blank"

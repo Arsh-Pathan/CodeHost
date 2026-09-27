@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import { prisma } from '@codehost/database';
 import { logger } from '@codehost/logger';
+import { env } from '@codehost/config';
+import { sendReferralEarnedEmail } from '../lib/email.js';
 
 export const REFERRER_REWARD_CREDITS = 100;
 export const REFEREE_REWARD_CREDITS = 50;
@@ -153,6 +155,22 @@ export async function processReferralReward(
       { referrerId: referrer.id, refereeId, code },
       'Successfully processed referral rewards'
     );
+
+    // Send email notification to referrer
+    if (referrer.email) {
+      prisma.wallet.findUnique({ where: { userId: referrer.id } }).then((w) => {
+        sendReferralEarnedEmail(referrer.email, {
+          referrerUsername: referrer.username,
+          refereeUsername: referee?.username || 'new user',
+          creditsEarned: REFERRER_REWARD_CREDITS,
+          totalBalance: w?.balance ?? REFERRER_REWARD_CREDITS,
+          referralUrl: `${env.APP_URL}/signup?ref=${referrer.referralCode || code}`,
+        }).catch((err) => {
+          logger.error({ err }, 'Failed to send referral reward email');
+        });
+      }).catch(() => {});
+    }
+
     return { success: true };
   } catch (error) {
     logger.error({ error, refereeId, rawReferralCode }, 'Failed to process referral reward');

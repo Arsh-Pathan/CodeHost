@@ -1,18 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Logo, LogoWithText } from './Logo';
+import { Logo } from './Logo';
 import { 
   LayoutDashboard, 
-  Activity, 
   Settings, 
   LogOut, 
   ChevronRight,
   Menu,
   X,
-  Plus,
   Compass,
   CreditCard,
   LifeBuoy,
@@ -38,7 +36,6 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -83,6 +80,7 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
           <button
             onClick={() => setIsMobileOpen(false)}
             className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+            aria-label="Close menu"
           >
             <X size={18} />
           </button>
@@ -128,13 +126,13 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
               </div>
             </div>
             <div className="flex flex-col space-y-1">
-               <button className="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-[#0F172A] transition-all text-xs font-bold">
+               <button className="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-[#0F172A] transition-all text-xs font-bold cursor-pointer">
                   <LifeBuoy size={16} className="shrink-0" />
                   <span className={`${!isSidebarOpen && 'md:hidden'}`}>Support</span>
                </button>
                <button 
                 onClick={handleLogout}
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-[#E53935] hover:bg-red-50 transition-all text-xs font-bold"
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-[#E53935] hover:bg-red-50 transition-all text-xs font-bold cursor-pointer"
               >
                 <LogOut size={16} className="shrink-0" />
                 <span className={`${!isSidebarOpen && 'md:hidden'}`}>Logout</span>
@@ -152,14 +150,14 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 w-full min-w-0 transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'md:ml-64' : 'md:ml-20'}`}>
+      <main className={`flex-1 w-full min-w-0 transition-all duration-300 ease-in-out flex flex-col pb-20 md:pb-0 ${isSidebarOpen ? 'md:ml-64' : 'md:ml-20'}`}>
         {/* Header / Top bar */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-20 h-14 sm:h-16 flex items-center justify-between px-4 sm:px-8">
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
              {/* Mobile Hamburger */}
              <button 
                 onClick={() => setIsMobileOpen(true)} 
-                className="md:hidden p-2 -ml-2 text-slate-500 hover:text-[#0F172A] hover:bg-slate-100 rounded-lg active:scale-95 transition-all"
+                className="md:hidden p-2 -ml-2 text-slate-500 hover:text-[#0F172A] hover:bg-slate-100 rounded-lg active:scale-95 transition-all cursor-pointer"
                 aria-label="Open mobile menu"
               >
                 <Menu size={20} />
@@ -168,22 +166,23 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
              {/* Desktop Collapse Toggle */}
              <button 
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-                className="hidden md:flex p-2 -ml-2 text-slate-400 hover:text-[#0F172A] transition-all hover:bg-slate-100 rounded-lg"
+                className="hidden md:flex p-2 -ml-2 text-slate-400 hover:text-[#0F172A] transition-all hover:bg-slate-100 rounded-lg cursor-pointer"
+                aria-label="Toggle sidebar"
               >
                 <Menu size={20} />
               </button>
-              <div className="h-5 w-px bg-slate-200 mx-1 sm:mx-2" />
+              <div className="h-5 w-px bg-slate-200 mx-1 sm:mx-2 shrink-0" />
               <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-bold truncate">
-                 <Link href="/dashboard" className="text-slate-400 hover:text-[#2563EB] transition">Console</Link>
+                 <Link href="/dashboard" className="text-slate-400 hover:text-[#2563EB] transition shrink-0">Console</Link>
                  <ChevronRight size={12} className="text-slate-300 shrink-0" />
-                 <span className="text-[#0F172A] uppercase tracking-widest truncate">{projectName || 'General'}</span>
+                 <span className="text-[#0F172A] uppercase tracking-widest truncate max-w-[120px] sm:max-w-none">{projectName || 'General'}</span>
               </div>
           </div>
           
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
             {user?.role === 'ADMIN' && (
               <Link href="/admin">
-                <button className="text-[10px] font-black uppercase tracking-widest text-[#2563EB] bg-blue-50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl hover:bg-blue-100 transition border border-blue-200 shadow-xs">
+                <button className="text-[10px] font-black uppercase tracking-widest text-[#2563EB] bg-blue-50 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl hover:bg-blue-100 transition border border-blue-200 shadow-xs cursor-pointer">
                   Admin
                 </button>
               </Link>
@@ -198,10 +197,42 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
           </div>
         </header>
 
-        <div className="p-4 sm:p-6 md:p-10 max-w-[1400px] w-full mx-auto flex-1">
+        <div className="p-3 sm:p-6 md:p-10 max-w-[1400px] w-full mx-auto flex-1">
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation Bar (Native App Feel) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 px-3 py-1.5 flex items-center justify-around shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-[max(0.6rem,env(safe-area-inset-bottom))]">
+        {[
+          { name: 'Console', icon: LayoutDashboard, href: '/dashboard' },
+          { name: 'Billing', icon: CreditCard, href: '/dashboard/billing' },
+          { name: 'Refer & Earn', icon: Gift, href: '/dashboard/referrals', badge: '+100' },
+          { name: 'Profile', icon: Settings, href: '/dashboard/profile' },
+        ].map((tab) => {
+          const isActive = pathname === tab.href;
+          const Icon = tab.icon;
+          return (
+            <Link
+              key={tab.name}
+              href={tab.href}
+              className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all relative ${
+                isActive ? 'text-[#2563EB] font-bold' : 'text-slate-400 hover:text-slate-700'
+              }`}
+            >
+              <div className="relative">
+                <Icon size={19} className={isActive ? 'text-[#2563EB]' : 'text-slate-400'} />
+                {tab.badge && (
+                  <span className="absolute -top-1 -right-3.5 text-[8px] font-black bg-blue-600 text-white px-1 rounded-full leading-tight">
+                    {tab.badge}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[70px]">{tab.name}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

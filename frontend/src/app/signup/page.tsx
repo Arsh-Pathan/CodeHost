@@ -19,6 +19,8 @@ function SignupForm() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [referralCode, setReferralCode] = useState(initialRef);
   const [showReferralInput, setShowReferralInput] = useState(Boolean(initialRef));
+  const [acceptedTos, setAcceptedTos] = useState(true);
+  const [marketingEmails, setMarketingEmails] = useState(true);
   const [referrerDetails, setReferrerDetails] = useState<{
     valid: boolean;
     referrerName?: string;
@@ -64,6 +66,12 @@ function SignupForm() {
     setError('');
 
     // Pre-validation
+    if (!acceptedTos) {
+      setError('Please agree to the Terms of Service and Privacy Policy to continue.');
+      setLoading(false);
+      return;
+    }
+
     const usernameRegex = /^[a-zA-Z0-9_-]+$/;
     if (!usernameRegex.test(username)) {
       setError('Username can only contain letters, numbers, underscores and hyphens.');
@@ -81,6 +89,8 @@ function SignupForm() {
           name, 
           phoneNumber,
           referralCode: referralCode.trim() || undefined,
+          acceptedTos,
+          marketingEmails,
         }),
       });
 
@@ -250,6 +260,42 @@ function SignupForm() {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Terms of Service & Privacy Policy Consent */}
+          <div className="space-y-3 pt-2">
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                required
+                checked={acceptedTos}
+                onChange={(e) => setAcceptedTos(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#2563EB] focus:ring-blue-500 cursor-pointer"
+              />
+              <span className="text-xs text-slate-600 leading-snug">
+                I agree to CodeHost's{' '}
+                <Link href="/terms" target="_blank" className="font-semibold text-[#2563EB] hover:underline">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" target="_blank" className="font-semibold text-[#2563EB] hover:underline">
+                  Privacy Policy
+                </Link>
+                . <span className="text-red-500">*</span>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={marketingEmails}
+                onChange={(e) => setMarketingEmails(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#2563EB] focus:ring-blue-500 cursor-pointer"
+              />
+              <span className="text-xs text-slate-500 leading-snug">
+                Send me deployment notifications, security updates, and free credit giveaways. (Unsubscribe anytime).
+              </span>
+            </label>
           </div>
 
           <div className="pt-2">

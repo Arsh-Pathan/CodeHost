@@ -26,8 +26,11 @@ model User {
   verificationToken       String?   @unique
   verificationTokenExpiry DateTime?
   referralCode            String?   @unique
+  acceptedTos             Boolean   @default(true)
+  marketingEmails         Boolean   @default(true)
   referralsMade           Referral[] @relation("ReferrerRelation")
   referralReceived        Referral?  @relation("RefereeRelation")
+  certificates            Certificate[]
   projects                Project[]
   sessions                Session[]
   wallet                  Wallet?
@@ -67,6 +70,7 @@ model Project {
   repoSubdir         String?
   customDomain       String?
   deployments        Deployment[]
+  certificates       Certificate[]
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
@@ -125,4 +129,23 @@ model Referral {
   createdAt      DateTime  @default(now())
 
   @@index([referrerId])
+}
+
+model Certificate {
+  id            String   @id @default(uuid())
+  certNumber    String   @unique
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectName   String
+  recipientName String
+  title         String   @default("Certified Cloud Deployer")
+  description   String   @default("Successfully deployed a production cloud application on CodeHost infrastructure.")
+  framework     String?  @default("Fullstack App")
+  liveUrl       String
+  issuedAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([certNumber])
 }

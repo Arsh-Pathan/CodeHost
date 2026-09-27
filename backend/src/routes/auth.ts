@@ -7,7 +7,7 @@ import { prisma } from '@codehost/database';
 import { env } from '@codehost/config';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { logger } from '@codehost/logger';
-import { sendVerificationEmail } from '../lib/email.js';
+import { sendVerificationEmail, sendWelcomeEmail } from '../lib/email.js';
 import { generateUniqueReferralCode, processReferralReward } from '../services/referral.js';
 
 const router = Router();
@@ -37,10 +37,14 @@ export const generateTokens = (user: { id: string; email: string; role: string; 
 
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { email, password, username, name, phoneNumber, referralCode } = req.body;
+    const { email, password, username, name, phoneNumber, referralCode, acceptedTos, marketingEmails } = req.body;
 
     if (!email || !password || !username) {
       return res.status(400).json({ error: 'Email, password and username are required' });
+    }
+
+    if (acceptedTos === false || acceptedTos === 'false') {
+      return res.status(400).json({ error: 'You must agree to the Terms of Service and Privacy Policy.' });
     }
 
     // Validate email format
@@ -88,6 +92,8 @@ router.post('/register', authLimiter, async (req, res) => {
         role: isAdmin ? 'ADMIN' : 'USER',
         serverLimit: isAdmin ? 100 : 1,
         referralCode: myReferralCode,
+        acceptedTos: acceptedTos !== false && acceptedTos !== 'false',
+        marketingEmails: marketingEmails === true || marketingEmails === 'true' || marketingEmails === undefined,
       },
     });
 
@@ -241,6 +247,11 @@ router.get('/verify-email', async (req, res) => {
         verificationToken: null,
         verificationTokenExpiry: null,
       },
+    });
+
+    // Send welcome email upon successful verification
+    sendWelcomeEmail(user.email, user.name || user.username).catch((err) => {
+      logger.error({ err }, 'Failed to send welcome email');
     });
 
     res.json({ message: 'Email verified successfully' });

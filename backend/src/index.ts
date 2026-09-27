@@ -32,6 +32,7 @@ import adminRouter from './routes/admin.js';
 import filesRouter from './routes/files.js';
 import billingRouter from './routes/billing.js';
 import referralsRouter from './routes/referrals.js';
+import certificatesRouter from './routes/certificates.js';
 import { RunnerService } from './services/runner.js';
 import { RESOURCE_TIERS } from '@codehost/config';
 app.use('/auth', authRouter);
@@ -43,6 +44,7 @@ app.use('/files', filesRouter);
 app.use('/billing', billingRouter);
 app.use('/api', billingRouter);
 app.use('/referrals', referralsRouter);
+app.use('/certificates', certificatesRouter);
 
 // Public Stats (for landing page)
 app.get('/stats/public', async (req, res) => {
