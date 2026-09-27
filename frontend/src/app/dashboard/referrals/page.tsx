@@ -44,7 +44,6 @@ export default function ReferralsPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedPromo, setCopiedPromo] = useState(false);
-  const [previewPlatform, setPreviewPlatform] = useState<'discord' | 'twitter' | 'whatsapp'>('discord');
 
   useEffect(() => {
     async function loadData() {
@@ -245,129 +244,6 @@ export default function ReferralsPage() {
               </div>
             </div>
 
-            {/* Live Social Embed Preview */}
-            <div className="mt-8 pt-6 border-t border-slate-100">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                    <Sparkles size={15} className="text-blue-600" />
-                    <span>Live Social Embed Preview</span>
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    See how your invite card renders when pasted in Discord, Twitter, or WhatsApp.
-                  </p>
-                </div>
-
-                {/* Platform Switcher */}
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start sm:self-auto border border-slate-200">
-                  <button
-                    onClick={() => setPreviewPlatform('discord')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      previewPlatform === 'discord'
-                        ? 'bg-white text-indigo-600 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Discord
-                  </button>
-                  <button
-                    onClick={() => setPreviewPlatform('twitter')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      previewPlatform === 'twitter'
-                        ? 'bg-white text-slate-900 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Twitter / X
-                  </button>
-                  <button
-                    onClick={() => setPreviewPlatform('whatsapp')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      previewPlatform === 'whatsapp'
-                        ? 'bg-white text-emerald-600 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    WhatsApp
-                  </button>
-                </div>
-              </div>
-
-              {/* The Preview Card */}
-              {previewPlatform === 'discord' && (
-                <div className="bg-[#2f3136] text-white p-4 rounded-xl border border-slate-700 max-w-lg font-sans">
-                  <div className="flex items-center gap-2 mb-2 text-xs text-slate-400">
-                    <span className="font-semibold text-slate-300">CodeHost Invite</span>
-                    <span className="px-1 py-0.5 bg-[#5865F2] text-[10px] font-black rounded text-white uppercase">APP</span>
-                  </div>
-                  <div className="border-l-4 border-blue-500 bg-[#2b2d31] p-3.5 rounded-r-lg space-y-2">
-                    <p className="text-xs font-bold text-slate-400">CodeHost Cloud</p>
-                    <a
-                      href={stats?.referralUrl || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-bold text-[#00a8fc] hover:underline block leading-snug"
-                    >
-                      Join CodeHost &amp; Claim +50 Free Cloud Credits
-                    </a>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      🎁 @{user?.username || 'developer'} invited you to CodeHost! Deploy Node.js, Python, or Docker applications in seconds with automated HTTPS and persistent subdomains.
-                    </p>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/og-image.png"
-                      alt="CodeHost OpenGraph Embed"
-                      className="rounded-lg w-full max-h-52 object-cover border border-white/10 mt-2"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {previewPlatform === 'twitter' && (
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden max-w-lg shadow-xs">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/og-image.png"
-                    alt="CodeHost Twitter Card"
-                    className="w-full max-h-56 object-cover"
-                  />
-                  <div className="p-4 space-y-1 bg-slate-50 border-t border-slate-100">
-                    <p className="text-[11px] text-slate-400 uppercase font-semibold">code-host.online</p>
-                    <p className="text-sm font-bold text-slate-900 leading-tight">
-                      CodeHost - Deploy Fullstack Web Apps in Seconds
-                    </p>
-                    <p className="text-xs text-slate-500 line-clamp-2">
-                      🎁 Claim +50 bonus credits on registration. Deploy Node.js, Python, Docker containers with automatic SSL and zero DevOps.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {previewPlatform === 'whatsapp' && (
-                <div className="bg-[#efeae2] p-4 rounded-2xl max-w-md">
-                  <div className="bg-[#d9fdd3] p-3 rounded-2xl rounded-tr-none shadow-xs text-slate-800 text-xs space-y-2 border border-emerald-200">
-                    <div className="bg-white/80 rounded-xl overflow-hidden border border-emerald-100">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="/og-image.png"
-                        alt="WhatsApp Preview"
-                        className="w-full h-32 object-cover"
-                      />
-                      <div className="p-2.5 space-y-0.5">
-                        <p className="font-bold text-xs text-slate-900">CodeHost Cloud Hosting</p>
-                        <p className="text-[11px] text-slate-500 line-clamp-2">
-                          Join with @{user?.username || 'developer'}&apos;s link and claim +50 free compute credits!
-                        </p>
-                        <p className="text-[10px] text-blue-600 font-mono">code-host.online</p>
-                      </div>
-                    </div>
-                    <p className="pt-1 text-slate-700">
-                      {stats?.referralUrl || 'https://code-host.online/signup'}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
