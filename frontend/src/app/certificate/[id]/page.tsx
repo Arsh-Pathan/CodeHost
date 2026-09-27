@@ -13,8 +13,13 @@ import {
   Sparkles,
   Linkedin,
   Twitter,
-  Server,
   Lock,
+  Rocket,
+  Code2,
+  Terminal,
+  Braces,
+  GitBranch,
+  Database,
   Cpu
 } from 'lucide-react';
 import { Logo, LogoWithText } from '@/components/Logo';
@@ -34,69 +39,6 @@ interface CertificateData {
   authorAvatar?: string;
   authorReferralCode?: string;
   certUrl: string;
-}
-
-function OfficialSealEmblem() {
-  return (
-    <div className="flex flex-col items-center justify-center shrink-0">
-      <svg
-        viewBox="0 0 120 120"
-        className="w-22 h-22 sm:w-24 sm:h-24 select-none"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Outer security dashed ring */}
-        <circle cx="60" cy="60" r="56" stroke="#0F172A" strokeWidth="1.5" strokeDasharray="3 3" />
-        {/* Outer solid ring */}
-        <circle cx="60" cy="60" r="51" stroke="#2563EB" strokeWidth="2" />
-        {/* Inner hairline */}
-        <circle cx="60" cy="60" r="46" stroke="#CBD5E1" strokeWidth="1" />
-        {/* Inner solid medallion */}
-        <circle cx="60" cy="60" r="32" fill="#F8FAFC" stroke="#0F172A" strokeWidth="1.5" />
-
-        {/* CodeHost 3-Layer Emblem in center */}
-        <g transform="translate(42, 42) scale(0.035)">
-          <polygon points="512,520 820,730 512,920 204,730" stroke="#2563EB" strokeWidth="60" fill="#ffffff" />
-          <polygon points="512,320 820,530 512,720 204,530" stroke="#2563EB" strokeWidth="60" fill="#ffffff" />
-          <polygon points="512,120 820,320 512,520 204,320" stroke="#2563EB" strokeWidth="60" fill="#ffffff" />
-        </g>
-
-        {/* Circular text */}
-        <text
-          x="60"
-          y="23"
-          textAnchor="middle"
-          fill="#0F172A"
-          fontSize="6.5"
-          fontWeight="900"
-          letterSpacing="1.5"
-          fontFamily="system-ui, -apple-system, sans-serif"
-        >
-          CODEHOST CLOUD
-        </text>
-
-        <text
-          x="60"
-          y="102"
-          textAnchor="middle"
-          fill="#2563EB"
-          fontSize="6.5"
-          fontWeight="900"
-          letterSpacing="1.2"
-          fontFamily="system-ui, -apple-system, sans-serif"
-        >
-          VERIFIED CREDENTIAL
-        </text>
-
-        {/* Left & right stars */}
-        <text x="18" y="63" fill="#D97706" fontSize="8" fontWeight="bold">★</text>
-        <text x="96" y="63" fill="#D97706" fontSize="8" fontWeight="bold">★</text>
-      </svg>
-      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mt-1">
-        Official Seal
-      </span>
-    </div>
-  );
 }
 
 export default function CertificatePage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
@@ -186,7 +128,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
   }&certUrl=${encodeURIComponent(data.certUrl)}&certId=${encodeURIComponent(data.certNumber)}`;
 
   const twitterShareText = encodeURIComponent(
-    `🎓 Proud to share that I have officially earned my Certified Cloud Deployer credential from @CodeHost for shipping production services to the cloud!\n\nVerify certificate: `
+    `🎓 Proud to share that I have officially deployed and launched my project to the cloud with @CodeHost!\n\nVerify certificate: `
   );
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${twitterShareText}&url=${encodeURIComponent(data.certUrl)}`;
 
@@ -196,10 +138,10 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
     data.certUrl
-  )}&color=0F172A&bgcolor=FFFFFF`;
+  )}&color=0F172A&bgcolor=F1F5F9`;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] py-8 px-4 sm:px-6 lg:px-8 selection:bg-blue-100">
+    <div className="min-h-screen bg-[#F1F5F9] text-[#0F172A] py-8 px-4 sm:px-6 lg:px-8 selection:bg-blue-100">
       <style jsx global>{`
         @media print {
           @page {
@@ -207,7 +149,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
             margin: 8mm;
           }
           body {
-            background: white !important;
+            background: #f1f5f9 !important;
             color: black !important;
             padding: 0 !important;
           }
@@ -230,8 +172,8 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
             <LogoWithText />
           </Link>
 
-          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full text-xs font-bold self-start sm:self-auto shadow-xs">
-            <ShieldCheck size={16} className="text-emerald-600" />
+          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-300 text-slate-800 rounded-full text-xs font-bold self-start sm:self-auto shadow-xs">
+            <CheckCircle2 size={15} className="text-emerald-600" />
             <span>Official Credential Registry • Verified Active</span>
           </div>
         </div>
@@ -286,21 +228,65 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
           </div>
         </div>
 
-        {/* ─── THE PRESTIGIOUS LANDSCAPE CERTIFICATE ─── */}
+        {/* ─── THE PRESTIGIOUS GRAY THEMED LANDSCAPE CERTIFICATE ─── */}
         <div 
           id="certificate-print-area"
-          className="relative bg-white rounded-xl border-2 sm:border-[3px] border-[#0F172A] p-8 sm:p-12 md:p-14 shadow-xl overflow-hidden print:border-2 print:p-8 print:shadow-none"
+          className="relative bg-[#F8FAFC] rounded-xl border-2 sm:border-[3px] border-[#0F172A] p-8 sm:p-12 md:p-14 shadow-xl overflow-hidden print:border-2 print:p-8 print:shadow-none"
         >
-          {/* Subtle Security Watermark */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-[0.025] pointer-events-none select-none">
-            <Logo className="w-[480px] h-[480px]" />
+          {/* ─── Faded Background Watermarks: Logo & Code Icons ─── */}
+          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+            {/* Centered Large Faded CodeHost Logo Watermark */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-[0.06]">
+              <Logo className="w-80 h-80 sm:w-96 sm:h-96" />
+            </div>
+
+            {/* Scattered Faded Code & Terminal Icons in Background */}
+            <div className="absolute top-8 left-10 opacity-[0.08] text-slate-600">
+              <Terminal size={46} />
+            </div>
+            <div className="absolute top-22 left-28 opacity-[0.08] font-mono text-xs text-blue-700">
+              git push codehost main
+            </div>
+
+            <div className="absolute top-8 right-12 opacity-[0.08] text-blue-700">
+              <Code2 size={48} />
+            </div>
+            <div className="absolute top-22 right-24 opacity-[0.08] font-mono text-xs text-slate-600">
+              &lt;CloudDeploy /&gt;
+            </div>
+
+            <div className="absolute top-1/2 -translate-y-10 left-8 opacity-[0.08] text-blue-600">
+              <Braces size={40} />
+            </div>
+            <div className="absolute top-1/2 left-20 opacity-[0.08] font-mono text-xs text-slate-600">
+              status: &quot;running&quot;
+            </div>
+
+            <div className="absolute top-1/2 -translate-y-10 right-10 opacity-[0.08] text-slate-600">
+              <GitBranch size={42} />
+            </div>
+            <div className="absolute top-1/2 right-24 opacity-[0.08] font-mono text-xs text-blue-700">
+              docker compose up -d
+            </div>
+
+            <div className="absolute bottom-12 left-14 opacity-[0.08] text-slate-600">
+              <Database size={36} />
+            </div>
+
+            <div className="absolute bottom-14 right-20 opacity-[0.08] text-blue-700">
+              <Cpu size={38} />
+            </div>
+
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-[0.08] text-amber-600">
+              <Rocket size={32} />
+            </div>
           </div>
 
-          {/* Architectural Certificate Frame (Concentric, Clean, Zero Floating Dots) */}
+          {/* Architectural Certificate Frame (Concentric, Clean, Balanced) */}
           <div className="absolute inset-3 sm:inset-4 border border-[#2563EB] rounded-lg pointer-events-none" />
-          <div className="absolute inset-4.5 sm:inset-5.5 border border-slate-200 rounded-md pointer-events-none" />
+          <div className="absolute inset-4.5 sm:inset-5.5 border border-slate-300 rounded-md pointer-events-none" />
 
-          {/* Precision Corner Stepped Brackets (Part of the classical border tradition) */}
+          {/* Precision Corner Stepped Brackets */}
           <div className="absolute top-3 left-3 sm:top-4 sm:left-4 w-4 h-4 border-t-2 border-l-2 border-[#2563EB] pointer-events-none" />
           <div className="absolute top-3 right-3 sm:top-4 sm:right-4 w-4 h-4 border-t-2 border-r-2 border-[#2563EB] pointer-events-none" />
           <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 w-4 h-4 border-b-2 border-l-2 border-[#2563EB] pointer-events-none" />
@@ -309,34 +295,34 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
           {/* Header (Official Logo, Authority, Title) */}
           <div className="text-center relative z-10 space-y-2 mb-6">
             <div className="flex justify-center mb-2">
-              <Logo className="w-14 h-14" />
+              <Logo className="w-13 h-13 sm:w-14 sm:h-14" />
             </div>
 
             <p className="text-[11px] font-black tracking-[0.28em] text-[#2563EB] uppercase">
-              CodeHost Cloud Infrastructure Authority
+              CodeHost Developer Community
             </p>
 
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-black text-[#0F172A] tracking-tight uppercase font-serif">
               Certificate of Cloud Deployment
             </h1>
 
-            <p className="text-xs font-bold tracking-[0.22em] text-slate-400 uppercase">
-              Student &amp; Developer Engineering Certification
+            <p className="text-xs font-bold tracking-[0.2em] text-slate-500 uppercase">
+              Student &amp; Developer Recognition
             </p>
           </div>
 
-          {/* Recipient Conferral Statement */}
+          {/* Recipient Conferral Statement (Light, Genuine, Encouraging) */}
           <div className="text-center relative z-10 space-y-3 max-w-3xl mx-auto my-6">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-              This credential is officially conferred upon
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
+              This certificate is proudly awarded to
             </p>
 
-            {/* Recipient Name in Dignified Serif Typography */}
+            {/* Recipient Name */}
             <div className="my-3">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#0F172A] tracking-tight font-serif capitalize">
                 {data.recipientName}
               </h2>
-              {/* Classical Academic Diamond Flourish */}
+              {/* Academic Diamond Flourish */}
               <div className="flex items-center justify-center gap-2 mt-2.5">
                 <div className="w-20 h-px bg-[#2563EB]" />
                 <div className="w-1.5 h-1.5 rotate-45 bg-[#2563EB]" />
@@ -344,45 +330,34 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
               </div>
             </div>
 
-            <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed max-w-2xl mx-auto pt-1">
-              for having satisfied all requisite standards of cloud infrastructure orchestration, demonstrating verified
-              competence in architecting, containerizing, and operating production services on CodeHost container cloud network.
+            <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed max-w-xl mx-auto pt-1 font-medium">
+              for taking the leap to build and successfully launch their project live on the CodeHost cloud platform.
             </p>
 
-            {/* Verified Technical Competencies Bar (Refined & Editorial) */}
-            <div className="my-5 py-3 border-y border-slate-200/80 max-w-2xl mx-auto">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 text-center">
-                Verified Applied Competencies
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs text-slate-700">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Server size={13} className="text-[#2563EB]" />
-                  <span>Container Virtualization</span>
-                </span>
-                <span className="text-slate-300">•</span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Globe size={13} className="text-[#2563EB]" />
-                  <span>Edge DNS &amp; Proxy</span>
-                </span>
-                <span className="text-slate-300">•</span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Lock size={13} className="text-[#2563EB]" />
-                  <span>Automated TLS 1.3</span>
-                </span>
-                <span className="text-slate-300">•</span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Cpu size={13} className="text-[#2563EB]" />
-                  <span>Isolated Compute Sandbox</span>
-                </span>
-              </div>
+            {/* Key Deployment Highlights (Light & True) */}
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 py-3 border-y border-slate-200/80 max-w-xl mx-auto my-4 text-xs font-semibold text-slate-700">
+              <span className="flex items-center gap-1.5">
+                <Rocket size={14} className="text-[#2563EB]" />
+                <span>Live on the Cloud</span>
+              </span>
+              <span className="text-slate-300">•</span>
+              <span className="flex items-center gap-1.5">
+                <Lock size={14} className="text-emerald-600" />
+                <span>Automatic HTTPS</span>
+              </span>
+              <span className="text-slate-300">•</span>
+              <span className="flex items-center gap-1.5">
+                <Globe size={14} className="text-[#2563EB]" />
+                <span>Public Web Access</span>
+              </span>
             </div>
           </div>
 
-          {/* Landscape Bottom Row: Metadata, Official Seal, and Verification & Signoff */}
+          {/* Landscape Bottom Row: Clean Metadata & Verification QR Code */}
           <div className="relative z-10 pt-6 mt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-6">
             
             {/* Metadata Grid */}
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-left w-full sm:w-auto">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2.5 text-left w-full sm:w-auto">
               <div>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Certificate ID</p>
                 <p className="font-mono font-black text-xs sm:text-sm text-[#0F172A]">{data.certNumber}</p>
@@ -394,30 +369,24 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
               </div>
 
               <div>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Credential Title</p>
-                <p className="font-semibold text-xs sm:text-sm text-[#0F172A]">{data.title}</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Issued By</p>
+                <p className="font-semibold text-xs sm:text-sm text-[#0F172A]">CodeHost Cloud</p>
               </div>
 
               <div>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Registry Status</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Status</p>
                 <p className="font-bold text-xs sm:text-sm text-emerald-600 flex items-center gap-1">
                   <CheckCircle2 size={13} /> Active &amp; Verified
                 </p>
               </div>
             </div>
 
-            {/* Official Prestigious Vector Seal */}
-            <div className="my-2 sm:my-0">
-              <OfficialSealEmblem />
-            </div>
-
-            {/* Scannable Verification QR Code & Authority Signoff */}
+            {/* Scannable Verification QR Code & Clean Signoff */}
             <div className="flex items-center gap-4 sm:gap-5 shrink-0">
               <div className="flex flex-col items-center sm:items-end text-center sm:text-right">
-                <div className="h-0.5 w-36 bg-[#0F172A] mb-1" />
-                <p className="text-[10px] font-black text-[#0F172A] uppercase">Autonomous Infrastructure</p>
-                <p className="text-[9px] text-slate-400">CodeHost Cloud Authority</p>
-                <p className="text-[8px] font-mono text-slate-400 mt-0.5">SHA-256 SIGNED • IMMUTABLE</p>
+                <p className="font-bold text-xs text-[#0F172A]">CodeHost Community</p>
+                <p className="text-[10px] text-slate-500 font-medium">Developer Cloud Platform</p>
+                <p className="text-[9px] font-mono text-blue-600 font-bold mt-1">code-host.online</p>
               </div>
 
               <div className="flex flex-col items-center shrink-0">
@@ -426,8 +395,8 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
                   <img
                     src={qrCodeUrl}
                     alt={`QR Code verification for ${data.certNumber}`}
-                    width={80}
-                    height={80}
+                    width={76}
+                    height={76}
                     className="rounded"
                   />
                 </div>
