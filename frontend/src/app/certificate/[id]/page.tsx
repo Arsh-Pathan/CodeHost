@@ -8,7 +8,6 @@ import {
   Check, 
   Printer, 
   ShieldCheck, 
-  Award, 
   Globe, 
   ArrowRight, 
   Sparkles,
@@ -35,58 +34,6 @@ interface CertificateData {
   authorAvatar?: string;
   authorReferralCode?: string;
   certUrl: string;
-}
-
-function CornerOrnament({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 54 54"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={`w-9 h-9 sm:w-11 sm:h-11 pointer-events-none select-none text-[#2563EB] ${className || ''}`}
-    >
-      <path d="M4 50V14C4 8.47715 8.47715 4 14 4H50" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" />
-      <path d="M10 50V18C10 13.5817 13.5817 10 18 10H50" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      <rect x="2" y="2" width="6" height="6" fill="#0F172A" />
-      <rect x="7" y="7" width="5" height="5" fill="currentColor" />
-      <circle cx="18" cy="18" r="2.5" fill="#0F172A" />
-      <line x1="28" y1="4" x2="34" y2="4" stroke="currentColor" strokeWidth="2" />
-      <line x1="4" y1="28" x2="4" y2="34" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}
-
-function OfficialGoldSeal() {
-  return (
-    <div className="relative flex flex-col items-center justify-center shrink-0">
-      {/* Ribbon tails hanging below */}
-      <div className="absolute -bottom-3.5 flex justify-center gap-1 z-0 pointer-events-none">
-        <div className="w-3.5 h-6 bg-[#2563EB] -rotate-12 transform origin-top shadow-xs [clip-path:polygon(0_0,100%_0,100%_100%,50%_75%,0_100%)]" />
-        <div className="w-3.5 h-6 bg-[#1D4ED8] rotate-12 transform origin-top shadow-xs [clip-path:polygon(0_0,100%_0,100%_100%,50%_75%,0_100%)]" />
-      </div>
-
-      {/* Seal Outer Rosette */}
-      <div className="relative z-10 w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-[#FEF3C7] border-2 border-[#D97706] p-1.5 shadow-md flex items-center justify-center text-center">
-        {/* Inner Serrated / Dashed Ring */}
-        <div className="w-full h-full rounded-full border border-dashed border-[#B45309] bg-white flex flex-col items-center justify-center p-1">
-          <Award size={18} className="text-[#D97706] mb-0.5" />
-          <span className="text-[7.5px] font-black uppercase tracking-wider text-[#92400E] leading-none">
-            OFFICIAL SEAL
-          </span>
-          <div className="flex items-center gap-0.5 my-0.5">
-            <span className="text-[7px] text-[#D97706]">★</span>
-            <span className="text-[7px] text-[#D97706]">★</span>
-            <span className="text-[7px] text-[#D97706]">★</span>
-            <span className="text-[7px] text-[#D97706]">★</span>
-            <span className="text-[7px] text-[#D97706]">★</span>
-          </div>
-          <span className="text-[7px] font-black text-[#B45309] leading-tight tracking-tight">
-            CODEHOST
-          </span>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default function CertificatePage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
@@ -142,7 +89,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-slate-200 text-center shadow-xs">
           <div className="w-14 h-14 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Award size={28} />
+            <ShieldCheck size={28} />
           </div>
           <h1 className="text-xl font-bold text-slate-900 mb-2">Certificate Not Found</h1>
           <p className="text-sm text-slate-500 mb-6">
@@ -202,7 +149,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
             padding: 0 !important;
           }
           #certificate-print-area {
-            border: 4px solid #0F172A !important;
+            border: 2px solid #0F172A !important;
             box-shadow: none !important;
             margin: 0 auto !important;
             max-width: 100% !important;
@@ -212,7 +159,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
         }
       `}</style>
 
-      <div className="max-w-[1080px] mx-auto space-y-6">
+      <div className="max-w-[1020px] mx-auto space-y-6">
         
         {/* Navigation & Official Registry Header (Hidden on print) */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
@@ -279,53 +226,34 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
         {/* ─── THE PRESTIGIOUS LANDSCAPE CERTIFICATE ─── */}
         <div 
           id="certificate-print-area"
-          className="relative bg-white rounded-3xl border-4 md:border-8 border-[#0F172A] p-6 sm:p-10 md:p-12 shadow-2xl overflow-hidden print:border-4 print:p-8 print:shadow-none"
+          className="relative bg-white rounded-3xl border-2 sm:border-[3px] border-[#0F172A] p-6 sm:p-10 md:p-12 shadow-xl overflow-hidden print:border-2 print:p-8 print:shadow-none"
         >
           {/* Subtle Security Watermark */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-[0.035] pointer-events-none select-none">
-            <Logo className="w-[500px] h-[500px]" />
+          <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
+            <Logo className="w-[450px] h-[450px]" />
           </div>
 
-          {/* Intricate Multi-Layer Precision Security Outline */}
-          <div className="absolute inset-3 sm:inset-4 md:inset-5 border border-slate-300 pointer-events-none rounded-xl" />
-          <div className="absolute inset-4 sm:inset-5 md:inset-6.5 border-2 border-[#2563EB] pointer-events-none rounded-lg" />
-          <div className="absolute inset-5 sm:inset-6 md:inset-8 border border-slate-200 pointer-events-none rounded-md" />
+          {/* Clean Concentric Precision Borders Matching CodeHost Theme */}
+          <div className="absolute inset-2.5 sm:inset-3.5 border border-[#2563EB]/40 rounded-2xl pointer-events-none" />
+          <div className="absolute inset-4 sm:inset-5 border border-slate-200 rounded-xl pointer-events-none" />
 
-          {/* Corner Architectural Ornaments */}
-          <div className="absolute top-4 left-4 sm:top-5 sm:left-5 md:top-6.5 md:left-6.5">
-            <CornerOrnament />
-          </div>
-          <div className="absolute top-4 right-4 sm:top-5 sm:right-5 md:top-6.5 md:right-6.5 rotate-90">
-            <CornerOrnament />
-          </div>
-          <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 md:bottom-6.5 md:left-6.5 -rotate-90">
-            <CornerOrnament />
-          </div>
-          <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 md:bottom-6.5 md:right-6.5 rotate-180">
-            <CornerOrnament />
-          </div>
-
-          {/* Microprint Security Top Track */}
-          <div className="relative z-10 flex items-center justify-between border-b border-slate-200 pb-2.5 mb-5 text-[9px] sm:text-[10px] font-mono font-bold tracking-widest text-slate-400 uppercase select-none">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-              CODEHOST AUTONOMOUS CLOUD AUTHORITY
-            </span>
-            <span className="hidden md:inline">STANDARDIZED DEVELOPER SPECIFICATION • IMMUTABLE VERIFICATION LEDGER</span>
-            <span>SERIAL: {data.certNumber}</span>
-          </div>
+          {/* 4 Clean Corner Accents Aligned with the Inner Border */}
+          <div className="absolute top-5 left-5 w-2 h-2 rounded-full bg-[#2563EB] pointer-events-none" />
+          <div className="absolute top-5 right-5 w-2 h-2 rounded-full bg-[#2563EB] pointer-events-none" />
+          <div className="absolute bottom-5 left-5 w-2 h-2 rounded-full bg-[#2563EB] pointer-events-none" />
+          <div className="absolute bottom-5 right-5 w-2 h-2 rounded-full bg-[#2563EB] pointer-events-none" />
 
           {/* Landscape Header (Logo, Authority, Title) */}
-          <div className="text-center relative z-10 space-y-1.5 mb-5">
-            <div className="flex justify-center mb-2">
-              <Logo className="w-12 h-12 sm:w-14 sm:h-14" />
+          <div className="text-center relative z-10 space-y-1.5 mb-6">
+            <div className="flex justify-center mb-2.5">
+              <Logo className="w-13 h-13 sm:w-15 sm:h-15" />
             </div>
 
-            <p className="text-[10px] sm:text-[11px] font-black tracking-[0.3em] text-[#2563EB] uppercase">
+            <p className="text-[10px] sm:text-[11px] font-black tracking-[0.25em] text-[#2563EB] uppercase">
               CodeHost Cloud Infrastructure Authority
             </p>
 
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-black text-[#0F172A] tracking-tight uppercase font-serif">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-black text-[#0F172A] tracking-tight uppercase font-serif">
               Certificate of Cloud Deployment
             </h1>
 
@@ -335,7 +263,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
           </div>
 
           {/* Recipient Conferral Statement */}
-          <div className="text-center relative z-10 space-y-2.5 max-w-3xl mx-auto my-4">
+          <div className="text-center relative z-10 space-y-3 max-w-3xl mx-auto my-5">
             <p className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">
               This credential is officially conferred to
             </p>
@@ -355,43 +283,43 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
             </p>
 
             {/* Verified Cloud Competency Indicators (Images & Icons) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 max-w-2xl mx-auto text-left">
-              <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                <Server size={15} className="text-[#2563EB] shrink-0" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3 max-w-2xl mx-auto text-left">
+              <div className="flex items-center gap-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <Server size={16} className="text-[#2563EB] shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold text-slate-800 leading-none">Container Runtime</p>
-                  <p className="text-[9px] text-slate-400 truncate">Docker Virtualization</p>
+                  <p className="text-[9px] text-slate-400 truncate mt-0.5">Docker Virtualization</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                <Globe size={15} className="text-[#2563EB] shrink-0" />
+              <div className="flex items-center gap-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <Globe size={16} className="text-[#2563EB] shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold text-slate-800 leading-none">Edge Network</p>
-                  <p className="text-[9px] text-slate-400 truncate">Automated DNS &amp; Proxy</p>
+                  <p className="text-[9px] text-slate-400 truncate mt-0.5">Automated DNS &amp; Proxy</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                <Lock size={15} className="text-emerald-600 shrink-0" />
+              <div className="flex items-center gap-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <Lock size={16} className="text-emerald-600 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold text-slate-800 leading-none">TLS 1.3 Security</p>
-                  <p className="text-[9px] text-slate-400 truncate">Automated SSL Engine</p>
+                  <p className="text-[9px] text-slate-400 truncate mt-0.5">Automated SSL Engine</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                <Cpu size={15} className="text-[#2563EB] shrink-0" />
+              <div className="flex items-center gap-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <Cpu size={16} className="text-[#2563EB] shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold text-slate-800 leading-none">Sandbox Compute</p>
-                  <p className="text-[9px] text-slate-400 truncate">Isolated Cloud Space</p>
+                  <p className="text-[9px] text-slate-400 truncate mt-0.5">Isolated Cloud Space</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Landscape Bottom Row: Metadata, Official Gold Seal, and QR Code */}
-          <div className="relative z-10 pt-5 mt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-5">
+          {/* Landscape Bottom Row: Metadata, Verified Credential Emblem, and QR Code */}
+          <div className="relative z-10 pt-6 mt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-6">
             
             {/* Metadata Grid */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-left w-full sm:w-auto">
@@ -418,23 +346,31 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
               </div>
             </div>
 
-            {/* Official Prestigious Gold Seal Medallion */}
+            {/* Official Verified Credential Emblem (Clean, Corporate, Matching Theme) */}
             <div className="my-2 sm:my-0">
-              <OfficialGoldSeal />
+              <div className="flex flex-col items-center justify-center p-3 px-6 bg-slate-50 border border-slate-200 rounded-2xl text-center shadow-2xs">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#2563EB] mb-1">
+                  <ShieldCheck size={18} />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-[#0F172A] leading-tight">
+                  OFFICIAL CREDENTIAL
+                </p>
+                <p className="text-[9px] font-semibold text-slate-500 mt-0.5">
+                  CodeHost Cloud Infrastructure
+                </p>
+                <span className="inline-flex items-center gap-1 mt-1 text-[8.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <CheckCircle2 size={10} /> Authenticated Record
+                </span>
+              </div>
             </div>
 
-            {/* Scannable Verification QR Code & Digital Authority Signature */}
+            {/* Scannable Verification QR Code & Authority Signoff */}
             <div className="flex items-center gap-4 sm:gap-5 shrink-0">
               <div className="flex flex-col items-center sm:items-end text-center sm:text-right">
-                {/* Digital Signature */}
-                <div className="mb-2">
-                  <svg viewBox="0 0 140 32" className="h-6 text-[#0F172A]" fill="none" stroke="currentColor" strokeWidth="1.75">
-                    <path d="M8 22 C 24 6, 36 30, 50 12 C 64 -2, 70 28, 86 16 C 102 4, 112 24, 132 14" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <div className="h-0.5 w-32 bg-[#0F172A] mb-0.5" />
-                  <p className="text-[9px] font-black text-[#0F172A] uppercase">Autonomous Infrastructure</p>
-                  <p className="text-[8px] text-slate-400">CodeHost Cloud Authority</p>
-                </div>
+                <div className="h-0.5 w-32 bg-[#0F172A] mb-1" />
+                <p className="text-[10px] font-black text-[#0F172A] uppercase">Autonomous Infrastructure</p>
+                <p className="text-[9px] text-slate-400">CodeHost Cloud Authority</p>
+                <p className="text-[8px] font-mono text-slate-400 mt-0.5">SHA-256 SIGNED • IMMUTABLE</p>
               </div>
 
               <div className="flex flex-col items-center shrink-0">
