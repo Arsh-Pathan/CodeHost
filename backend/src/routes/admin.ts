@@ -266,10 +266,11 @@ router.get('/users', async (req: AuthRequest, res) => {
         serverLimit: true,
         emailVerified: true,
         provider: true,
+        referralCode: true,
         createdAt: true,
         wallet: { select: { balance: true } },
         _count: {
-          select: { projects: true }
+          select: { projects: true, referralsMade: true }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -636,20 +637,28 @@ router.get('/revenue/analytics', async (req: AuthRequest, res) => {
     const totalWalletFloatCredits = wallets.reduce((acc, w) => acc + (w.balance || 0), 0);
     const totalWalletFloatInr = totalWalletFloatCredits * creditRate;
 
-    // 5. Recent transactions
-    const recentTransactions = await prisma.transaction.findMany({
-      take: 12,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        wallet: {
-          include: {
-            user: {
-              select: { id: true, email: true, username: true, role: true, tier: true }
+    // 5. Recent transactions & referral metrics
+    const [recentTransactions, totalReferrals, referralAgg] = await Promise.all([
+      prisma.transaction.findMany({
+        take: 12,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          wallet: {
+            include: {
+              user: {
+                select: { id: true, email: true, username: true, role: true, tier: true }
+              }
             }
           }
         }
-      }
-    });
+      }),
+      prisma.referral.count(),
+      prisma.referral.aggregate({
+        _sum: { referrerReward: true, refereeReward: true },
+      }),
+    ]);
+
+    const totalReferralCreditsAwarded = (referralAgg._sum.referrerReward || 0) + (referralAgg._sum.refereeReward || 0);
 
     res.json({
       summary: {
@@ -662,6 +671,8 @@ router.get('/revenue/analytics', async (req: AuthRequest, res) => {
         conversionRate,
         totalWalletFloatInr,
         totalWalletFloatCredits,
+        totalReferrals,
+        totalReferralCreditsAwarded,
       },
       revenueTrend,
       tierBreakdown,

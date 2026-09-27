@@ -126,6 +126,8 @@ interface RevenueAnalytics {
     conversionRate: number;
     totalWalletFloatInr: number;
     totalWalletFloatCredits: number;
+    totalReferrals?: number;
+    totalReferralCreditsAwarded?: number;
   };
   revenueTrend: Array<{
     date: string;
@@ -146,9 +148,10 @@ interface AdminUser {
   serverLimit: number;
   emailVerified: boolean;
   provider: string | null;
+  referralCode?: string | null;
   createdAt: string;
   wallet: { balance: number } | null;
-  _count: { projects: number };
+  _count: { projects: number; referralsMade?: number };
 }
 
 interface AdminProject {
@@ -1554,6 +1557,7 @@ export default function AdminPage() {
                   >
                     <option value="">All Types</option>
                     <option value="purchase">Purchase</option>
+                    <option value="referral_bonus">Referral Bonus</option>
                     <option value="usage">Usage</option>
                     <option value="admin_grant">Admin Grant</option>
                   </select>
@@ -1597,6 +1601,8 @@ export default function AdminPage() {
                             <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase ${
                               tx.type === 'purchase'
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : tx.type === 'referral_bonus'
+                                ? 'bg-blue-50 text-[#2563EB] border border-blue-200'
                                 : tx.type === 'admin_grant'
                                 ? 'bg-purple-50 text-purple-700 border border-purple-200'
                                 : 'bg-slate-100 text-slate-600'
@@ -1737,6 +1743,17 @@ export default function AdminPage() {
                                     )}
                                   </div>
                                   <div className="text-[10px] text-slate-400">{u.email}</div>
+                                  {u.referralCode && (
+                                    <div className="text-[10px] font-mono text-slate-500 flex items-center gap-1 mt-0.5">
+                                      <span className="text-slate-400">Ref:</span>
+                                      <span className="font-bold text-[#2563EB]">{u.referralCode}</span>
+                                      {(u._count?.referralsMade ?? 0) > 0 && (
+                                        <span className="bg-emerald-50 text-emerald-700 px-1 rounded font-sans font-bold text-[9px]">
+                                          {u._count?.referralsMade} invited
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </td>
