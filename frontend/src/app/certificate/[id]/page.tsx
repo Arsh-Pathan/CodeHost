@@ -124,8 +124,8 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
 
   // LinkedIn Add to Profile (Licenses & Certifications)
   const linkedInCertUrl = `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${encodeURIComponent(
-    `Certified Cloud Deployer - CodeHost`
-  )}&organizationName=${encodeURIComponent('CodeHost')}&issueYear=${new Date(data.issuedAt).getFullYear()}&issueMonth=${
+    `Certified Cloud Deployer - Code Host`
+  )}&organizationName=${encodeURIComponent('Code Host')}&issueYear=${new Date(data.issuedAt).getFullYear()}&issueMonth=${
     new Date(data.issuedAt).getMonth() + 1
   }&certUrl=${encodeURIComponent(data.certUrl)}&certId=${encodeURIComponent(data.certNumber)}`;
 
@@ -391,7 +391,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
 
               <div>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Issued By</p>
-                <p className="font-semibold text-xs sm:text-sm text-[#0F172A]">CodeHost</p>
+                <p className="font-semibold text-xs sm:text-sm text-[#0F172A]">Code Host</p>
               </div>
 
               <div>
