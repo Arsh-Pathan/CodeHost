@@ -20,7 +20,8 @@ import {
   Braces,
   GitBranch,
   Database,
-  Cpu
+  Cpu,
+  ExternalLink
 } from 'lucide-react';
 import { Logo, LogoWithText } from '@/components/Logo';
 import { fetchApi } from '@/lib/api';
@@ -121,11 +122,15 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
     ? `https://code-host.online/signup?ref=${encodeURIComponent(data.authorReferralCode)}`
     : 'https://code-host.online/signup';
 
+  // LinkedIn Add to Profile (Licenses & Certifications)
   const linkedInCertUrl = `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${encodeURIComponent(
     `Certified Cloud Deployer - CodeHost`
   )}&organizationName=${encodeURIComponent('CodeHost')}&issueYear=${new Date(data.issuedAt).getFullYear()}&issueMonth=${
     new Date(data.issuedAt).getMonth() + 1
   }&certUrl=${encodeURIComponent(data.certUrl)}&certId=${encodeURIComponent(data.certNumber)}`;
+
+  // LinkedIn Post Share (Shows rich OpenGraph image on LinkedIn feed)
+  const linkedInShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(data.certUrl)}`;
 
   const twitterShareText = encodeURIComponent(
     `Proud to share that I have officially deployed and launched my project to the cloud with @CodeHost!\n\nVerify certificate: `
@@ -182,15 +187,31 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-wrap items-center justify-between gap-3 print:hidden">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Share Credential:</span>
+            
+            {/* Share to LinkedIn Feed with Preview Image */}
+            <a
+              href={linkedInShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0A66C2] hover:bg-[#004182] text-white text-xs font-bold rounded-lg transition"
+              title="Share post to LinkedIn feed with certificate image"
+            >
+              <Linkedin size={14} />
+              <span>Share on LinkedIn</span>
+            </a>
+
+            {/* Add to LinkedIn Profile Certifications */}
             <a
               href={linkedInCertUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0A66C2] hover:bg-[#004182] text-white text-xs font-bold rounded-lg transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#0A66C2] border border-blue-200 text-xs font-bold rounded-lg transition"
+              title="Add this credential to your LinkedIn Licenses & Certifications"
             >
-              <Linkedin size={14} />
-              <span>Add to LinkedIn</span>
+              <ExternalLink size={13} />
+              <span>Add to Profile</span>
             </a>
+
             <a
               href={twitterShareUrl}
               target="_blank"
@@ -277,7 +298,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
               <Cpu size={38} />
             </div>
 
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-[0.08] text-amber-600">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-[0.08] text-blue-600">
               <Rocket size={32} />
             </div>
           </div>
@@ -370,7 +391,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
 
               <div>
                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Issued By</p>
-                <p className="font-semibold text-xs sm:text-sm text-[#0F172A]">CodeHost Cloud</p>
+                <p className="font-semibold text-xs sm:text-sm text-[#0F172A]">CodeHost</p>
               </div>
 
               <div>
@@ -381,12 +402,20 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
               </div>
             </div>
 
-            {/* Scannable Verification QR Code & Clean Signoff */}
+            {/* Scannable Verification QR Code & Official LinkedIn Handle */}
             <div className="flex items-center gap-4 sm:gap-5 shrink-0">
               <div className="flex flex-col items-center sm:items-end text-center sm:text-right">
                 <p className="font-bold text-xs text-[#0F172A]">CodeHost Community</p>
-                <p className="text-[10px] text-slate-500 font-medium">Developer Cloud Platform</p>
-                <p className="text-[9px] font-mono text-blue-600 font-bold mt-1">code-host.online</p>
+                <a
+                  href="https://www.linkedin.com/in/code-host-92524243b/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-[#0A66C2] hover:underline font-semibold flex items-center gap-1 mt-0.5"
+                >
+                  <Linkedin size={11} />
+                  <span>@code-host on LinkedIn</span>
+                </a>
+                <p className="text-[9px] font-mono text-slate-400 mt-0.5">code-host.online</p>
               </div>
 
               <div className="flex flex-col items-center shrink-0">
@@ -434,8 +463,17 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
         </div>
 
         {/* Footer */}
-        <div className="text-center text-xs text-slate-400 pt-2 print:hidden">
-          <p>© {new Date().getFullYear()} CodeHost Cloud Services. All rights reserved. Registered certification record.</p>
+        <div className="text-center text-xs text-slate-400 pt-2 print:hidden flex flex-col sm:flex-row items-center justify-between gap-2 max-w-[1020px] mx-auto">
+          <p>© {new Date().getFullYear()} CodeHost Cloud Services. All rights reserved.</p>
+          <a
+            href="https://www.linkedin.com/in/code-host-92524243b/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-slate-600 transition flex items-center gap-1 font-medium"
+          >
+            <Linkedin size={12} className="text-[#0A66C2]" />
+            <span>Official LinkedIn: code-host-92524243b</span>
+          </a>
         </div>
       </div>
     </div>
