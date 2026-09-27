@@ -8,6 +8,7 @@ import { env } from '@codehost/config';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { logger } from '@codehost/logger';
 import { sendVerificationEmail } from '../lib/email.js';
+import { generateUniqueReferralCode, processReferralReward } from '../services/referral.js';
 
 const router = Router();
 
@@ -36,7 +37,7 @@ export const generateTokens = (user: { id: string; email: string; role: string; 
 
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { email, password, username, name, phoneNumber } = req.body;
+    const { email, password, username, name, phoneNumber, referralCode } = req.body;
 
     if (!email || !password || !username) {
       return res.status(400).json({ error: 'Email, password and username are required' });
@@ -72,6 +73,7 @@ router.post('/register', authLimiter, async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const isAdmin = email.toLowerCase() === 'mail.arsh.pathan@gmail.com';
+    const myReferralCode = await generateUniqueReferralCode(sanitizedUsername);
 
     const user = await prisma.user.create({
       data: {
@@ -85,8 +87,14 @@ router.post('/register', authLimiter, async (req, res) => {
         verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
         role: isAdmin ? 'ADMIN' : 'USER',
         serverLimit: isAdmin ? 100 : 1,
+        referralCode: myReferralCode,
       },
     });
+
+    // If registered via a referral code, credit both users
+    if (referralCode) {
+      await processReferralReward(user.id, referralCode);
+    }
 
     // Send verification email (non-blocking)
     sendVerificationEmail(email, verificationToken).catch((err) => {

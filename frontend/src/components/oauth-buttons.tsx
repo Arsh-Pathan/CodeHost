@@ -2,11 +2,13 @@
 
 import { API_URL } from '@/lib/api';
 
-export default function OAuthButtons() {
+export default function OAuthButtons({ referralCode }: { referralCode?: string }) {
+  const refQuery = referralCode ? `?ref=${encodeURIComponent(referralCode)}` : '';
+
   return (
     <div className="space-y-3">
       <a
-        href={`${API_URL}/auth/oauth/google`}
+        href={`${API_URL}/auth/oauth/google${refQuery}`}
         className="flex w-full items-center justify-center gap-3 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition"
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -19,7 +21,7 @@ export default function OAuthButtons() {
       </a>
 
       <a
-        href={`${API_URL}/auth/oauth/github`}
+        href={`${API_URL}/auth/oauth/github${refQuery}`}
         className="flex w-full items-center justify-center gap-3 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition"
       >
         <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">

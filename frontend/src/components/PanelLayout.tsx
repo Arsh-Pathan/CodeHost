@@ -15,7 +15,8 @@ import {
   Plus,
   Compass,
   CreditCard,
-  LifeBuoy
+  LifeBuoy,
+  Gift
 } from 'lucide-react';
 import UserAvatar from './UserAvatar';
 
@@ -47,8 +48,9 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { name: 'Explore Templates', icon: Compass, href: '#', disabled: true },
     { name: 'Billing', icon: CreditCard, href: '/dashboard/billing' },
+    { name: 'Refer & Earn', icon: Gift, href: '/dashboard/referrals', badge: 'Bonus' },
+    { name: 'Explore Templates', icon: Compass, href: '#', disabled: true },
     { name: 'Profile', icon: Settings, href: '/dashboard/profile' },
   ];
 
@@ -106,6 +108,11 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
               >
                 <Icon size={18} className={`${isActive ? 'text-[#2563EB]' : 'text-slate-400 group-hover:text-slate-600'} transition-colors shrink-0`} />
                 <span className={`text-sm ${!isSidebarOpen && 'md:hidden'}`}>{item.name}</span>
+                {item.badge && isSidebarOpen && (
+                  <span className={`ml-auto text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${isActive ? 'bg-blue-200 text-blue-800' : 'bg-blue-50 text-blue-600'}`}>
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

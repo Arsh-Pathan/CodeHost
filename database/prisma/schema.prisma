@@ -25,6 +25,9 @@ model User {
   emailVerified           Boolean   @default(false)
   verificationToken       String?   @unique
   verificationTokenExpiry DateTime?
+  referralCode            String?   @unique
+  referralsMade           Referral[] @relation("ReferrerRelation")
+  referralReceived        Referral?  @relation("RefereeRelation")
   projects                Project[]
   sessions                Session[]
   wallet                  Wallet?
@@ -108,4 +111,18 @@ model Deployment {
 
   @@index([projectId])
   @@index([status])
+}
+
+model Referral {
+  id             String    @id @default(uuid())
+  referrerId     String
+  referrer       User      @relation("ReferrerRelation", fields: [referrerId], references: [id], onDelete: Cascade)
+  refereeId      String    @unique
+  referee        User      @relation("RefereeRelation", fields: [refereeId], references: [id], onDelete: Cascade)
+  referrerReward Int       @default(100)
+  refereeReward  Int       @default(50)
+  status         String    @default("completed") // completed, pending
+  createdAt      DateTime  @default(now())
+
+  @@index([referrerId])
 }

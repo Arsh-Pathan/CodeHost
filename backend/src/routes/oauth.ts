@@ -5,6 +5,7 @@ import { prisma } from '@codehost/database';
 import { env } from '@codehost/config';
 import { logger } from '@codehost/logger';
 import { generateTokens } from './auth.js';
+import { generateUniqueReferralCode, processReferralReward } from '../services/referral.js';
 
 const router = Router();
 
@@ -14,16 +15,17 @@ function generateState(): string {
   return crypto.randomBytes(16).toString('hex');
 }
 
-function createStateToken(state: string): string {
-  return jwt.sign({ state }, env.JWT_SECRET, { expiresIn: '10m' });
+function createStateToken(state: string, ref?: string): string {
+  return jwt.sign({ state, ref: ref || null }, env.JWT_SECRET, { expiresIn: '15m' });
 }
 
-function verifyStateToken(token: string, expectedState: string): boolean {
+function verifyStateToken(token: string, expectedState: string): { valid: boolean; ref?: string | null } {
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as { state: string };
-    return decoded.state === expectedState;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as { state: string; ref?: string | null };
+    if (decoded.state !== expectedState) return { valid: false };
+    return { valid: true, ref: decoded.ref || null };
   } catch {
-    return false;
+    return { valid: false };
   }
 }
 
@@ -54,7 +56,8 @@ async function findOrCreateOAuthUser(
   providerId: string,
   email: string,
   name: string | null,
-  avatarUrl: string | null = null
+  avatarUrl: string | null = null,
+  referralCode: string | null = null
 ) {
   // 1. Look up by provider + providerId
   let user = await prisma.user.findFirst({
@@ -88,6 +91,7 @@ async function findOrCreateOAuthUser(
   // 3. Create new user
   const username = await generateUniqueUsername(email, name);
   const isAdmin = email.toLowerCase() === 'mail.arsh.pathan@gmail.com';
+  const myReferralCode = await generateUniqueReferralCode(username);
   
   user = await prisma.user.create({
     data: {
@@ -101,8 +105,15 @@ async function findOrCreateOAuthUser(
       password: null,
       role: isAdmin ? 'ADMIN' : 'USER',
       serverLimit: isAdmin ? 100 : 1,
+      referralCode: myReferralCode,
     },
   });
+
+  // If new user was referred, credit rewards
+  if (referralCode) {
+    await processReferralReward(user.id, referralCode);
+  }
+
   return user;
 }
 
@@ -128,8 +139,9 @@ router.get('/google', (req, res) => {
     return res.status(501).json({ error: 'Google OAuth not configured' });
   }
 
+  const ref = typeof req.query.ref === 'string' ? req.query.ref : undefined;
   const state = generateState();
-  const stateToken = createStateToken(state);
+  const stateToken = createStateToken(state, ref);
 
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
@@ -153,7 +165,8 @@ router.get('/google/callback', async (req, res) => {
 
     // Verify CSRF state
     const [state, stateToken] = stateParam.split(':');
-    if (!state || !stateToken || !verifyStateToken(stateToken, state)) {
+    const verification = verifyStateToken(stateToken, state);
+    if (!state || !stateToken || !verification.valid) {
       return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
     }
 
@@ -186,7 +199,7 @@ router.get('/google/callback', async (req, res) => {
       return res.redirect(`${env.APP_URL}/login?error=oauth_no_email`);
     }
 
-    const user = await findOrCreateOAuthUser('google', sub, email, name || null, picture || null);
+    const user = await findOrCreateOAuthUser('google', sub, email, name || null, picture || null, verification.ref);
     await handleOAuthSuccess(res, user);
   } catch (error) {
     logger.error({ error }, 'Google OAuth callback error');
@@ -201,8 +214,9 @@ router.get('/github', (req, res) => {
     return res.status(501).json({ error: 'GitHub OAuth not configured' });
   }
 
+  const ref = typeof req.query.ref === 'string' ? req.query.ref : undefined;
   const state = generateState();
-  const stateToken = createStateToken(state);
+  const stateToken = createStateToken(state, ref);
 
   const params = new URLSearchParams({
     client_id: env.GITHUB_CLIENT_ID,
@@ -223,7 +237,8 @@ router.get('/github/callback', async (req, res) => {
     }
 
     const [state, stateToken] = stateParam.split(':');
-    if (!state || !stateToken || !verifyStateToken(stateToken, state)) {
+    const verification = verifyStateToken(stateToken, state);
+    if (!state || !stateToken || !verification.valid) {
       return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
     }
 
@@ -275,7 +290,8 @@ router.get('/github/callback', async (req, res) => {
       String(profile.id),
       primaryEmail,
       profile.name || profile.login || null,
-      profile.avatar_url || null
+      profile.avatar_url || null,
+      verification.ref
     );
     await handleOAuthSuccess(res, user);
   } catch (error) {
