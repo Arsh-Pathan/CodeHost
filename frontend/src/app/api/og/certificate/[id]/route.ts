@@ -1,8 +1,6 @@
+import { NextRequest } from 'next/server';
 import sharp from 'sharp';
 
-export const alt = 'CodeHost Official Cloud Deployment Certificate';
-export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
 export const runtime = 'nodejs';
 
 async function getCertificate(id: string) {
@@ -259,7 +257,10 @@ function buildCertificateSvg({
   `;
 }
 
-export default async function Image({ params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
   const cert = await getCertificate(id);
 
@@ -283,6 +284,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     .toBuffer();
 
   return new Response(new Uint8Array(pngBuffer), {
+    status: 200,
     headers: {
       'Content-Type': 'image/png',
       'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
