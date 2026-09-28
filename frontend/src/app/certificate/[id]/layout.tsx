@@ -6,6 +6,8 @@ export async function generateMetadata({ params: paramsPromise }: { params: Prom
   const shareTitle = 'Official Cloud Deployment Certificate | CodeHost';
   const shareDesc = 'Cryptographically verified production cloud deployment certificate issued by CodeHost for shipping live applications to the cloud.';
 
+  const ogImageUrl = `https://code-host.online/certificate/${encodeURIComponent(certId)}/opengraph-image`;
+
   return {
     title: shareTitle,
     description: shareDesc,
@@ -16,10 +18,10 @@ export async function generateMetadata({ params: paramsPromise }: { params: Prom
       siteName: 'CodeHost',
       images: [
         {
-          url: 'https://code-host.online/og-image.png',
+          url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: 'CodeHost Cloud Deployment Certificate',
+          alt: 'CodeHost Official Cloud Deployment Certificate',
         },
       ],
       type: 'website',
@@ -28,7 +30,7 @@ export async function generateMetadata({ params: paramsPromise }: { params: Prom
       card: 'summary_large_image',
       title: shareTitle,
       description: shareDesc,
-      images: ['https://code-host.online/og-image.png'],
+      images: [ogImageUrl],
     },
   };
 }
