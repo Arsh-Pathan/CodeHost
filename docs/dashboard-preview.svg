@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="650" viewBox="0 0 1120 650" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1120" y2="650" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#EEF4FF"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#4F7DFF"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="shadow" x="40" y="30" width="1040" height="600" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="14"/>
+      <feGaussianBlur stdDeviation="18"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.08 0 0 0 0 0.16 0 0 0 0 0.32 0 0 0 0.12 0"/>
+      <feBlend in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
+  </defs>
+  <rect width="1120" height="650" rx="30" fill="url(#bg)"/>
+  <g filter="url(#shadow)">
+    <rect x="76" y="58" width="968" height="534" rx="24" fill="white"/>
+    <path d="M100 58h920a24 24 0 0 1 24 24v50H76V82a24 24 0 0 1 24-24Z" fill="#F8FAFC"/>
+    <path d="M76 132h968" stroke="#E8EDF4"/>
+    <circle cx="105" cy="95" r="6" fill="#EF5350"/>
+    <circle cx="127" cy="95" r="6" fill="#FFB300"/>
+    <circle cx="149" cy="95" r="6" fill="#10B981"/>
+    <rect x="766" y="78" width="246" height="34" rx="17" fill="white" stroke="#E7ECF3"/>
+    <circle cx="789" cy="95" r="5" fill="#10B981"/>
+    <text x="804" y="100" fill="#64748B" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="600">my-website.code-host.online</text>
+
+    <rect x="100" y="160" width="205" height="397" rx="16" fill="#F8FAFC"/>
+    <rect x="116" y="178" width="173" height="42" rx="12" fill="#EFF6FF" stroke="#DBEAFE"/>
+    <circle cx="137" cy="199" r="6" fill="#2563EB"/>
+    <text x="153" y="203" fill="#2563EB" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="1">OVERVIEW</text>
+    <circle cx="137" cy="251" r="5" fill="#94A3B8"/>
+    <text x="153" y="255" fill="#64748B" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="1">DEPLOYMENTS</text>
+    <circle cx="137" cy="303" r="5" fill="#94A3B8"/>
+    <text x="153" y="307" fill="#64748B" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="1">SETTINGS</text>
+    <circle cx="137" cy="355" r="5" fill="#94A3B8"/>
+    <text x="153" y="359" fill="#64748B" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="1">LOGS</text>
+    <rect x="117" y="486" width="171" height="52" rx="12" fill="white" stroke="#E8EDF4"/>
+    <circle cx="138" cy="512" r="5" fill="#10B981"/>
+    <text x="153" y="509" fill="#94A3B8" font-family="Inter,Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="1">STATUS</text>
+    <text x="153" y="525" fill="#059669" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700">All systems up</text>
+
+    <text x="340" y="194" fill="#0F172A" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="800">Your Project</text>
+    <circle cx="347" cy="221" r="5" fill="#10B981"/>
+    <text x="361" y="225" fill="#059669" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="800" letter-spacing="1.5">RUNNING</text>
+    <rect x="827" y="176" width="88" height="38" rx="10" fill="#0F172A"/>
+    <text x="849" y="200" fill="white" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="800" letter-spacing="1">RESTART</text>
+    <rect x="925" y="176" width="92" height="38" rx="10" fill="#FEF2F2" stroke="#FECACA"/>
+    <text x="950" y="200" fill="#DC2626" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="800" letter-spacing="1">STOP</text>
+
+    <g>
+      <rect x="340" y="248" width="210" height="120" rx="15" fill="#FBFDFF" stroke="#E8EDF4"/>
+      <circle cx="365" cy="278" r="10" fill="#EFF6FF"/>
+      <path d="M365 272v12m-5-6h10" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+      <text x="384" y="282" fill="#94A3B8" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="1.2">CPU</text>
+      <text x="506" y="282" fill="#0F172A" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="800" text-anchor="end">24%</text>
+      <rect x="360" y="327" width="170" height="7" rx="3.5" fill="#E9EEF5"/>
+      <rect x="360" y="327" width="41" height="7" rx="3.5" fill="url(#blue)"/>
+    </g>
+    <g>
+      <rect x="565" y="248" width="210" height="120" rx="15" fill="#FBFDFF" stroke="#E8EDF4"/>
+      <circle cx="590" cy="278" r="10" fill="#F5F3FF"/>
+      <path d="M586 274h8v8h-8z" stroke="#8B5CF6" stroke-width="1.7"/>
+      <text x="609" y="282" fill="#94A3B8" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="1.2">RAM</text>
+      <text x="731" y="282" fill="#0F172A" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="800" text-anchor="end">68%</text>
+      <rect x="585" y="327" width="170" height="7" rx="3.5" fill="#E9EEF5"/>
+      <rect x="585" y="327" width="116" height="7" rx="3.5" fill="#8B5CF6"/>
+    </g>
+    <g>
+      <rect x="790" y="248" width="227" height="120" rx="15" fill="#FBFDFF" stroke="#E8EDF4"/>
+      <circle cx="815" cy="278" r="10" fill="#ECFDF5"/>
+      <path d="m810 278 4 4 7-8" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="834" y="282" fill="#94A3B8" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="1.2">BUILD</text>
+      <text x="973" y="282" fill="#0F172A" font-family="Inter,Arial,sans-serif" font-size="21" font-weight="800" text-anchor="end">100%</text>
+      <rect x="810" y="327" width="187" height="7" rx="3.5" fill="#E9EEF5"/>
+      <rect x="810" y="327" width="187" height="7" rx="3.5" fill="#10B981"/>
+    </g>
+
+    <rect x="340" y="392" width="677" height="165" rx="16" fill="#0F171A"/>
+    <circle cx="366" cy="419" r="5" fill="#10B981"/>
+    <text x="382" y="423" fill="#94A3B8" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="1.1">LIVE DEPLOYMENT LOGS</text>
+    <text x="360" y="459" fill="#94A3B8" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="13">&gt; Determining project type...</text>
+    <text x="360" y="483" fill="#F8FAFC" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="13">&gt; Detected Next.js project</text>
+    <text x="360" y="507" fill="#94A3B8" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="13">&gt; Building your app... npm run build</text>
+    <text x="360" y="533" fill="#34D399" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="13">&gt; Deployment live: coffee.code-host.online</text>
+  </g>
+</svg>
