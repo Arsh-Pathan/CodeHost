@@ -74,6 +74,8 @@ CMD ["sh", "-c", "cd database && npx prisma db push --accept-data-loss --skip-ge
 # --- Stage 3: Web Runner ---
 FROM node:20-alpine AS web
 
+RUN apk add --no-cache fontconfig font-dejavu font-liberation font-inter
+
 WORKDIR /app
 ENV NODE_ENV=production
 
