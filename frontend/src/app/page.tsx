@@ -49,6 +49,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { fetchApi } from '@/lib/api';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { MobileFloatingIsland } from '@/components/MobileFloatingIsland';
+import { SmoothMotionProvider } from '@/components/SmoothMotionProvider';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -58,18 +59,6 @@ const TechSymbol = ({ children, className, style }: any) => (
   </div>
 );
 
-const SplitText = ({ text, className }: { text: string; className?: string }) => (
-  <>
-    {text.split("").map((char, i) => (
-      <span
-        key={i}
-        className={`hero-letter inline-block ${className || ""}`}
-      >
-        {char === " " ? "\u00A0" : char}
-      </span>
-    ))}
-  </>
-);
 
 const STARTER_TEMPLATES = [
   {
@@ -85,7 +74,7 @@ const STARTER_TEMPLATES = [
 export default async function Page() {
   return (
     <main className="min-h-screen bg-slate-900 text-white p-8">
-      <h1 className="text-3xl font-black">⚡ Live on CodeHost</h1>
+      <h1 className="text-3xl font-black">Live on CodeHost</h1>
       <p className="text-slate-400 mt-2">Zero DevOps. Production ready.</p>
     </main>
   );
@@ -165,7 +154,7 @@ import "github.com/gofiber/fiber/v2"
 func main() {
     app := fiber.New()
     app.Get("/", func(c *fiber.Ctx) error {
-        return c.SendString("⚡ 0.2ms Latency on CodeHost")
+        return c.SendString("0.2ms Latency on CodeHost")
     })
     app.Listen(":3000")
 }`,
@@ -251,41 +240,26 @@ export default function Home() {
   useEffect(() => {
     // Hero Entrance
     const ctx = gsap.context(() => {
-      // Scroll-driven letter scatter: each letter flies off in a random direction
-      // on scroll down, and reassembles when scrolling back up
-      document.querySelectorAll(".hero-letter").forEach((letter) => {
-        const randX = gsap.utils.random(-200, 200);
-        const randY = gsap.utils.random(-150, 150);
-        const randRotate = gsap.utils.random(-90, 90);
-
-        gsap.to(letter, {
-          x: randX,
-          y: randY,
-          rotation: randRotate,
-          opacity: 0,
-          ease: "power2.in",
-          scrollTrigger: {
-            trigger: ".hero-title",
-            start: "top 20%",
-            end: "bottom -20%",
-            scrub: 1,
-          },
-        });
+      gsap.from(".hero-title", {
+        y: 28,
+        opacity: 0,
+        duration: 0.9,
+        ease: "power3.out"
       });
 
       gsap.from(".hero-subtext", {
-        y: 30,
+        y: 24,
         opacity: 0,
-        duration: 1,
-        delay: 0.3,
+        duration: 0.9,
+        delay: 0.15,
         ease: "power3.out"
       });
 
       gsap.from(".hero-btns", {
-        y: 20,
+        y: 18,
         opacity: 0,
-        duration: 1,
-        delay: 0.5,
+        duration: 0.8,
+        delay: 0.28,
         ease: "power3.out"
       });
 
@@ -295,9 +269,9 @@ export default function Home() {
           trigger: ".dashboard-preview",
           start: "top 85%",
         },
-        y: 60,
+        y: 50,
         opacity: 0,
-        duration: 1.2,
+        duration: 1.1,
         ease: "power3.out"
       });
 
@@ -361,11 +335,12 @@ export default function Home() {
         ease: "power3.out"
       });
 
+       // Gentle ambient drift without mouse tracking jitter
        gsap.to(".floating-symbol", {
-         y: "random(-30, 30)",
-         x: "random(-20, 20)",
-         rotation: "random(-15, 15)",
-         duration: "random(3, 5)",
+         y: "random(-16, 16)",
+         x: "random(-12, 12)",
+         rotation: "random(-8, 8)",
+         duration: "random(6, 9)",
          repeat: -1,
          yoyo: true,
          ease: "sine.inOut",
@@ -374,52 +349,27 @@ export default function Home() {
            from: "random"
          }
        });
-
-       let rafId: number | null = null;
-       const onMouseMove = (e: MouseEvent) => {
-          if (rafId) return;
-          rafId = window.requestAnimationFrame(() => {
-             const { clientX, clientY } = e;
-             const xPos = (clientX / window.innerWidth) - 0.5;
-             const yPos = (clientY / window.innerHeight) - 0.5;
-
-             gsap.to(".floating-symbol", {
-                xPercent: xPos * 15,
-                yPercent: yPos * 15,
-                duration: 0.8,
-                ease: "power2.out",
-                stagger: 0.01
-             });
-             rafId = null;
-          });
-       };
-
-       window.addEventListener("mousemove", onMouseMove, { passive: true });
-       return () => {
-         window.removeEventListener("mousemove", onMouseMove);
-         if (rafId) window.cancelAnimationFrame(rafId);
-       };
      }, [heroRef]);
 
      return () => ctx.revert();
    }, []);
 
    return (
-     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
-       <LoadingScreen />
+     <SmoothMotionProvider>
+       <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
+         <LoadingScreen />
 
-       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <TechSymbol className="top-[15%] left-[10%] text-[#FF6B6B]/20" style={{ fontSize: '120px' }}>{"{"}</TechSymbol>
-          <TechSymbol className="top-[25%] right-[15%] text-[#FFD93D]/20" style={{ fontSize: '80px' }}>{"}"}</TechSymbol>
-          <TechSymbol className="bottom-[20%] left-[15%] text-[#6BCBCA]/20" style={{ fontSize: '60px' }}>{"< >"}</TechSymbol>
-          <TechSymbol className="bottom-[15%] right-[10%] text-[#4D96FF]/20" style={{ fontSize: '100px' }}>{"/"}</TechSymbol>
-          <TechSymbol className="top-[40%] left-[5%] text-[#6BCBCA]/10" style={{ fontSize: '40px' }}>{"const"}</TechSymbol>
-          <TechSymbol className="bottom-[35%] right-[5%] text-[#FFD93D]/10" style={{ fontSize: '50px' }}>{"[]"}</TechSymbol>
-          <TechSymbol className="top-[60%] right-[20%] text-[#FF6B6B]/10" style={{ fontSize: '30px' }}>{"*"}</TechSymbol>
-       </div>
+         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+            <TechSymbol className="top-[15%] left-[10%] text-blue-500/10" style={{ fontSize: '100px' }}>{"{"}</TechSymbol>
+            <TechSymbol className="top-[25%] right-[15%] text-amber-500/10" style={{ fontSize: '70px' }}>{"}"}</TechSymbol>
+            <TechSymbol className="bottom-[20%] left-[15%] text-teal-500/10" style={{ fontSize: '50px' }}>{"< >"}</TechSymbol>
+            <TechSymbol className="bottom-[15%] right-[10%] text-blue-500/10" style={{ fontSize: '90px' }}>{"/"}</TechSymbol>
+            <TechSymbol className="top-[40%] left-[5%] text-slate-400/10" style={{ fontSize: '36px' }}>{"const"}</TechSymbol>
+            <TechSymbol className="bottom-[35%] right-[5%] text-slate-400/10" style={{ fontSize: '40px' }}>{"[]"}</TechSymbol>
+         </div>
 
-       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05]"
-            style={{ backgroundImage: 'radial-gradient(#2563EB 2px, transparent 2px)', backgroundSize: '60px 60px' }} />
+         <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04]"
+              style={{ backgroundImage: 'radial-gradient(#2563EB 2px, transparent 2px)', backgroundSize: '60px 60px' }} />
 
       <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-2xl px-4 sm:px-8 py-3 sm:py-5 flex items-center justify-between border-b border-slate-100/60 transition-all">
         <div className="scale-90 sm:scale-100 origin-left">
@@ -433,13 +383,13 @@ export default function Home() {
         </div>
         <div className="flex items-center space-x-2 sm:space-x-3">
           {isLoggedIn ? (
-            <Link href="/dashboard" className="px-4 sm:px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm active:scale-95">
+            <Link href="/dashboard" className="px-5 py-2.5 bg-[#0F172A] text-white text-xs font-semibold rounded-full hover:bg-slate-800 transition-all shadow-sm active:scale-95">
                Dashboard
             </Link>
           ) : (
             <>
-              <Link href="/login" className="text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 px-2.5 sm:px-4 py-2 transition-colors">Login</Link>
-              <Link href="/signup" className="px-3.5 sm:px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm active:scale-95">
+              <Link href="/login" className="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-2 transition-colors">Login</Link>
+              <Link href="/signup" className="px-5 py-2.5 bg-[#0F172A] text-white text-xs font-semibold rounded-full hover:bg-slate-800 transition-all shadow-sm active:scale-95">
                  Get Started
               </Link>
             </>
@@ -447,114 +397,115 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <header id="hero" ref={heroRef} className="relative pt-28 sm:pt-36 md:pt-56 pb-12 sm:pb-20 px-4 sm:px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+      {/* Smooth Motion Scroll Content */}
+      <div id="smooth-motion-target" className="relative transition-[filter] duration-75">
+        {/* Hero Section */}
+        <header id="hero" ref={heroRef} className="relative pt-28 sm:pt-36 md:pt-56 pb-12 sm:pb-20 px-4 sm:px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
 
-          <h1 className="hero-title text-4xl sm:text-6xl md:text-8xl font-black tracking-tightest leading-[1.05] sm:leading-[0.95] max-w-4xl mb-6 sm:mb-10 text-[#0F172A]">
-              <span className="block"><SplitText text="Cloud, Made" /></span>
-              <span className="block"><SplitText text="Simple" className="text-[#2563EB]" /></span>
-          </h1>
+            <h1 className="hero-title text-4xl sm:text-6xl md:text-8xl font-black tracking-tight leading-[1.05] sm:leading-[0.95] max-w-4xl mb-6 sm:mb-10 text-[#0F172A]">
+                <span className="block">Cloud, Made</span>
+                <span className="block text-[#2563EB]">Simple</span>
+            </h1>
 
-        <p className="hero-subtext text-base sm:text-lg md:text-xl text-slate-500 font-medium max-w-2xl mb-8 sm:mb-12 px-2">
-           The simplest cloud platform for students. No Linux, no Docker, no terminals. Just one-click and your project is online.
-        </p>
+          <p className="hero-subtext text-base sm:text-lg md:text-xl text-slate-500 font-medium max-w-2xl mb-8 sm:mb-12 px-2">
+             The simplest cloud platform for students. No Linux, no Docker, no terminals. Just one-click and your project is online.
+          </p>
 
-        <div className="hero-btns w-full flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 mx-auto">
-          <Link href="/signup" className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-[#0F172A] text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center space-x-2 active:scale-95 shadow-md">
-             <span>Start Hosting Free</span>
-             <ArrowRight size={16} />
-          </Link>
-          <Link href="#features" className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-white border border-slate-200 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all flex items-center justify-center active:scale-95">
-             See how it works
-          </Link>
-        </div>
+          <div className="hero-btns w-full flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 mx-auto">
+            <Link href="/signup" className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-[#0F172A] text-white text-sm font-semibold rounded-full hover:bg-slate-800 transition-all flex items-center justify-center space-x-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95">
+               <span>Start Hosting Free</span>
+               <ArrowRight size={16} />
+            </Link>
+            <Link href="#features" className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-white border border-slate-200/90 text-slate-700 text-sm font-semibold rounded-full hover:bg-slate-50 hover:text-slate-900 transition-all flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95">
+               See how it works
+            </Link>
+          </div>
 
-        {/* Dashboard Preview - Floating mockup with animated glow border */}
-        <div className="mt-16 sm:mt-24 md:mt-44 mb-16 sm:mb-20 md:mb-28 dashboard-preview relative max-w-5xl mx-auto w-full group">
-          <div className="glow-border rounded-2xl sm:rounded-[2.5rem]">
-            <div className="relative bg-[#F8FAFC] rounded-2xl sm:rounded-[2.5rem] border border-white/80 shadow-2xl overflow-hidden p-4 sm:p-6 md:p-8">
-               <div className="flex items-center space-x-2 mb-8">
-                  <div className="w-3 h-3 rounded-full bg-[#E53935]" />
-                  <div className="w-3 h-3 rounded-full bg-[#FFB300]" />
-                  <div className="w-3 h-3 rounded-full bg-[#00BFA5]" />
-                  <div className="flex-1" />
-                  <div className="px-4 py-1.5 bg-white/40 backdrop-blur rounded-full border border-white text-[10px] font-bold text-slate-400">
-                    my-website.code-host.online
-                  </div>
-               </div>
+          {/* Dashboard Preview - Floating mockup with clean window border */}
+          <div className="mt-16 sm:mt-24 md:mt-36 mb-16 sm:mb-20 md:mb-28 dashboard-preview relative max-w-5xl mx-auto w-full group">
+            <div className="rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.06)] overflow-hidden">
+              <div className="relative bg-[#F8FAFC] p-4 sm:p-6 md:p-8 border-b border-slate-100">
+                 <div className="flex items-center space-x-2 mb-6 sm:mb-8">
+                    <div className="w-3 h-3 rounded-full bg-[#EA4335]/80" />
+                    <div className="w-3 h-3 rounded-full bg-[#FBBC05]/80" />
+                    <div className="w-3 h-3 rounded-full bg-[#34A853]/80" />
+                    <div className="flex-1" />
+                    <div className="px-4 py-1.5 bg-white rounded-full border border-slate-200/80 text-[11px] font-semibold text-slate-500 shadow-sm">
+                      my-website.code-host.online
+                    </div>
+                 </div>
 
-                <div className="grid grid-cols-12 gap-8">
-                  {/* Sidebar - Cleanly hidden on mobile to keep mobile view simple & focused */}
-                  <div className="hidden md:block md:col-span-3 space-y-4">
-                     <div className="h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center px-4">
-                        <Activity size={14} className="text-blue-500 mr-2" />
-                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Overview</span>
-                     </div>
-                     {[
-                       { label: "Deployments", icon: <Zap size={14} /> },
-                       { label: "Settings", icon: <Shield size={14} /> },
-                       { label: "Logs", icon: <Terminal size={14} /> },
-                     ].map((item, idx) => (
-                       <div key={idx} className="h-12 rounded-2xl bg-white/60 border border-white flex items-center px-4 hover:bg-white/80 transition-colors cursor-pointer">
-                          <span className="text-slate-400 mr-2">{item.icon}</span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
+                  <div className="grid grid-cols-12 gap-8">
+                    {/* Sidebar - Cleanly hidden on mobile to keep mobile view simple & focused */}
+                    <div className="hidden md:block md:col-span-3 space-y-3">
+                       <div className="h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center px-4">
+                          <Activity size={14} className="text-blue-500 mr-2" />
+                          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Overview</span>
                        </div>
-                     ))}
-                  </div>
+                       {[
+                         { label: "Deployments", icon: <Zap size={14} /> },
+                         { label: "Settings", icon: <Shield size={14} /> },
+                         { label: "Logs", icon: <Terminal size={14} /> },
+                       ].map((item, idx) => (
+                         <div key={idx} className="h-11 rounded-xl bg-white/70 border border-slate-100 flex items-center px-4 hover:bg-white transition-colors cursor-pointer">
+                            <span className="text-slate-400 mr-2">{item.icon}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
+                         </div>
+                       ))}
+                    </div>
 
-                  <div className="col-span-12 md:col-span-9 bg-white rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 md:p-10 shadow-sm relative border border-white/50">
-                     <div className="flex flex-row justify-between items-center gap-2 mb-6 sm:mb-10">
-                        <div>
-                           <h4 className="text-lg sm:text-2xl font-black text-[#0F172A]">Your Project</h4>
-                           <div className="flex items-center mt-1 space-x-2">
-                              <span className="relative flex h-2 w-2">
-                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                              </span>
-                              <p className="text-[9px] sm:text-[10px] text-emerald-600 font-black uppercase tracking-widest">Running</p>
-                           </div>
-                        </div>
-                        <div className="flex space-x-2 sm:space-x-3">
-                           <button className="px-3 sm:px-5 py-2 sm:py-2.5 bg-[#0F172A] text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-black transition-all">Restart</button>
-                           <button className="px-3 sm:px-5 py-2 sm:py-2.5 bg-[#FFEBEE] text-[#E53935] border border-red-100 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-red-100 transition-all">Stop</button>
-                        </div>
-                     </div>
+                    <div className="col-span-12 md:col-span-9 bg-white rounded-2xl p-5 sm:p-8 md:p-10 shadow-sm relative border border-slate-100">
+                       <div className="flex flex-row justify-between items-center gap-2 mb-6 sm:mb-8">
+                          <div>
+                             <h4 className="text-lg sm:text-2xl font-black text-[#0F172A]">Your Project</h4>
+                             <div className="flex items-center mt-1 space-x-2">
+                                <span className="relative flex h-2 w-2">
+                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                <p className="text-[9px] sm:text-[10px] text-emerald-600 font-bold uppercase tracking-widest">Running</p>
+                             </div>
+                          </div>
+                          <div className="flex space-x-2 sm:space-x-3">
+                             <button className="px-3.5 sm:px-5 py-2 bg-[#0F172A] text-white rounded-full text-[10px] sm:text-xs font-semibold cursor-pointer hover:bg-slate-800 transition-all">Restart</button>
+                             <button className="px-3.5 sm:px-5 py-2 bg-red-50 text-red-600 border border-red-100 rounded-full text-[10px] sm:text-xs font-semibold cursor-pointer hover:bg-red-100 transition-all">Stop</button>
+                          </div>
+                       </div>
 
-                     <div className="grid grid-cols-3 gap-2.5 sm:gap-6 mb-6 sm:mb-8">
-                        <div className="rounded-xl sm:rounded-2xl bg-slate-50/50 border border-slate-100 p-3 sm:p-6 hover:shadow-md transition-shadow">
-                           <div className="flex items-center justify-between mb-1.5 sm:mb-3">
-                              <Cpu size={16} className="text-[#2563EB]" />
-                              <span className="text-xs sm:text-lg font-black text-[#0F172A]">24%</span>
-                           </div>
-                           <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 sm:mb-2 truncate">CPU</p>
-                           <div className="h-1 sm:h-1.5 w-full bg-slate-200/50 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#2563EB] rounded-full transition-all duration-1000" style={{ width: '24%' }} />
-                           </div>
-                        </div>
-                        <div className="rounded-xl sm:rounded-2xl bg-slate-50/50 border border-slate-100 p-3 sm:p-6 hover:shadow-md transition-shadow">
-                           <div className="flex items-center justify-between mb-1.5 sm:mb-3">
-                              <HardDrive size={16} className="text-[#8B5CF6]" />
-                              <span className="text-xs sm:text-lg font-black text-[#0F172A]">68%</span>
-                           </div>
-                           <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 sm:mb-2 truncate">RAM</p>
-                           <div className="h-1 sm:h-1.5 w-full bg-slate-200/50 rounded-full overflow-hidden">
+                       <div className="grid grid-cols-3 gap-2.5 sm:gap-6 mb-6 sm:mb-8">
+                          <div className="rounded-xl bg-slate-50/70 border border-slate-100 p-3 sm:p-5 hover:shadow-sm transition-shadow">
+                             <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+                                <Cpu size={16} className="text-[#2563EB]" />
+                                <span className="text-xs sm:text-lg font-black text-[#0F172A]">24%</span>
+                             </div>
+                             <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 sm:mb-2 truncate">CPU</p>
+                             <div className="h-1 sm:h-1.5 w-full bg-slate-200/60 rounded-full overflow-hidden">
+                                <div className="h-full bg-[#2563EB] rounded-full transition-all duration-1000" style={{ width: '24%' }} />
+                             </div>
+                          </div>
+                          <div className="rounded-xl bg-slate-50/70 border border-slate-100 p-3 sm:p-5 hover:shadow-sm transition-shadow">
+                             <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+                                <HardDrive size={16} className="text-[#8B5CF6]" />
+                                <span className="text-xs sm:text-lg font-black text-[#0F172A]">68%</span>
+                             </div>
+                             <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 sm:mb-2 truncate">RAM</p>
+                             <div className="h-1 sm:h-1.5 w-full bg-slate-200/60 rounded-full overflow-hidden">
                               <div className="h-full bg-[#8B5CF6] rounded-full transition-all duration-1000" style={{ width: '68%' }} />
                            </div>
                         </div>
-                        <div className="rounded-xl sm:rounded-2xl bg-slate-50/50 border border-slate-100 p-3 sm:p-6 hover:shadow-md transition-shadow">
+                        <div className="rounded-xl bg-slate-50/70 border border-slate-100 p-3 sm:p-5 hover:shadow-sm transition-shadow">
                            <div className="flex items-center justify-between mb-1.5 sm:mb-3">
                               <Activity size={16} className="text-[#00BFA5]" />
                               <span className="text-xs sm:text-lg font-black text-[#0F172A]">100%</span>
                            </div>
                            <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 sm:mb-2 truncate">Build</p>
-                           <div className="h-1 sm:h-1.5 w-full bg-slate-200/50 rounded-full overflow-hidden">
+                           <div className="h-1 sm:h-1.5 w-full bg-slate-200/60 rounded-full overflow-hidden">
                               <div className="h-full bg-[#00BFA5] rounded-full transition-all duration-1000" style={{ width: '100%' }} />
                            </div>
                         </div>
                      </div>
 
-
-                     <div className="p-6 bg-[#0F171A] rounded-2xl font-mono text-xs text-blue-400 space-y-1.5 shadow-xl">
+                     <div className="p-5 sm:p-6 bg-[#0F171A] rounded-xl font-mono text-xs text-blue-400 space-y-1.5 shadow-md">
                         <p className="opacity-70">&gt; Determining project type...</p>
                         <p className="text-white">&gt; Detected Next.js project</p>
                         <p className="opacity-70">&gt; Building your app...</p>
@@ -562,7 +513,7 @@ export default function Home() {
                         <p className="text-[#00BFA5]">&gt; Deployment Live: coffee.code-host.online</p>
                      </div>
                   </div>
-               </div>
+                </div>
             </div>
           </div>
         </div>
@@ -816,7 +767,9 @@ export default function Home() {
               <div className="space-y-3.5 font-mono text-xs">
                 <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">✓</span>
+                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">
+                      <Check size={11} strokeWidth={3} />
+                    </span>
                     <span className="text-slate-200 font-semibold">Clone repo & inspect manifest</span>
                   </div>
                   <span className="text-slate-500 text-[11px]">0.4s</span>
@@ -824,7 +777,9 @@ export default function Home() {
 
                 <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">✓</span>
+                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">
+                      <Check size={11} strokeWidth={3} />
+                    </span>
                     <span className="text-slate-200 font-semibold">Install production packages</span>
                   </div>
                   <span className="text-slate-500 text-[11px]">3.6s</span>
@@ -832,7 +787,9 @@ export default function Home() {
 
                 <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">✓</span>
+                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">
+                      <Check size={11} strokeWidth={3} />
+                    </span>
                     <span className="text-slate-200 font-semibold">Turbo build & asset optimization</span>
                   </div>
                   <span className="text-slate-500 text-[11px]">8.1s</span>
@@ -1449,8 +1406,8 @@ export default function Home() {
                       <span className="text-[11px]">Powered by <strong className="text-blue-400">CodeHost</strong></span>
                     </div>
                   ) : (
-                    <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
-                      ✓ White-label active: Badge removed
+                    <span className="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
+                      <Check size={12} strokeWidth={2.5} /> White-label active: Badge removed
                     </span>
                   )}
                 </div>
@@ -1923,8 +1880,9 @@ export default function Home() {
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
                 {['2 vCPUs Dedicated', '2GB High-Speed RAM', 'Priority Build Sandboxes', 'Instant Let\'s Encrypt SSL', 'Zero Monthly Lock-In'].map((tag, idx) => (
-                  <span key={idx} className="px-2.5 py-1 rounded-lg bg-white/10 text-white font-mono text-[10px] font-bold border border-white/10">
-                    ✓ {tag}
+                  <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 text-white font-mono text-[10px] font-bold border border-white/10">
+                    <Check size={10} strokeWidth={3} className="text-emerald-400" />
+                    <span>{tag}</span>
                   </span>
                 ))}
               </div>
@@ -1934,7 +1892,7 @@ export default function Home() {
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">3 Days (72h) Pro Access</p>
               <Link
                 href="/signup"
-                className="inline-flex w-full md:w-auto px-8 py-3.5 sm:py-4 bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-400 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/30 items-center justify-center space-x-2 cursor-pointer"
+                className="inline-flex w-full md:w-auto px-8 py-3.5 sm:py-4 bg-blue-500 text-white rounded-full text-xs font-bold uppercase tracking-wider hover:bg-blue-400 transition-all shadow-md shadow-blue-500/20 items-center justify-center space-x-2 cursor-pointer active:scale-95"
               >
                 <span>Claim Pass Now</span>
                 <ArrowRight size={14} />
@@ -2020,28 +1978,29 @@ export default function Home() {
 
       {/* High-Impact CTA Section */}
       <section className="py-20 px-6 max-w-7xl mx-auto">
-        <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 rounded-[3rem] p-10 md:p-16 text-white text-center relative overflow-hidden shadow-2xl">
+        <div className="relative rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-b from-blue-50/70 via-white to-slate-50/80 border border-blue-100/80 p-10 md:p-16 text-center shadow-lg shadow-blue-500/5 overflow-hidden">
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-100/40 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-            <span className="text-[11px] font-black uppercase tracking-[0.25em] text-blue-400 bg-blue-500/10 px-3.5 py-1.5 rounded-full border border-blue-400/20">
+            <span className="inline-flex items-center text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-200/60 shadow-xs">
               Launch Today
             </span>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight text-slate-900">
               Ready to deploy your next project in 30 seconds?
             </h2>
-            <p className="text-slate-400 font-medium text-base">
+            <p className="text-slate-600 font-medium text-base sm:text-lg">
               Join students and developers who build and ship faster on CodeHost. Free tier available forever with zero credit card required.
             </p>
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <Link
                 href="/signup"
-                className="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2"
+                className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-[#0F172A] text-white text-sm font-semibold rounded-full hover:bg-slate-800 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 flex items-center justify-center space-x-2"
               >
                 <span>Start Hosting Free</span>
                 <ArrowRight size={16} />
               </Link>
               <Link
                 href="/docs"
-                className="w-full sm:w-auto px-8 py-4 bg-white/10 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-white/20 transition-all flex items-center justify-center"
+                className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-full hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 flex items-center justify-center"
               >
                 Read Documentation
               </Link>
@@ -2103,9 +2062,11 @@ export default function Home() {
             </div>
          </div>
       </footer>
+      </div>
 
       {/* Floating Island Navigation for Mobile */}
       <MobileFloatingIsland isLoggedIn={isLoggedIn} serverCount={serverCount} />
     </div>
+  </SmoothMotionProvider>
   );
 }
