@@ -116,20 +116,63 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* Subtle tactile frame elevation */
+/* Animated glow border — static by default, spins on hover */
+@property --glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes glow-spin {
+  to {
+    --glow-angle: 360deg;
+  }
+}
+
 .glow-border {
   position: relative;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glow-border::before,
+.glow-border::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--glow-angle),
+    #E53935,
+    #FFB300,
+    #00BFA5,
+    #E53935
+  );
+  z-index: -1;
+  animation: none;
+  transition: opacity 0.4s ease;
 }
 
 .glow-border::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(37, 99, 235, 0.12) 0%, rgba(226, 232, 240, 0.6) 100%);
-  z-index: -1;
-  pointer-events: none;
+  filter: blur(1.25rem);
+  opacity: 0.25;
+}
+
+.glow-border::after {
+  filter: blur(0.4rem);
+  opacity: 0.15;
+}
+
+/* Hover: spin faster + slight intensity bump */
+.glow-border:hover::before,
+.glow-border:hover::after {
+  animation: glow-spin 2s linear infinite;
+}
+
+.glow-border:hover::before {
+  opacity: 0.4;
+}
+
+.glow-border:hover::after {
+  opacity: 0.25;
 }
 
 @layer base {
