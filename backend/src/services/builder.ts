@@ -79,40 +79,6 @@ export class BuilderService {
     return `CMD ["sh", "-c", "${startCmd}"]`;
   }
 
-  /** Hardened Nginx configuration for static site containers (SPA routing + sensitive file protection) */
-  private static getNginxStaticSnippet(): string {
-    return `
-RUN rm -f /etc/nginx/conf.d/default.conf && \\
-    printf 'server {\\n\\
-    listen 80;\\n\\
-    server_name localhost;\\n\\
-    root /usr/share/nginx/html;\\n\\
-    index index.html index.htm;\\n\\
-    server_tokens off;\\n\\
-\\n\\
-    # Safely block sensitive configuration files without log noise\\n\\
-    location ~* (^|/)(\\\\.(env|git|docker|aws|ssh|config|svn|hg)|docker-compose|package(-lock)?\\\\.json|tsconfig\\\\.json|Dockerfile)|\\\\.(pem|key|crt|sql|db|sqlite|log|bak|swp|temp|old|ini|conf)\$ {\\n\\
-        return 404;\\n\\
-        log_not_found off;\\n\\
-        access_log off;\\n\\
-    }\\n\\
-\\n\\
-    # Safely block hidden files\\n\\
-    location ~ /\\\\. {\\n\\
-        deny all;\\n\\
-        log_not_found off;\\n\\
-        access_log off;\\n\\
-    }\\n\\
-\\n\\
-    # SPA fallback routing\\n\\
-    location / {\\n\\
-        try_files \\$uri \\$uri/ /index.html =404;\\n\\
-    }\\n\\
-}\\n' > /etc/nginx/conf.d/default.conf && \\
-    rm -rf /usr/share/nginx/html/.git /usr/share/nginx/html/.env* /usr/share/nginx/html/*.pem /usr/share/nginx/html/*.key 2>/dev/null || true
-`;
-  }
-
   private static async detectAndGenerateDockerfile(sourceDir: string, project: any): Promise<string> {
     const files = await fs.readdir(sourceDir);
     let dockerfile = '';
@@ -173,7 +139,6 @@ RUN rm -f /etc/nginx/conf.d/default.conf && \\
       dockerfile = `
 FROM nginx:alpine
 COPY . /usr/share/nginx/html
-${this.getNginxStaticSnippet()}
 EXPOSE 80
       `;
     }
@@ -289,7 +254,6 @@ COPY . .
 RUN ${hasBuild ? 'npm run build' : 'npx gatsby build'}
 FROM nginx:alpine
 COPY --from=builder /app/public /usr/share/nginx/html
-${this.getNginxStaticSnippet()}
 EXPOSE 80
       `;
     }
@@ -307,7 +271,6 @@ COPY . .
 RUN ${hasBuild ? 'npm run build' : 'npx ng build --configuration production'}
 FROM nginx:alpine
 COPY --from=builder /app/dist/${projectName}/browser /usr/share/nginx/html
-${this.getNginxStaticSnippet()}
 EXPOSE 80
       `;
     }
@@ -366,7 +329,6 @@ COPY . .
 RUN ${hasBuild ? 'npm run build' : 'npx astro build'}
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-${this.getNginxStaticSnippet()}
 EXPOSE 80
       `;
     }
@@ -400,7 +362,6 @@ COPY . .
 RUN npm run build
 FROM nginx:alpine
 COPY --from=builder /app/build /usr/share/nginx/html
-${this.getNginxStaticSnippet()}
 EXPOSE 80
       `;
     }
@@ -417,7 +378,6 @@ COPY . .
 RUN ${hasBuild ? 'npm run build' : 'npx vite build'}
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-${this.getNginxStaticSnippet()}
 EXPOSE 80
       `;
     }
@@ -452,7 +412,6 @@ RUN npm run build
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY --from=builder /app/build /usr/share/nginx/html
-${this.getNginxStaticSnippet()}
 EXPOSE 80
       `;
     }
@@ -840,15 +799,13 @@ ${this.cmdFrom(startCmd)}
       });
 
       if (zipPath) {
-        emitLog('[Step 1/4] Preparing project source files...');
-        emitLog('[Step 1/4] Extracting uploaded project archive...');
+        emitLog('> Reading your code...');
         await fs.ensureDir(sourceDir);
         await fs.emptyDir(sourceDir);
         this.extractZip(zipPath, sourceDir);
-        emitLog('[Step 1/4] Project source code loaded successfully.');
       } else if (gitOptions) {
-        emitLog('[Step 1/4] Connecting to GitHub repository...');
-        emitLog(`[Step 1/4] Fetching branch "${gitOptions.branch}"${gitOptions.subdir ? ` (directory: ${gitOptions.subdir})` : ''}...`);
+        emitLog(`> Cloning repository from GitHub...`);
+        emitLog(`> Branch: ${gitOptions.branch}${gitOptions.subdir ? `, Directory: ${gitOptions.subdir}` : ''}`);
         await fs.ensureDir(sourceDir);
         await fs.emptyDir(sourceDir);
         await fs.ensureDir(cloneTempDir);
@@ -862,22 +819,21 @@ ${this.cmdFrom(startCmd)}
           );
           // Copy cloned content to sourceDir
           await fs.copy(clonedPath, sourceDir, { overwrite: true });
-          emitLog('[Step 1/4] Repository source code loaded successfully.');
+          emitLog('> Repository cloned successfully!');
         } finally {
           await fs.remove(cloneTempDir).catch(() => {});
         }
       }
 
-      emitLog('[Step 2/4] Detecting application framework and runtime environment...');
+      emitLog('> Determining the best way to run your app...');
       await this.detectAndGenerateDockerfile(sourceDir, project);
-      emitLog('[Step 2/4] Framework detected. Container configuration ready.');
 
       // We need to pack the source for Docker build
       await fs.ensureDir(buildTempDir);
       const tarStream = tar.pack(sourceDir);
       const imageName = `codehost-project-${projectId.toLowerCase()}:${deploymentId}`;
       
-      emitLog('[Step 3/4] Compiling project dependencies and building container image...');
+      emitLog('> Building your app...');
 
       const stream = await docker.buildImage(tarStream, {
         t: imageName,
@@ -900,18 +856,17 @@ ${this.cmdFrom(startCmd)}
               emitLog(progress.stream);
             }
             if (progress.error) {
-              emitLog(`[Error] Build step failed: ${progress.error}`);
+              emitLog(`> Error during build: ${progress.error}`);
             }
           }
         );
       });
 
-      emitLog('[Step 3/4] Container image built successfully.');
+      emitLog('> Success! Preparing to launch...');
       logger.info(`Successfully built image ${imageName}`);
       return imageName;
     } catch (error: any) {
-      emitLog(`[Error] Build encountered an issue: ${error.message || 'Unknown error'}`);
-      emitLog('[Tip] Check your dependencies, package.json scripts, or Dockerfile override.');
+      emitLog(`> Something went wrong: ${error.message || 'Unknown error'}`);
       logger.error(`Build failed for deployment ${deploymentId}`, error);
       await prisma.deployment.update({
         where: { id: deploymentId },
