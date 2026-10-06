@@ -37,7 +37,7 @@ export class RunnerService {
         logger.warn(`Failed to remove old container: ${e.message}`);
       }
 
-      emitLog('> Preparing your app...');
+      emitLog('[Step 4/4] Provisioning isolated container and allocating resources...');
 
       // Retrieve the running project and user for the routing path
       const project = await prisma.project.findUnique({ 
@@ -139,7 +139,7 @@ export class RunnerService {
       // If the actual port differs from what we told Traefik, recreate with correct port
       if (actualPort && actualPort !== containerPort) {
         logger.info(`Port mismatch: Traefik label=${containerPort}, actual=${actualPort}. Recreating container...`);
-        emitLog(`> Detected app listening on port ${actualPort}, reconfiguring...`);
+        emitLog(`[Step 4/4] Detected service listening on internal port ${actualPort}. Updating edge routing...`);
 
         await container.stop();
         await container.remove();
@@ -197,7 +197,9 @@ export class RunnerService {
         }
       }
 
-      emitLog('> Your app is now live!');
+      emitLog('[Step 4/4] Container initialized and attached to network proxy.');
+      emitLog('[Live] Application is running and healthy.');
+      emitLog(`[Live] Public address: https://${projectSlug}.${host}`);
       logger.info(`Started container ${containerName} on port ${mappedPort} (internal: ${actualPort || containerPort})`);
 
       // Clean up any existing log stream for this project to prevent memory & socket leaks

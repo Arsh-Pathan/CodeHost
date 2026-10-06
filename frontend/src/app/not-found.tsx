@@ -1,23 +1,21 @@
 import Link from 'next/link';
 import { LogoWithText } from '@/components/Logo';
 import { 
-  ArrowLeft, 
   Home, 
   LayoutDashboard, 
   BookOpen, 
-  Terminal, 
-  Search, 
   ServerCrash,
   PlusCircle,
   Gift,
-  HelpCircle
+  HelpCircle,
+  ExternalLink
 } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-blue-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-blue-100 font-sans">
       {/* Navigation Header */}
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <LogoWithText />
@@ -55,11 +53,11 @@ export default function NotFound() {
             <h1 className="text-6xl sm:text-8xl font-black text-slate-900 tracking-tight font-mono">
               4<span className="text-[#2563EB]">0</span>4
             </h1>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
-              Lost in the Cloud?
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              Page not found
             </h2>
-            <p className="text-sm sm:text-base text-slate-500 max-w-md mx-auto leading-relaxed">
-              The container, subdomain, or page you were looking for doesn&apos;t exist, has been decommissioned, or was moved.
+            <p className="text-sm sm:text-base text-slate-600 max-w-md mx-auto leading-relaxed">
+              We couldn&apos;t find the page you&apos;re looking for. It may have been moved, deleted, or the URL may be incorrect.
             </p>
           </div>
 
@@ -72,8 +70,8 @@ export default function NotFound() {
               <span className="ml-2 text-slate-400">codehost-routing-engine</span>
             </div>
             <p className="text-slate-400">&gt; GET /requested-route HTTP/1.1</p>
-            <p className="text-red-400 font-semibold">&gt; Status: 404 Not Found (zero active proxies)</p>
-            <p className="text-slate-400">&gt; Suggestion: Return to dashboard or check URL spelling</p>
+            <p className="text-red-400 font-semibold">&gt; Status: 404 Not Found (zero matching routes)</p>
+            <p className="text-slate-400">&gt; Suggestion: Return to platform homepage or check URL path</p>
           </div>
 
           {/* Action CTAs */}
@@ -91,7 +89,7 @@ export default function NotFound() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl transition shadow-xs cursor-pointer"
             >
               <Home size={16} />
-              <span>Homepage</span>
+              <span>Platform Homepage</span>
             </Link>
 
             <Link
@@ -149,7 +147,7 @@ export default function NotFound() {
       {/* Footer */}
       <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-400 bg-white">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>© {new Date().getFullYear()} CodeHost Cloud Services. All systems operational.</p>
+          <p>© {new Date().getFullYear()} Code Host. All rights reserved.</p>
           <div className="flex items-center gap-4 font-medium text-slate-500">
             <Link href="/terms" className="hover:text-slate-800">Terms</Link>
             <Link href="/privacy" className="hover:text-slate-800">Privacy</Link>

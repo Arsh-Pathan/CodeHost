@@ -59,6 +59,67 @@ app.get('/stats/public', async (req, res) => {
   }
 });
 
+// Public Project Status (for branded offline/subdomain error pages)
+app.get('/projects/public-status', async (req, res) => {
+  try {
+    const rawHost = (req.query.host || req.query.domain || req.query.name || '') as string;
+    if (!rawHost || typeof rawHost !== 'string') {
+      return res.status(400).json({ error: 'Host parameter is required', exists: false });
+    }
+
+    // Clean up host string (strip protocol, port, whitespace)
+    const host = rawHost.toLowerCase().trim().replace(/^https?:\/\//, '').split(':')[0].split('/')[0];
+    const platformDomain = (process.env.DOMAIN || 'code-host.online').toLowerCase();
+
+    // Check if it's a subdomain of the platform (e.g. projectname.code-host.online)
+    let slug = '';
+    if (host.endsWith(`.${platformDomain}`)) {
+      slug = host.slice(0, -(platformDomain.length + 1));
+    } else if (!host.includes('.')) {
+      slug = host;
+    }
+
+    // Query project by name/slug or customDomain
+    const project = await prisma.project.findFirst({
+      where: {
+        OR: [
+          ...(slug ? [{ name: { equals: slug, mode: 'insensitive' as const } }] : []),
+          { customDomain: { equals: host, mode: 'insensitive' as const } }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        tier: true,
+        customDomain: true,
+        updatedAt: true
+      }
+    });
+
+    if (!project) {
+      return res.json({
+        exists: false,
+        host,
+        subdomain: slug || null
+      });
+    }
+
+    return res.json({
+      exists: true,
+      name: project.name,
+      status: project.status, // idle, building, running, failed, stopped
+      tier: project.tier,
+      customDomain: project.customDomain,
+      updatedAt: project.updatedAt
+    });
+  } catch (error) {
+    logger.error({ error }, 'Failed to query public project status');
+    return res.status(500).json({ error: 'Internal server error', exists: false });
+  }
+});
+
+
 // Health Check
 app.get('/health', async (req, res) => {
   try {
