@@ -2100,6 +2100,7 @@ export default function Home() {
                <Link href="/terms" className="hover:text-slate-500 transition-colors">Terms</Link>
                <Link href="/privacy" className="hover:text-slate-500 transition-colors">Privacy</Link>
                <Link href="/docs" className="hover:text-slate-500 transition-colors">Docs</Link>
+               <Link href="/status" className="hover:text-blue-600 transition-colors font-bold">Status</Link>
             </div>
          </div>
       </footer>

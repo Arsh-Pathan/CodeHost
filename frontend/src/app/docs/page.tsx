@@ -1181,6 +1181,7 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
             <Link href="/terms" className="hover:text-slate-500">Terms</Link>
             <Link href="/privacy" className="hover:text-slate-500">Privacy</Link>
             <Link href="/docs" className="text-slate-500">Docs</Link>
+            <Link href="/status" className="hover:text-blue-600 font-bold">Status</Link>
           </div>
         </div>
       </footer>
