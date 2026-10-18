@@ -412,7 +412,7 @@ export default function Home() {
           <TechSymbol className="top-[15%] left-[10%] text-[#FF6B6B]/20" style={{ fontSize: '120px' }}>{"{"}</TechSymbol>
           <TechSymbol className="top-[25%] right-[15%] text-[#FFD93D]/20" style={{ fontSize: '80px' }}>{"}"}</TechSymbol>
           <TechSymbol className="bottom-[20%] left-[15%] text-[#6BCBCA]/20" style={{ fontSize: '60px' }}>{"< >"}</TechSymbol>
-          <TechSymbol className="bottom-[15%] right-[10%] text-[#4D96FF]/20" style={{ fontSize: '100px' }}>{"/"}</TechSymbol>
+          <TechSymbol className="bottom-[15%] right-[10%] text-blue-500/20" style={{ fontSize: '100px' }}>{"/"}</TechSymbol>
           <TechSymbol className="top-[40%] left-[5%] text-[#6BCBCA]/10" style={{ fontSize: '40px' }}>{"const"}</TechSymbol>
           <TechSymbol className="bottom-[35%] right-[5%] text-[#FFD93D]/10" style={{ fontSize: '50px' }}>{"[]"}</TechSymbol>
           <TechSymbol className="top-[60%] right-[20%] text-[#FF6B6B]/10" style={{ fontSize: '30px' }}>{"*"}</TechSymbol>
@@ -452,7 +452,7 @@ export default function Home() {
 
           <h1 className="hero-title text-4xl sm:text-6xl md:text-8xl font-black tracking-tightest leading-[1.05] sm:leading-[0.95] max-w-4xl mb-6 sm:mb-10 text-[#0F172A]">
               <span className="block"><SplitText text="Cloud, Made" /></span>
-              <span className="block"><SplitText text="Simple" className="text-[#2563EB]" /></span>
+              <span className="block text-brand-gradient"><SplitText text="Simple" /></span>
           </h1>
 
         <p className="hero-subtext text-base sm:text-lg md:text-xl text-slate-500 font-medium max-w-2xl mb-8 sm:mb-12 px-2">
@@ -1702,7 +1702,7 @@ export default function Home() {
       {/* Features Section */}
       <section id="features" className="features-section py-28 px-6 max-w-7xl mx-auto scroll-mt-20 border-t border-slate-100">
          <div className="features-heading text-center mb-20">
-            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-[#2563EB] mb-4">Infrastructure Redefined</h2>
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-brand-gradient mb-4">Infrastructure Redefined</h2>
             <h3 className="text-4xl md:text-5xl font-black tracking-tight text-[#0F172A] max-w-3xl mx-auto leading-tight">
                Built for Absolute Simplicity.
             </h3>
@@ -1763,7 +1763,7 @@ export default function Home() {
       <section id="pricing" className="py-28 px-6 bg-slate-50 border-t border-slate-100">
         <div className="max-w-7xl mx-auto">
           <div className="pricing-heading text-center mb-20">
-            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-blue-600 mb-4">Transparent Pricing</h2>
+            <h2 className="text-sm font-black uppercase tracking-[0.3em] text-brand-gradient mb-4">Transparent Pricing</h2>
             <h3 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900">Choose your scale.</h3>
             <p className="mt-4 text-slate-500 font-medium max-w-xl mx-auto">
               Prepaid credits model. 1 credit = ₹1.60 ($0.02). Buy preset bundles or any custom credit amount you need.

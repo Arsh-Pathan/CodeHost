@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useId } from "react";
 import Link from "next/link";
 
-export const Logo = ({ className = "w-9 h-9" }: { className?: string }) => {
+export const LogoSvg = ({ className = "w-9 h-9" }: { className?: string }) => {
+    const rawId = useId();
+    const id = rawId.replace(/[^a-zA-Z0-9]/g, "");
+
     return (
         <svg
             viewBox="0 0 1024 1024"
@@ -14,35 +17,47 @@ export const Logo = ({ className = "w-9 h-9" }: { className?: string }) => {
             strokeLinejoin="round"
         >
             <defs>
-                <linearGradient id="codehost-logo-a" x1="0%" y1="0%" x2="100%" y2="100%">
+                <linearGradient id={`ch-grad-a-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#4d9dff" />
                     <stop offset="100%" stopColor="#2e6fe5" />
                 </linearGradient>
-                <linearGradient id="codehost-logo-b" x1="0%" y1="0%" x2="100%" y2="100%">
+                <linearGradient id={`ch-grad-b-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#124bb3" />
                     <stop offset="100%" stopColor="#0a3280" />
                 </linearGradient>
-                <linearGradient id="codehost-logo-c" x1="0%" y1="0%" x2="100%" y2="100%">
+                <linearGradient id={`ch-grad-c-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#08245c" />
                     <stop offset="100%" stopColor="#051433" />
                 </linearGradient>
             </defs>
             <polygon
                 points="512,520 820,730 512,920 204,730"
-                fill="url(#codehost-logo-c)"
-                stroke="url(#codehost-logo-c)"
+                fill={`url(#ch-grad-c-${id})`}
+                stroke={`url(#ch-grad-c-${id})`}
             />
             <polygon
                 points="512,320 820,530 512,720 204,530"
-                fill="url(#codehost-logo-b)"
-                stroke="url(#codehost-logo-b)"
+                fill={`url(#ch-grad-b-${id})`}
+                stroke={`url(#ch-grad-b-${id})`}
             />
             <polygon
                 points="512,120 820,320 512,520 204,320"
-                fill="url(#codehost-logo-a)"
-                stroke="url(#codehost-logo-a)"
+                fill={`url(#ch-grad-a-${id})`}
+                stroke={`url(#ch-grad-a-${id})`}
             />
         </svg>
+    );
+};
+
+export const Logo = ({ className = "w-9 h-9" }: { className?: string }) => {
+    return (
+        <img
+            src="/logo.svg"
+            alt="Code Host"
+            className={`${className} inline-block shrink-0 select-none object-contain`}
+            loading="eager"
+            decoding="sync"
+        />
     );
 };
 
@@ -74,7 +89,7 @@ export const LogoWithText = ({
         <div className={`flex items-center gap-2.5 cursor-pointer transition-opacity hover:opacity-90 select-none ${className}`}>
             <Logo className="w-9 h-9 shrink-0" />
             <span className="text-2xl font-black tracking-tight text-[#0F172A]">
-                Code<span className="text-[#4D96FF]">Host</span>
+                Code<span className="text-brand-gradient">Host</span>
             </span>
         </div>
     );

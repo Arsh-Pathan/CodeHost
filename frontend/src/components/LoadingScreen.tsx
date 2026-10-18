@@ -66,7 +66,7 @@ export const LoadingScreen = () => {
             >
                 <Logo className="w-20 h-20 drop-shadow-2xl" />
                 <div className="text-5xl font-black tracking-tighter text-[#0F172A]">
-                    Code<span className="text-[#4D96FF]">Host</span>
+                    Code<span className="text-brand-gradient">Host</span>
                 </div>
             </div>
 
@@ -74,7 +74,7 @@ export const LoadingScreen = () => {
                 {[0, 1, 2].map((i) => (
                     <div
                         key={i}
-                        className="loading-dot w-2.5 h-2.5 rounded-full bg-[#4D96FF]"
+                        className="loading-dot w-2.5 h-2.5 rounded-full bg-[#2563EB]"
                         style={{ opacity: 0.3 }}
                     />
                 ))}

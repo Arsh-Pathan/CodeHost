@@ -73,7 +73,7 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
           <Link href="/dashboard" className="flex items-center space-x-3 cursor-pointer hover:opacity-90 transition-opacity">
             <Logo className="w-8 h-8 shrink-0" />
             <span className={`text-xl font-black tracking-tight text-[#0F172A] ${!isSidebarOpen && 'md:hidden'}`}>
-              Code<span className="text-[#4D96FF]">Host</span>
+              Code<span className="text-brand-gradient">Host</span>
             </span>
           </Link>
           {/* Mobile Close Button */}

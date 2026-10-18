@@ -733,7 +733,7 @@ export default function AdminPage() {
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="text-base font-black tracking-tight text-[#0F172A]">
-                      Code<span className="text-[#4D96FF]">Host</span>
+                      Code<span className="text-brand-gradient">Host</span>
                     </span>
                     <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
                       Fleet Admin

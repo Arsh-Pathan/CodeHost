@@ -183,3 +183,10 @@
     @apply bg-background text-foreground;
   }
 }
+
+.text-brand-gradient {
+  background: linear-gradient(135deg, #4d9dff 0%, #2e6fe5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
