@@ -76,9 +76,12 @@ export const metadata: Metadata = {
     creator: "@arshpathan",
   },
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    icon: [
+      { url: "/icon.svg?v=4", type: "image/svg+xml" },
+      { url: "/favicon.ico?v=4" },
+    ],
+    shortcut: "/icon.svg?v=4",
+    apple: "/apple-touch-icon.png?v=4",
   },
   manifest: "/manifest.webmanifest",
   appleWebApp: {

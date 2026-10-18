@@ -13,7 +13,6 @@
       <stop offset="100%" stop-color="#051433"/>
     </linearGradient>
   </defs>
-  <circle cx="512" cy="512" r="480" stroke="white" fill="white" stroke-width="40"/>
   <polygon points="512,520 820,730 512,920 204,730" fill="url(#c)" stroke="url(#c)"/>
   <polygon points="512,320 820,530 512,720 204,530" fill="url(#b)" stroke="url(#b)"/>
   <polygon points="512,120 820,320 512,520 204,320" fill="url(#a)" stroke="url(#a)"/>
