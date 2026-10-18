@@ -452,7 +452,7 @@ export default function Home() {
 
           <h1 className="hero-title text-4xl sm:text-6xl md:text-8xl font-black tracking-tightest leading-[1.05] sm:leading-[0.95] max-w-4xl mb-6 sm:mb-10 text-[#0F172A]">
               <span className="block"><SplitText text="Cloud, Made" /></span>
-              <span className="block text-brand-gradient"><SplitText text="Simple" /></span>
+              <span className="block"><SplitText text="Simple" className="text-brand-gradient" /></span>
           </h1>
 
         <p className="hero-subtext text-base sm:text-lg md:text-xl text-slate-500 font-medium max-w-2xl mb-8 sm:mb-12 px-2">
