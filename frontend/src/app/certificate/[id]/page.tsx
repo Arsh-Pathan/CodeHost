@@ -204,9 +204,9 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
         
         {/* Navigation & Official Registry Header (Hidden on print) */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
-          <Link href="/" className="self-start">
+          <div className="self-start">
             <LogoWithText />
-          </Link>
+          </div>
 
           <div className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-300 text-slate-800 rounded-full text-xs font-bold self-start sm:self-auto shadow-xs">
             <CheckCircle2 size={15} className="text-emerald-600" />

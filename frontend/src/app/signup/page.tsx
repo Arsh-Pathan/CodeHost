@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api';
 import OAuthButtons from '@/components/oauth-buttons';
+import { LogoWithText } from '@/components/Logo';
 import { Gift, CheckCircle2, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 
 function SignupForm() {
@@ -108,6 +109,9 @@ function SignupForm() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-lg space-y-7 bg-white p-8 rounded-2xl shadow-xs border border-slate-200">
         <div>
+          <div className="flex justify-center mb-5">
+            <LogoWithText />
+          </div>
           <h2 className="mt-2 text-center text-3xl font-black tracking-tight text-slate-900 leading-tight">
             Create your account
           </h2>

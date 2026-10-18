@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api';
 import OAuthButtons from '@/components/oauth-buttons';
+import { LogoWithText } from '@/components/Logo';
 import { Loader2 } from 'lucide-react';
 
 function LoginForm() {
@@ -49,7 +50,10 @@ function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-sm border border-slate-100">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-slate-900">
+          <div className="flex justify-center mb-6">
+            <LogoWithText />
+          </div>
+          <h2 className="text-center text-3xl font-bold tracking-tight text-slate-900">
             Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600">

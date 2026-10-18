@@ -114,10 +114,24 @@ function buildCertificateSvg({
       <g transform="translate(600, ${cardY + 38})" text-anchor="middle">
         <!-- Official CodeHost 3-Stack Logo -->
         <g transform="translate(-22, 0)">
-          <svg width="44" height="44" viewBox="0 0 1024 1024" fill="none">
-            <polygon points="512,520 820,730 512,920 204,730" stroke="#2563EB" stroke-width="65" fill="#FFFFFF" stroke-linejoin="round" />
-            <polygon points="512,320 820,530 512,720 204,530" stroke="#2563EB" stroke-width="65" fill="#FFFFFF" stroke-linejoin="round" />
-            <polygon points="512,120 820,320 512,520 204,320" stroke="#2563EB" stroke-width="65" fill="#FFFFFF" stroke-linejoin="round" />
+          <svg width="44" height="44" viewBox="0 0 1024 1024" stroke-width="70" stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="cert-og-a" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#4d9dff"/>
+                <stop offset="100%" stop-color="#2e6fe5"/>
+              </linearGradient>
+              <linearGradient id="cert-og-b" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#124bb3"/>
+                <stop offset="100%" stop-color="#0a3280"/>
+              </linearGradient>
+              <linearGradient id="cert-og-c" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#08245c"/>
+                <stop offset="100%" stop-color="#051433"/>
+              </linearGradient>
+            </defs>
+            <polygon points="512,520 820,730 512,920 204,730" fill="url(#cert-og-c)" stroke="url(#cert-og-c)" />
+            <polygon points="512,320 820,530 512,720 204,530" fill="url(#cert-og-b)" stroke="url(#cert-og-b)" />
+            <polygon points="512,120 820,320 512,520 204,320" fill="url(#cert-og-a)" stroke="url(#cert-og-a)" />
           </svg>
         </g>
 

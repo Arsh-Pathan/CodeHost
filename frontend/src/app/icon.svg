@@ -1,33 +1,20 @@
-<svg
-        viewBox="0 0 1024 1024"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        stroke-width="70"
-        stroke-linecap="round"
-        stroke-linejoin="round"
->
-    <circle
-            cx="512"
-            cy="512"
-            r="480"
-            stroke="white"
-            fill="white"
-            stroke-width="40"
-    />
-
-    <polygon
-            points="512,520 820,730 512,920 204,730"
-            stroke="#4D96FF"
-            fill="#ffffff"
-    />
-    <polygon
-            points="512,320 820,530 512,720 204,530"
-            stroke="#4D96FF"
-            fill="#ffffff"
-    />
-    <polygon
-            points="512,120 820,320 512,520 204,320"
-            stroke="#4D96FF"
-            fill="#ffffff"
-    />
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" stroke-width="70" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <linearGradient id="a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4d9dff"/>
+      <stop offset="100%" stop-color="#2e6fe5"/>
+    </linearGradient>
+    <linearGradient id="b" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#124bb3"/>
+      <stop offset="100%" stop-color="#0a3280"/>
+    </linearGradient>
+    <linearGradient id="c" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#08245c"/>
+      <stop offset="100%" stop-color="#051433"/>
+    </linearGradient>
+  </defs>
+  <circle cx="512" cy="512" r="480" stroke="white" fill="white" stroke-width="40"/>
+  <polygon points="512,520 820,730 512,920 204,730" fill="url(#c)" stroke="url(#c)"/>
+  <polygon points="512,320 820,530 512,720 204,530" fill="url(#b)" stroke="url(#b)"/>
+  <polygon points="512,120 820,320 512,520 204,320" fill="url(#a)" stroke="url(#a)"/>
 </svg>

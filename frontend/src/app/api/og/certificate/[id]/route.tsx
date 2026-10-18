@@ -130,10 +130,24 @@ export async function GET(
               opacity: 0.05,
             }}
           >
-            <svg width="420" height="420" viewBox="0 0 1024 1024" fill="none">
-              <polygon points="512,520 820,730 512,920 204,730" stroke="#0F172A" strokeWidth="60" fill="#0F172A" />
-              <polygon points="512,320 820,530 512,720 204,530" stroke="#0F172A" strokeWidth="60" fill="#0F172A" />
-              <polygon points="512,120 820,320 512,520 204,320" stroke="#0F172A" strokeWidth="60" fill="#0F172A" />
+            <svg width="420" height="420" viewBox="0 0 1024 1024" strokeWidth="70" strokeLinecap="round" strokeLinejoin="round">
+              <defs>
+                <linearGradient id="cert-wm-a" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#4d9dff"/>
+                  <stop offset="100%" stopColor="#2e6fe5"/>
+                </linearGradient>
+                <linearGradient id="cert-wm-b" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#124bb3"/>
+                  <stop offset="100%" stopColor="#0a3280"/>
+                </linearGradient>
+                <linearGradient id="cert-wm-c" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#08245c"/>
+                  <stop offset="100%" stopColor="#051433"/>
+                </linearGradient>
+              </defs>
+              <polygon points="512,520 820,730 512,920 204,730" fill="url(#cert-wm-c)" stroke="url(#cert-wm-c)" />
+              <polygon points="512,320 820,530 512,720 204,530" fill="url(#cert-wm-b)" stroke="url(#cert-wm-b)" />
+              <polygon points="512,120 820,320 512,520 204,320" fill="url(#cert-wm-a)" stroke="url(#cert-wm-a)" />
             </svg>
           </div>
 
@@ -149,10 +163,24 @@ export async function GET(
           >
             {/* Official CodeHost 3-Stack Logo */}
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-              <svg width="44" height="44" viewBox="0 0 1024 1024" fill="none">
-                <polygon points="512,520 820,730 512,920 204,730" stroke="#2563EB" strokeWidth="65" fill="#FFFFFF" />
-                <polygon points="512,320 820,530 512,720 204,530" stroke="#2563EB" strokeWidth="65" fill="#FFFFFF" />
-                <polygon points="512,120 820,320 512,520 204,320" stroke="#2563EB" strokeWidth="65" fill="#FFFFFF" />
+              <svg width="44" height="44" viewBox="0 0 1024 1024" strokeWidth="70" strokeLinecap="round" strokeLinejoin="round">
+                <defs>
+                  <linearGradient id="cert-jsx-a" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4d9dff"/>
+                    <stop offset="100%" stopColor="#2e6fe5"/>
+                  </linearGradient>
+                  <linearGradient id="cert-jsx-b" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#124bb3"/>
+                    <stop offset="100%" stopColor="#0a3280"/>
+                  </linearGradient>
+                  <linearGradient id="cert-jsx-c" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#08245c"/>
+                    <stop offset="100%" stopColor="#051433"/>
+                  </linearGradient>
+                </defs>
+                <polygon points="512,520 820,730 512,920 204,730" fill="url(#cert-jsx-c)" stroke="url(#cert-jsx-c)" />
+                <polygon points="512,320 820,530 512,720 204,530" fill="url(#cert-jsx-b)" stroke="url(#cert-jsx-b)" />
+                <polygon points="512,120 820,320 512,520 204,320" fill="url(#cert-jsx-a)" stroke="url(#cert-jsx-a)" />
               </svg>
             </div>
 

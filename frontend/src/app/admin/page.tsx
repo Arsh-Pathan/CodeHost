@@ -728,12 +728,12 @@ export default function AdminPage() {
               </Link>
               <div className="h-5 w-px bg-slate-200" />
               
-              <div className="flex items-center space-x-3">
+              <Link href="/dashboard" className="flex items-center space-x-3 cursor-pointer hover:opacity-90 transition-opacity">
                 <Logo className="w-8 h-8 shrink-0" />
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="text-base font-black tracking-tight text-[#0F172A]">
-                      Code<span className="text-[#2563EB]">Host</span>
+                      Code<span className="text-[#4D96FF]">Host</span>
                     </span>
                     <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
                       Fleet Admin
@@ -747,7 +747,7 @@ export default function AdminPage() {
                     <span>Node Online</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
 
             {/* Right Side: Navigation Bar Grouped on the Right + Controls */}
