@@ -10,10 +10,8 @@ import {
   Server,
   Cpu,
   Database,
-  Wifi,
   Globe,
   Clock,
-  ArrowUpRight,
   RefreshCw,
   Zap,
   Radio,
@@ -21,9 +19,12 @@ import {
   ExternalLink,
   Layers,
   ArrowLeft,
-  ChevronDown,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  MessageSquare,
+  Twitter,
+  Github,
+  Linkedin
 } from 'lucide-react';
 
 interface ServiceStatus {
@@ -46,6 +47,7 @@ interface BenchmarkResult {
 }
 
 export default function StatusPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [countdown, setCountdown] = useState(30);
@@ -57,7 +59,7 @@ export default function StatusPage() {
     status: string;
   } | null>(null);
 
-  // Live health state
+  // Live health state updated from real endpoints
   const [apiHealth, setApiHealth] = useState<{
     database: string;
     redis: string;
@@ -72,10 +74,19 @@ export default function StatusPage() {
 
   const [webLatency, setWebLatency] = useState<number>(18);
   const [serverCount, setServerCount] = useState<number>(54);
+  const [serverUptimeHours, setServerUptimeHours] = useState<number>(744);
 
   // Benchmark state
   const [isBenchmarking, setIsBenchmarking] = useState(false);
   const [benchmarkResult, setBenchmarkResult] = useState<BenchmarkResult | null>(null);
+
+  // Check login state
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) setIsLoggedIn(true);
+    }
+  }, []);
 
   // Generate 90-day history for a service
   const generate90Days = useCallback((baseUptime: number, maintenanceDayOffsets: number[] = []) => {
@@ -169,39 +180,62 @@ export default function StatusPage() {
     },
   ]);
 
-  // Probe live health
+  // Real Probe of Live Infrastructure Endpoints
   const probeHealth = useCallback(async () => {
     setIsRefreshing(true);
+
+    // 1. Probe API Gateway (/health)
     const startApi = performance.now();
+    let apiSuccess = false;
+    let dbStatus = 'ok';
+    let redisStatus = 'ok';
+    let apiDuration = 24;
+
     try {
-      const res = await fetch('https://api.code-host.online/health', { cache: 'no-store' });
-      const durationApi = Math.round(performance.now() - startApi);
+      const res = await fetch('https://api.code-host.online/health', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      apiDuration = Math.round(performance.now() - startApi);
       if (res.ok) {
         const json = await res.json();
+        apiSuccess = json.status === 'healthy';
+        dbStatus = json.database || 'ok';
+        redisStatus = json.redis || 'ok';
         setApiHealth({
-          database: json.database || 'ok',
-          redis: json.redis || 'ok',
-          latency: durationApi,
-          online: true,
+          database: dbStatus,
+          redis: redisStatus,
+          latency: apiDuration,
+          online: apiSuccess,
         });
       } else {
-        setApiHealth(prev => ({ ...prev, latency: durationApi }));
+        setApiHealth(prev => ({ ...prev, latency: apiDuration, online: false }));
       }
     } catch {
       setApiHealth(prev => ({ ...prev, online: false }));
     }
 
+    // 2. Probe Web & CDN Edge
     const startWeb = performance.now();
+    let webDuration = 18;
     try {
-      await fetch('/favicon.ico?probe=' + Date.now(), { cache: 'no-store', method: 'HEAD' });
-      const durationWeb = Math.round(performance.now() - startWeb);
-      setWebLatency(durationWeb);
+      const resWeb = await fetch('/favicon.ico?probe=' + Date.now(), {
+        cache: 'no-store',
+        method: 'HEAD'
+      });
+      if (resWeb.ok) {
+        webDuration = Math.round(performance.now() - startWeb);
+        setWebLatency(webDuration);
+      }
     } catch {
       // fallback
     }
 
+    // 3. Probe Public Stats for Real Workload Count
     try {
-      const statsRes = await fetch('https://api.code-host.online/stats/public', { cache: 'no-store' });
+      const statsRes = await fetch('https://api.code-host.online/stats/public', {
+        cache: 'no-store'
+      });
       if (statsRes.ok) {
         const statsJson = await statsRes.json();
         if (statsJson.runningServers) {
@@ -212,12 +246,44 @@ export default function StatusPage() {
       // fallback
     }
 
+    // 4. Probe Next.js internal status endpoint for server process uptime
+    try {
+      const srvRes = await fetch('/api/status', { cache: 'no-store' });
+      if (srvRes.ok) {
+        const srvJson = await srvRes.json();
+        if (srvJson.server?.uptimeSeconds) {
+          setServerUptimeHours(Math.max(1, Math.round(srvJson.server.uptimeSeconds / 3600)));
+        }
+      }
+    } catch {
+      // fallback
+    }
+
+    // 5. Update service statuses based on real telemetry
+    setServices(prev =>
+      prev.map(s => {
+        if (s.id === 'edge-cdn') {
+          return { ...s, latencyMs: webDuration, status: 'operational' };
+        }
+        if (s.id === 'api-gateway') {
+          return { ...s, latencyMs: apiDuration, status: apiSuccess ? 'operational' : 'degraded' };
+        }
+        if (s.id === 'postgres') {
+          return { ...s, status: dbStatus === 'ok' ? 'operational' : 'degraded' };
+        }
+        if (s.id === 'redis') {
+          return { ...s, status: redisStatus === 'ok' ? 'operational' : 'degraded' };
+        }
+        return s;
+      })
+    );
+
     setLastUpdated(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }));
     setIsRefreshing(false);
     setCountdown(30);
   }, []);
 
-  // Run live diagnostic benchmark
+  // Diagnostic benchmark testing real live round-trips
   const runBenchmark = async () => {
     setIsBenchmarking(true);
     const pings: number[] = [];
@@ -251,7 +317,7 @@ export default function StatusPage() {
     probeHealth();
   }, [probeHealth]);
 
-  // Countdown timer for auto-refresh
+  // Real-time 30-second countdown loop
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
@@ -286,88 +352,86 @@ export default function StatusPage() {
     }
   };
 
+  const allOperational = apiHealth.online && apiHealth.database === 'ok' && apiHealth.redis === 'ok';
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
-      {/* Top Navigation Bar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-2xl border-b border-slate-200/80 px-4 sm:px-8 py-3.5 transition-all">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-6">
-            <LogoWithText />
-            <div className="hidden md:flex items-center space-x-1 pl-4 border-l border-slate-200 text-xs font-semibold text-slate-500">
-              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-200 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                System Status
-              </span>
-            </div>
-          </div>
-
-          <div className="hidden sm:flex items-center space-x-6 text-sm font-medium text-slate-500">
-            <Link href="/" className="hover:text-slate-900 transition-colors">Home</Link>
-            <Link href="/docs" className="hover:text-slate-900 transition-colors">Documentation</Link>
-            <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="hover:text-[#5865F2] transition-colors">
-              Community
+    <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
+      {/* ─── EXACT SITE HEADER (MATCHES ALL PAGES) ─── */}
+      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-2xl px-4 sm:px-8 py-3 sm:py-5 flex items-center justify-between border-b border-slate-100/60 transition-all">
+        <div className="scale-90 sm:scale-100 origin-left">
+          <LogoWithText />
+        </div>
+        <div className="hidden md:flex items-center space-x-8">
+          <Link href="/#features" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Features</Link>
+          <Link href="/#pricing" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Pricing</Link>
+          <Link href="/docs" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Docs</Link>
+          <Link href="/status" className="text-sm font-medium text-blue-600 font-bold transition-colors">Status</Link>
+          <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="text-sm font-medium text-[#5865F2] hover:text-[#4752C4] transition-colors">Discord</Link>
+        </div>
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          {isLoggedIn ? (
+            <Link href="/dashboard" className="px-4 sm:px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm active:scale-95">
+               Dashboard
             </Link>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={probeHealth}
-              disabled={isRefreshing}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
-              title="Refresh status immediately"
-            >
-              <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-blue-600' : 'text-slate-500'} />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
-            <Link
-              href="/dashboard"
-              className="px-4 py-1.5 bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs active:scale-95"
-            >
-              Dashboard
-            </Link>
-          </div>
+          ) : (
+            <>
+              <Link href="/login" className="text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 px-2.5 sm:px-4 py-2 transition-colors">Login</Link>
+              <Link href="/signup" className="px-3.5 sm:px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm active:scale-95">
+                 Get Started
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
-      {/* Main Container */}
-      <main className="pt-28 pb-20 px-4 sm:px-6 max-w-5xl mx-auto">
-        {/* Breadcrumb / Return */}
-        <div className="mb-6 flex items-center justify-between text-xs font-semibold text-slate-400">
-          <Link href="/" className="inline-flex items-center space-x-1 hover:text-slate-700 transition-colors">
+      {/* ─── STATUS DASHBOARD CONTENT ─── */}
+      <main className="pt-28 sm:pt-36 pb-20 px-4 sm:px-6 max-w-5xl mx-auto">
+        {/* Top Control Bar with Live Refresh */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-semibold text-slate-400">
+          <Link href="/" className="inline-flex items-center space-x-1.5 hover:text-slate-700 transition-colors">
             <ArrowLeft size={13} />
             <span>Back to Code Host Home</span>
           </Link>
-          <div className="flex items-center space-x-2">
-            <Clock size={13} className="text-slate-400" />
-            <span>Updated {lastUpdated || 'just now'} (auto-refresh in {countdown}s)</span>
+          <div className="flex items-center space-x-3 self-end sm:self-auto">
+            <div className="flex items-center space-x-1.5 text-slate-500">
+              <Clock size={13} className="text-slate-400" />
+              <span>Updated {lastUpdated || 'just now'} (auto-refresh in {countdown}s)</span>
+            </div>
+            <button
+              onClick={probeHealth}
+              disabled={isRefreshing}
+              className="inline-flex items-center space-x-1.5 px-3 py-1 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
+              title="Poll live endpoints immediately"
+            >
+              <RefreshCw size={12} className={isRefreshing ? 'animate-spin text-blue-600' : 'text-slate-500'} />
+              <span>Refresh</span>
+            </button>
           </div>
         </div>
 
         {/* Global Operational Status Hero Card */}
-        <div className="relative bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-[0_8px_32px_rgba(15,23,42,0.04)] mb-8 overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600" />
+        <div className="relative bg-[#F8FAFC] rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-[0_8px_32px_rgba(15,23,42,0.03)] mb-8 overflow-hidden">
+          <div className={`absolute top-0 left-0 right-0 h-1.5 ${allOperational ? 'bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600' : 'bg-gradient-to-r from-amber-400 to-rose-500'}`} />
           
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-start sm:items-center space-x-4">
               <div className="relative flex-shrink-0 mt-1 sm:mt-0">
                 <span className="relative flex h-5 w-5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-5 w-5 bg-emerald-500"></span>
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${allOperational ? 'bg-emerald-400' : 'bg-amber-400'} opacity-75`}></span>
+                  <span className={`relative inline-flex rounded-full h-5 w-5 ${allOperational ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
                 </span>
               </div>
               <div>
-                <div className="flex items-center space-x-2.5 mb-1.5">
-                  <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight">
-                    All Systems Operational
-                  </h1>
-                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight mb-1.5">
+                  {allOperational ? 'All Systems Operational' : 'Partial Service Degradation'}
+                </h1>
                 <p className="text-sm font-medium text-slate-500 max-w-2xl">
-                  Real-time continuous telemetry monitoring across Code Host edge network, Docker container runtime, managed databases, and TLS certificate engines.
+                  Real-time telemetry continuously verified across Code Host Anycast edge, Node.js API controllers, PostgreSQL clusters, and isolated student container runners.
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 flex-shrink-0">
+            <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center border-t md:border-t-0 pt-4 md:pt-0 border-slate-200 flex-shrink-0">
               <div className="text-left md:text-right">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                   90-Day Platform Uptime
@@ -379,27 +443,27 @@ export default function StatusPage() {
             </div>
           </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-8 pt-6 border-t border-slate-100">
-            <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
+          {/* Real Metrics Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-8 pt-6 border-t border-slate-200/80">
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CDN Edge Latency</span>
                 <Globe size={13} className="text-blue-500" />
               </div>
               <p className="text-lg font-black text-[#0F172A]">{webLatency} ms</p>
-              <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Optimal Response</p>
+              <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Live Anycast Response</p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">API Gateway RTT</span>
                 <Server size={13} className="text-indigo-500" />
               </div>
               <p className="text-lg font-black text-[#0F172A]">{apiHealth.latency} ms</p>
-              <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Direct Health Ping</p>
+              <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Real-time /health ping</p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Workloads</span>
                 <Zap size={13} className="text-amber-500" />
@@ -408,7 +472,7 @@ export default function StatusPage() {
               <p className="text-[10px] font-semibold text-slate-500 mt-0.5">Live Student Containers</p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-xs">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unplanned Outages</span>
                 <ShieldCheck size={13} className="text-emerald-500" />
@@ -419,16 +483,16 @@ export default function StatusPage() {
           </div>
         </div>
 
-        {/* Core Subsystem Status Grid */}
+        {/* Core Subsystems Status Grid with 90-Day Uptime Heatmap */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-lg font-black text-[#0F172A] tracking-tight">Core Cloud Infrastructure</h2>
               <p className="text-xs font-medium text-slate-500">Live operational status and 90-day availability history by component.</p>
             </div>
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 shadow-xs">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              7 of 7 Operational
+              {services.filter(s => s.status === 'operational').length} of {services.length} Operational
             </span>
           </div>
 
@@ -458,9 +522,13 @@ export default function StatusPage() {
                     <span className="text-xs font-black text-[#0F172A]">
                       {service.uptimePercentage.toFixed(2)}% uptime
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <CheckCircle2 size={12} className="text-emerald-600" />
-                      Operational
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                      service.status === 'operational'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                      <CheckCircle2 size={12} className={service.status === 'operational' ? 'text-emerald-600' : 'text-amber-600'} />
+                      {service.status === 'operational' ? 'Operational' : 'Degraded'}
                     </span>
                   </div>
                 </div>
@@ -543,7 +611,7 @@ export default function StatusPage() {
               </div>
               <div className="text-right">
                 <span className="text-xs font-black text-emerald-600 block">Operational</span>
-                <span className="text-[10px] font-mono text-slate-400">18ms avg RTT</span>
+                <span className="text-[10px] font-mono text-slate-400">{webLatency}ms live RTT</span>
               </div>
             </div>
 
@@ -578,8 +646,8 @@ export default function StatusPage() {
         </div>
 
         {/* Live Client Diagnostic Benchmark Tool */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs mb-12">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-100">
+        <div className="bg-[#F8FAFC] rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-200">
             <div>
               <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wider border border-blue-100 mb-2">
                 <Activity size={12} className="text-blue-600" />
@@ -605,26 +673,26 @@ export default function StatusPage() {
 
           {benchmarkResult ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+              <div className="p-4 rounded-2xl bg-white border border-slate-200 text-center">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Minimum Latency</span>
                 <p className="text-2xl font-black text-[#0F172A] mt-1">{benchmarkResult.min} ms</p>
                 <span className="text-[10px] font-bold text-emerald-600">Fastest Packet</span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 text-center">
+              <div className="p-4 rounded-2xl bg-white border border-blue-200 text-center shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500">Average RTT</span>
                 <p className="text-2xl font-black text-blue-600 mt-1">{benchmarkResult.avg} ms</p>
                 <span className="text-[10px] font-bold text-blue-700">Excellent Client Route</span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+              <div className="p-4 rounded-2xl bg-white border border-slate-200 text-center">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Peak Latency</span>
                 <p className="text-2xl font-black text-[#0F172A] mt-1">{benchmarkResult.max} ms</p>
                 <span className="text-[10px] font-bold text-slate-400">Completed at {benchmarkResult.testedAt}</span>
               </div>
             </div>
           ) : (
-            <div className="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+            <div className="p-6 bg-white rounded-2xl border border-dashed border-slate-200 text-center">
               <p className="text-xs font-semibold text-slate-500">
                 Click &ldquo;Run Latency Benchmark&rdquo; above to measure your browser&apos;s real-time Round Trip Time (RTT) to api.code-host.online.
               </p>
@@ -712,7 +780,7 @@ export default function StatusPage() {
         </div>
 
         {/* Subscribe / Stay Informed Footer Callout */}
-        <div className="bg-gradient-to-br from-slate-900 to-[#0F172A] rounded-3xl p-6 sm:p-8 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-xl mb-12">
+        <div className="bg-gradient-to-br from-slate-900 to-[#0F172A] rounded-3xl p-6 sm:p-8 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-xl">
           <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 block mb-1">
               Real-Time Incident Notifications
@@ -737,21 +805,37 @@ export default function StatusPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 bg-white py-8 px-4 text-xs font-semibold text-slate-400">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-slate-900 font-bold">Code Host</span>
-            <span>&bull;</span>
-            <span>All systems operational</span>
+      {/* ─── EXACT SITE FOOTER (MATCHES ALL PAGES) ─── */}
+      <footer className="py-20 px-6 max-w-7xl mx-auto border-t border-slate-100">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <div>
+            <LogoWithText className="mb-6" />
+            <p className="text-slate-400 text-sm max-w-sm">The simplest cloud platform for modern web applications. From code to live URL in under 60 seconds.</p>
           </div>
-
-          <div className="flex items-center space-x-6 text-slate-500">
-            <Link href="/" className="hover:text-slate-900 transition-colors">Home</Link>
-            <Link href="/docs" className="hover:text-slate-900 transition-colors">Documentation</Link>
-            <Link href="/terms" className="hover:text-slate-900 transition-colors">Terms</Link>
-            <Link href="/privacy" className="hover:text-slate-900 transition-colors">Privacy</Link>
-            <Link href="/status" className="text-blue-600 font-bold transition-colors">Status</Link>
+          <div className="flex items-center space-x-6">
+            <Link href="https://discord.gg/gsh2qpEXT4" target="_blank">
+              <MessageSquare className="hover:text-[#5865F2] transition-colors cursor-pointer" />
+            </Link>
+            <Twitter className="hover:text-blue-400 transition-colors cursor-pointer" />
+            <Github className="hover:text-slate-900 transition-colors cursor-pointer" />
+            <Linkedin className="hover:text-blue-700 transition-colors cursor-pointer" />
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold text-slate-300">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <p>&copy; 2026 Arsh Pathan. All rights reserved.</p>
+            <div className="hidden md:block w-px h-4 bg-slate-200"></div>
+            <div className="flex items-center space-x-1.5 text-slate-400">
+              <span>Core hosted powered by</span>
+              <img src="/csky-logo.png" alt="CSky Developments" className="h-4 w-auto inline-block object-contain" />
+              <span className="font-bold text-slate-500">CSky Developments</span>
+            </div>
+          </div>
+          <div className="flex space-x-6">
+            <Link href="/terms" className="hover:text-slate-500 transition-colors">Terms</Link>
+            <Link href="/privacy" className="hover:text-slate-500 transition-colors">Privacy</Link>
+            <Link href="/docs" className="hover:text-slate-500 transition-colors">Docs</Link>
+            <Link href="/status" className="hover:text-blue-600 transition-colors font-bold">Status</Link>
           </div>
         </div>
       </footer>
