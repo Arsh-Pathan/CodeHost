@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="frontend/public/csky-logo.png" alt="CodeHost Logo" width="180" />
+  <img src="frontend/public/logo.svg" alt="Code Host Logo" width="120" />
 </p>
 
-<h1 align="center">CodeHost</h1>
+<h1 align="center">Code Host</h1>
 
 <p align="center">
-  <strong>Next-Generation Cloud Platform & PaaS Built for Developers & Students</strong><br>
-  <em>Deploy any repository, template, or Dockerfile in seconds with zero configuration and zero surprise bills.</em>
+  <strong>Next-Generation Cloud Platform and PaaS Built for Developers and Students</strong><br>
+  <em>Deploy repositories, templates, and Docker containers in seconds with automated TLS, isolated virtualization, and transparent prepaid credits.</em>
 </p>
 
 <p align="center">
@@ -20,127 +20,125 @@
 
 ---
 
-## ⚡ Overview
+## Overview
 
-**CodeHost** is a minimalist, developer-first Platform as a Service (PaaS) engineered to remove cloud complexity. Built on high-performance container virtualization, automated SSL edge routing, and a zero-surprise prepaid credit model, CodeHost lets you launch web applications, APIs, worker services, and databases in under 30 seconds without ever touching an SSH terminal.
+**Code Host** is a developer-first Platform as a Service (PaaS) engineered to remove cloud complexity. Built on high-performance container virtualization, automated TLS edge routing, and a zero-surprise prepaid credit model, Code Host allows developers and engineering teams to launch web applications, APIs, worker services, and databases in under 30 seconds without manual server administration.
 
-- 🌐 **Live Website**: [https://code-host.online](https://code-host.online)
-- 📚 **Platform Documentation**: [https://code-host.online/docs](https://code-host.online/docs)
-- 💬 **Discord Community**: [https://discord.gg/gsh2qpEXT4](https://discord.gg/gsh2qpEXT4)
+- **Live Platform**: [https://code-host.online](https://code-host.online)
+- **Documentation**: [https://code-host.online/docs](https://code-host.online/docs)
+- **Community**: [https://discord.gg/gsh2qpEXT4](https://discord.gg/gsh2qpEXT4)
 
 ---
 
-## 🚀 Key Features
+## Key Platform Capabilities
 
-### 1. 1-Click Starter Template Marketplace
-Skip project boilerplate completely. Launch pre-configured, production-ready fullstack apps and APIs in one click:
-- **Next.js 15 Fullstack**: App router, Tailwind CSS, TypeScript, and Docker containerization.
+### 1. One-Click Starter Template Marketplace
+Launch pre-configured, production-ready fullstack applications and APIs with zero setup:
+- **Next.js 15 Fullstack**: App Router, Tailwind CSS, TypeScript, and Docker containerization.
 - **FastAPI AI Server**: Python 3.11, Pydantic v2, CORS, and Swagger UI.
-- **Express TypeScript Microservice**: Production health checks, structured logging, and JSON body parsing.
-- **Django REST Framework**: PostgreSQL-ready, migrations pre-wired, and admin dashboard.
-- **Go Fiber High-Performance API**: Ultra-fast routing and sub-millisecond responses.
-- **Flask Python Lightweight App**: Minimalistic WSGI application sandbox.
+- **Express TypeScript Microservice**: Production health checks, structured logging, and JSON parsing.
+- **Django REST Framework**: PostgreSQL-ready, migrations configured, and built-in admin panel.
+- **Go Fiber High-Performance API**: Lightweight routing engine with sub-millisecond response benchmarks.
+- **Flask Python Lightweight App**: Minimal WSGI application sandbox for microservices and prototyping.
 
-### 2. Universal Git & Zip Deployment
+### 2. Universal Git and Zip Deployment
 - **Git Push to Deploy**: Connect any public or private GitHub repository with branch and subdirectory support.
-- **Drag-and-Drop Zip Uploads**: Deploy single or multi-file archives directly from your browser.
-- **Automatic Framework Detection**: Zero-Dockerfile detection for 20+ stacks (Next.js, Node.js, Python, Go, Rust, PHP, Bun, Deno, .NET, Ruby, and custom Dockerfiles).
+- **Drag-and-Drop Archives**: Deploy single or multi-file zip archives directly through the browser console.
+- **Automatic Framework Detection**: Zero-configuration detection for over 20 stacks including Next.js, Node.js, Python, Go, Rust, PHP, Bun, Deno, .NET, Ruby, and custom Dockerfiles.
 
-### 3. Scale-to-Zero Engine & Idle Sleep
-- Inactive containers automatically hibernate after periods of zero HTTP traffic to preserve your credits.
-- Instant cold-start wakeups in `< 800ms` when a new request hits your subdomain.
+### 3. Scale-to-Zero Engine and Traffic Sleep
+- Idle containers automatically hibernate after prolonged periods of zero HTTP traffic to conserve account credits.
+- Instant cold-start wakeups in under 800 milliseconds when incoming requests hit your assigned subdomain.
 
-### 4. Managed 1-Click Databases
-- Deploy isolated **PostgreSQL**, **MySQL**, **Redis**, and **MongoDB** instances alongside your application.
-- Instant internal DNS connections (`postgres://user:pass@internal-db:5432/app`) with automated volume persistence.
+### 4. Managed One-Click Databases
+- Provision isolated instances of PostgreSQL, MySQL, Redis, and MongoDB alongside your compute workloads.
+- Automatic internal DNS resolution with persistent volume storage for database workloads.
 
-### 5. Automated Custom Domains & Free SSL
-- Every project receives a free `https://your-app.code-host.online` subdomain with automatic Let's Encrypt TLS encryption.
-- Connect your own custom apex domains or subdomains with CNAME verification.
+### 5. Automated Subdomains and Free TLS/SSL
+- Every deployed service receives a free `https://<service-name>.code-host.online` subdomain with automatic Let's Encrypt TLS encryption.
+- Connect custom root domains or subdomains with CNAME and DNS verification.
 
-### 6. Transparent Prepaid Billing & Hackathon Pass
-- **Zero Surprise Bills**: No automatic card recurring charges. 1 Credit = ₹1.60 ($0.02). Buy preset bundles or any custom amount from ₹16.
-- **Free Tier Forever**: 1 active project at 128MB RAM, 0.5 CPU, 1GB NVMe, and free SSL for ₹0.
-- **Weekend Hackathon Pass**: ₹49 for 72 hours of dedicated Pro compute (2 vCPUs, 2GB RAM, 5GB NVMe, priority build sandboxes) for hackathons and demos.
+### 6. Transparent Prepaid Credits and Hackathon Pass
+- **Predictable Billing**: No surprise charges or unexpected recurring bills. Buy preset bundles or any custom credit amount starting from INR 16.
+- **Free Tier Forever**: Deploy an active sandbox with 128MB RAM, 0.5 CPU quota, 1GB NVMe storage, and free SSL at zero cost.
+- **Weekend Hackathon Pass**: Dedicated compute (2 vCPUs, 2GB RAM, 5GB NVMe, priority build queues) for rapid hackathons and production demos.
 
-### 7. Full-Featured Email Notification Suite
-Automated branded email notifications via SMTP:
-- Payment receipts and credit top-up invoices.
-- Container status alerts (Running, Stopped, Failed, Building).
-- Low credit warnings before containers auto-hibernate.
-- Weekend Hackathon Pass activation and expiry reminders.
-- Account verification and onboarding walkthroughs.
+### 7. Notification and Operations Suite
+- Automated transactional email receipts and balance top-up confirmations.
+- Real-time container health monitors and status change events.
+- Proactive balance thresholds before services undergo auto-hibernation.
+- Credential validation and verifiable deployment certificates.
 
 ---
 
-## 🏛️ System Architecture
+## System Architecture
 
-```
-                                  [ User Traffic ]
-                                         │
-                                         ▼
-                      ┌──────────────────────────────────────┐
-                      │          Nginx Reverse Proxy         │
-                      │  - Automatic Let's Encrypt TLS       │
-                      │  - Subdomain & Custom Domain Routing │
-                      └──────────────────┬───────────────────┘
-                                         │
-                 ┌───────────────────────┴───────────────────────┐
-                 ▼                                               ▼
-  ┌──────────────────────────────┐                ┌──────────────────────────────┐
-  │     Frontend Web Client      │                │       Control Plane API      │
-  │  - Next.js 16 + Turbopack    │                │  - Express + TypeScript      │
-  │  - Tailwind CSS + GSAP       │◄──WebSocket───►│  - JWT + OAuth (Google/GH)   │
-  │  - Razorpay Checkout.js      │                │  - PostgreSQL (Prisma ORM)   │
-  └──────────────────────────────┘                │  - Nodemailer SMTP Service   │
-                                                  └──────────────┬───────────────┘
-                                                                 │
-                                                                 ▼
-                                                  ┌──────────────────────────────┐
-                                                  │       Execution Engine       │
-                                                  │  - Docker Engine Isolation   │
-                                                  │  - BuildKit Multi-Stage      │
-                                                  │  - Cgroup RAM/CPU Quotas     │
-                                                  │  - Real-time Log Streaming   │
-                                                  └──────────────────────────────┘
+```text
+                                  [ Incoming Traffic ]
+                                           |
+                                           v
+                       +--------------------------------------+
+                       |          Nginx Reverse Proxy         |
+                       |  - Automatic Let's Encrypt TLS       |
+                       |  - Subdomain and Edge Routing        |
+                       +-------------------+------------------+
+                                           |
+                 +-------------------------+-------------------------+
+                 v                                                   v
+  +------------------------------+                    +------------------------------+
+  |      Frontend Client         |                    |      Control Plane API       |
+  |  - Next.js 16 + Turbopack    |                    |  - Express + TypeScript      |
+  |  - Tailwind CSS + Lucide     |<--- WebSocket ---->|  - JWT + OAuth (Google, GH)  |
+  |  - Razorpay Integration      |                    |  - PostgreSQL (Prisma ORM)   |
+  +------------------------------+                    |  - Nodemailer SMTP Service   |
+                                                      +--------------+---------------+
+                                                                     |
+                                                                     v
+                                                      +------------------------------+
+                                                      |       Execution Engine       |
+                                                      |  - Docker Container Sandbox  |
+                                                      |  - BuildKit Multi-Stage      |
+                                                      |  - cgroup CPU/RAM Limits     |
+                                                      |  - Live Log Streaming        |
+                                                      +------------------------------+
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technologies |
 |---|---|
-| **Frontend** | Next.js 16 (App Router), TypeScript, Tailwind CSS, Lucide Icons, GSAP, Canvas Confetti |
+| **Frontend** | Next.js 16 (App Router), TypeScript, Tailwind CSS, Lucide Icons, Canvas Confetti |
 | **Backend** | Express.js, TypeScript, Socket.IO, Nodemailer, Razorpay SDK |
-| **Database & Cache** | PostgreSQL 15, Prisma ORM, Redis 7 |
+| **Database and Cache** | PostgreSQL 15, Prisma ORM, Redis 7 |
 | **Infrastructure** | Docker Engine, Docker Compose, Nginx Reverse Proxy, Ubuntu Linux VPS |
-| **Payments** | Razorpay (UPI, Google Pay, PhonePe, Debit/Credit Cards, NetBanking) |
+| **Payments** | Razorpay (UPI, Cards, NetBanking, Wallets) |
 
 ---
 
-## 💳 Pricing & Resource Tiers
+## Resource Plans and Compute Tiers
 
-| Tier | Price / Month | Credits | RAM | vCPU | NVMe Storage | Projects |
+| Tier | Price / Month | Included Credits | RAM Quota | vCPU Quota | NVMe Storage | Active Projects |
 |---|---|---|---|---|---|---|
-| **Free** | **₹0** (Forever) | 0 | 128 MB | 0.5 | 1 GB | 1 |
-| **Basic** | **₹80** | 50 | 256 MB | 1.0 | 2 GB | 3 |
-| **Pro** | **₹240** | 150 | 512 MB | 2.0 | 5 GB | 5 |
-| **Business** | **₹640** | 400 | 1.0 GB | 4.0 | 10 GB | 10 |
-| **Hackathon Pass** | **₹49** (72h) | — | 2.0 GB | 2.0 | 5 GB | 1 |
+| **Free** | **INR 0** (Forever) | 0 | 128 MB | 0.5 | 1 GB | 1 |
+| **Basic** | **INR 80** | 50 | 256 MB | 1.0 | 2 GB | 3 |
+| **Pro** | **INR 240** | 150 | 512 MB | 2.0 | 5 GB | 5 |
+| **Business** | **INR 640** | 400 | 1.0 GB | 4.0 | 10 GB | 10 |
+| **Hackathon Pass** | **INR 49** (72h) | — | 2.0 GB | 2.0 | 5 GB | 1 |
 
-*Note: Custom credit amounts can be purchased anytime starting at ₹16 (10 credits).*
+*Note: Custom credit top-ups can be purchased at any time starting from INR 16.*
 
 ---
 
-## ⚡ Quickstart (Self-Hosting & Local Development)
+## Local Development and Self-Hosting
 
 ### 1. Prerequisites
-- **Docker Engine & Docker Compose** (v24+)
-- **Node.js 20+** and **npm** or **pnpm**
-- **Git**
+- Docker Engine and Docker Compose (v24 or newer)
+- Node.js 20 or newer with npm
+- Git
 
-### 2. Clone the Repository
+### 2. Clone Repository
 ```bash
 git clone https://github.com/Arsh-Pathan/CodeHost.git
 cd CodeHost
@@ -152,17 +150,18 @@ Copy the sample environment file in `infra/`:
 cd infra
 cp .env.example .env
 ```
-Configure the necessary variables:
+
+Configure your environment variables:
 ```env
 # Database
 DATABASE_URL="postgresql://codehost:codehost_secret@db:5432/codehost?schema=public"
 
-# Authentication & Application
-JWT_SECRET="your-super-secure-jwt-secret"
+# Authentication and App URLs
+JWT_SECRET="your-secure-jwt-secret"
 APP_URL="http://localhost:3000"
 API_URL="http://localhost:4000"
 
-# Payments (Razorpay)
+# Payments
 RAZORPAY_KEY_ID="rzp_test_..."
 RAZORPAY_KEY_SECRET="your_razorpay_secret"
 
@@ -173,7 +172,7 @@ SMTP_USER="your-email@gmail.com"
 SMTP_PASS="your-app-password"
 ```
 
-### 4. Boot the Infrastructure
+### 4. Boot Services
 ```bash
 # Create shared internal bridge network
 docker network create codehost_internal
@@ -189,7 +188,7 @@ docker exec -it codehost-api npx prisma migrate deploy --schema=./database/prism
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 CodeHost/
@@ -199,10 +198,10 @@ CodeHost/
 │   │   ├── routes/           # Auth, Projects, Deployments, Billing, Admin
 │   │   └── services/         # Docker runner, buildpack detection, Razorpay
 ├── frontend/                 # Next.js 16 Web Application
-│   ├── public/               # Static assets and brand logos
+│   ├── public/               # Static assets, icons, and SVG logos
 │   └── src/
-│       ├── app/              # App router pages (Landing, Dashboard, Billing, Docs)
-│       └── components/       # Panel layouts, navbar, and terminal consoles
+│       ├── app/              # App Router pages (Landing, Dashboard, Billing, Docs)
+│       └── components/       # Layouts, navigation, brand components, consoles
 ├── packages/                 # Shared monorepo packages
 │   ├── config/               # Shared environment schemas and tier definitions
 │   ├── database/             # Prisma schema and client exports
@@ -214,27 +213,27 @@ CodeHost/
 
 ---
 
-## 🛡️ Security & Container Isolation
+## Security and Container Isolation
 
-- **Sandboxed Execution**: Every project runs in an unprivileged, isolated Docker container with strict memory limits and CPU constraints.
-- **Resource Clamping**: Built-in OOM (Out Of Memory) protection and process limits prevent noisy-neighbor attacks.
-- **Safe Networking**: Containers communicate strictly through isolated Docker bridges with no access to the host host-level network.
+- **Sandboxed Execution**: Workloads run inside unprivileged, isolated Docker containers with memory limits and CPU quotas.
+- **Resource Clamping**: Kernel cgroup enforcement prevents noisy-neighbor resource starvation.
+- **Network Isolation**: Workloads communicate strictly through isolated Docker bridges without access to the host network.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions, feature suggestions, and bug reports are warmly welcome!
-1. Fork the Project.
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your Changes (`git commit -m 'feat: Add AmazingFeature'`).
-4. Push to the Branch (`git push origin feature/AmazingFeature`).
+Contributions, issues, and feature requests are welcome:
+1. Fork the repository.
+2. Create your branch (`git checkout -b feature/your-feature`).
+3. Commit your changes (`git commit -m 'feat: add your feature'`).
+4. Push to your branch (`git push origin feature/your-feature`).
 5. Open a Pull Request.
 
 ---
 
-## 📄 License
+## License
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
+Distributed under the **MIT License**. See `LICENSE` for details.
 
-Developed with ❤️ by [Arsh Pathan](https://github.com/ArshPathan) and the CodeHost Community.
+Developed by [Arsh Pathan](https://github.com/ArshPathan) and the Code Host Community.
