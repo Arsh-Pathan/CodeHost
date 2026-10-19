@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api';
-import { Plus, LogOut, Code, Globe, Activity, Loader2 } from 'lucide-react';
+import { Plus, Code, Globe, Activity } from 'lucide-react';
 
 import PanelLayout from '@/components/PanelLayout';
 
@@ -81,21 +81,6 @@ export default function Dashboard() {
     }
   };
 
-  if (loading && !user) {
-    return (
-      <PanelLayout user={null} projectName="Loading...">
-        <div className="space-y-8 animate-pulse">
-          <div className="h-10 bg-slate-200/80 rounded-2xl w-48" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="h-44 bg-slate-200/60 rounded-3xl" />
-            <div className="h-44 bg-slate-200/60 rounded-3xl" />
-            <div className="h-44 bg-slate-200/60 rounded-3xl" />
-          </div>
-        </div>
-      </PanelLayout>
-    );
-  }
-
   const handleResendVerification = async () => {
     setResending(true);
     try {
@@ -108,9 +93,10 @@ export default function Dashboard() {
   };
 
   const isUnverified = user && user.emailVerified === false;
+  const isLimitReached = projects.length >= (user?.serverLimit || 1);
 
   return (
-    <PanelLayout user={user}>
+    <PanelLayout user={user} projectName={user ? `${user.username}'s Workspace` : 'Console'}>
       <div className="flex flex-col space-y-8">
         {/* Email Verification Banner */}
         {isUnverified && (
@@ -120,7 +106,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-semibold text-amber-800">Please verify your email</p>
                 <p className="text-xs text-amber-600">Check your inbox or{' '}
-                  <button onClick={handleResendVerification} disabled={resending} className="underline hover:no-underline font-medium">
+                  <button onClick={handleResendVerification} disabled={resending} className="underline hover:no-underline font-medium cursor-pointer">
                     {resending ? 'sending...' : 'resend verification email'}
                   </button>. Deployments are restricted until verified.
                 </p>
@@ -129,7 +115,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Header Section */}
+        {/* Header Section - ALWAYS rendered in initial SSR and client paint for 0ms LCP */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Apps</h1>
@@ -138,13 +124,13 @@ export default function Dashboard() {
 
           <Link
             href="/dashboard/new"
-            className={(projects.length >= (user?.serverLimit || 1) || isUnverified) ? "pointer-events-none opacity-50" : ""}
+            className={(isLimitReached || isUnverified) ? "pointer-events-none opacity-50" : ""}
           >
             <button
               type="button"
-              disabled={projects.length >= (user?.serverLimit || 1) || !!isUnverified}
+              disabled={isLimitReached || !!isUnverified}
               title={isUnverified ? 'Verify your email to create projects' : undefined}
-              className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all hover:-translate-y-0.5"
+              className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all hover:-translate-y-0.5 cursor-pointer disabled:cursor-not-allowed"
             >
               <Plus className="-ml-1 mr-2 h-4 w-4" />
               New Server
@@ -152,88 +138,101 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {/* Limit Display */}
-        <div className={`rounded-xl p-6 shadow-xl flex items-center justify-between border ${projects.length >= (user?.serverLimit || 1) ? 'bg-red-600 shadow-red-500/10 border-white/10 text-white' : 'bg-white shadow-sm border-slate-200'}`}>
-          <div className="flex items-center space-x-4">
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${projects.length >= (user?.serverLimit || 1) ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
-               <Activity size={24} />
+        {/* Dynamic Content: Skeleton state only for the async limit and project cards */}
+        {loading && !user ? (
+          <div className="space-y-8 animate-pulse">
+            <div className="h-24 bg-white rounded-xl border border-slate-200 shadow-sm" />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="h-44 bg-white rounded-2xl border border-slate-200 shadow-sm" />
+              <div className="h-44 bg-white rounded-2xl border border-slate-200 shadow-sm" />
+              <div className="h-44 bg-white rounded-2xl border border-slate-200 shadow-sm" />
             </div>
-            <div>
-              <h3 className={`font-bold text-lg ${projects.length >= (user?.serverLimit || 1) ? 'text-white' : 'text-slate-900'}`}>
-                {projects.length} / {user?.serverLimit || 1} Servers Active
-              </h3>
-              <p className={`text-sm font-medium ${projects.length >= (user?.serverLimit || 1) ? 'text-red-100/80' : 'text-slate-500'}`}>
-                {projects.length >= (user?.serverLimit || 1) 
-                  ? "You've reached your account limit. Delete a server to deploy another, or upgrade your capacity from Time-Man." 
-                  : "You have available capacity to deploy more servers."}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Project Grid */}
-        {projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-8 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm transition-all hover:bg-slate-50">
-            <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 rotate-12 transition-transform hover:rotate-0">
-              <Globe size={40} />
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900">No active apps</h3>
-            <p className="text-slate-500 mt-3 max-w-sm text-center font-medium">
-              Start your journey by deploying your first project with our one-click wizard.
-            </p>
-            <Link href="/dashboard/new" className={`mt-8 ${isUnverified ? 'pointer-events-none opacity-50' : ''}`}>
-              <button disabled={!!isUnverified} title={isUnverified ? 'Verify your email to create projects' : undefined} className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold flex items-center shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
-                <Plus size={20} className="mr-2 text-white" />
-                Upload Project
-              </button>
-            </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {projects.map((project) => {
-              const status = getStatusConfig(project.status);
-              return (
-                <Link key={project.id} href={`/dashboard/project/${project.id}`} className="group block">
-                  <div className="h-full flex flex-col bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:border-blue-500/30 transition-all duration-300">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="p-3 bg-blue-50 rounded-xl text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-                        <Code size={24} />
-                      </div>
-                      <div className={`flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${status.bg} ${status.color} ${status.border}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full mr-2 ${project.status === 'running' ? 'bg-emerald-500 animate-pulse' : status.color.replace('text-', 'bg-')}`} />
-                        {status.label}
-                      </div>
-                    </div>
+          <>
+            {/* Limit Display */}
+            <div className={`rounded-xl p-6 shadow-xl flex items-center justify-between border ${isLimitReached ? 'bg-red-600 shadow-red-500/10 border-white/10 text-white' : 'bg-white shadow-sm border-slate-200'}`}>
+              <div className="flex items-center space-x-4">
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isLimitReached ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
+                   <Activity size={24} />
+                </div>
+                <div>
+                  <h3 className={`font-bold text-lg ${isLimitReached ? 'text-white' : 'text-slate-900'}`}>
+                    {projects.length} / {user?.serverLimit || 1} Servers Active
+                  </h3>
+                  <p className={`text-sm font-medium ${isLimitReached ? 'text-red-100/80' : 'text-slate-500'}`}>
+                    {isLimitReached 
+                      ? "You've reached your account limit. Delete a server to deploy another, or upgrade your capacity from Time-Man." 
+                      : "You have available capacity to deploy more servers."}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-                    <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
-                      {project.name}
-                    </h3>
-                    
-                    <div className="flex items-center text-sm font-medium text-slate-400 mt-2 truncate">
-                      <Globe size={14} className="mr-2" />
-                      {project.status === 'running' ? `${project.name.toLowerCase()}.code-host.online` : 'Provisioning...'}
-                    </div>
-
-                    <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-                      <div className="flex flex-col space-y-1">
-                         <span>CPU Usage</span>
-                         <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="bg-emerald-500 h-full w-[12%] transition-all" />
-                         </div>
-                      </div>
-                      <div className="flex flex-col space-y-1 items-end">
-                         <span>Plan</span>
-                         <span className="text-blue-600">{(project as any).tier?.toUpperCase() || 'FREE'}</span>
-                      </div>
-                    </div>
-                  </div>
+            {/* Project Grid */}
+            {projects.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 px-8 bg-white rounded-2xl border-2 border-dashed border-slate-200 shadow-sm transition-all hover:bg-slate-50">
+                <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 rotate-12 transition-transform hover:rotate-0">
+                  <Globe size={40} />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900">No active apps</h3>
+                <p className="text-slate-500 mt-3 max-w-sm text-center font-medium">
+                  Start your journey by deploying your first project with our one-click wizard.
+                </p>
+                <Link href="/dashboard/new" className={`mt-8 ${isUnverified ? 'pointer-events-none opacity-50' : ''}`}>
+                  <button disabled={!!isUnverified} title={isUnverified ? 'Verify your email to create projects' : undefined} className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold flex items-center shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer">
+                    <Plus size={20} className="mr-2 text-white" />
+                    Upload Project
+                  </button>
                 </Link>
-              );
-            })}
-          </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {projects.map((project) => {
+                  const status = getStatusConfig(project.status);
+                  return (
+                    <Link key={project.id} href={`/dashboard/project/${project.id}`} className="group block">
+                      <div className="h-full flex flex-col bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:border-blue-500/30 transition-all duration-300">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="p-3 bg-blue-50 rounded-xl text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+                            <Code size={24} />
+                          </div>
+                          <div className={`flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${status.bg} ${status.color} ${status.border}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full mr-2 ${project.status === 'running' ? 'bg-emerald-500 animate-pulse' : status.color.replace('text-', 'bg-')}`} />
+                            {status.label}
+                          </div>
+                        </div>
+
+                        <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {project.name}
+                        </h3>
+                        
+                        <div className="flex items-center text-sm font-medium text-slate-400 mt-2 truncate">
+                          <Globe size={14} className="mr-2" />
+                          {project.status === 'running' ? `${project.name.toLowerCase()}.code-host.online` : 'Provisioning...'}
+                        </div>
+
+                        <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
+                          <div className="flex flex-col space-y-1">
+                             <span>CPU Usage</span>
+                             <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="bg-emerald-500 h-full w-[12%] transition-all" />
+                             </div>
+                          </div>
+                          <div className="flex flex-col space-y-1 items-end">
+                             <span>Plan</span>
+                             <span className="text-blue-600">{(project as any).tier?.toUpperCase() || 'FREE'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </PanelLayout>
   );
 }
-
