@@ -4,9 +4,65 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api';
-import { Plus, Code, Globe, Activity } from 'lucide-react';
+import { 
+  Plus, 
+  Code, 
+  Globe, 
+  Activity,
+  Terminal, 
+  Cpu, 
+  Layers, 
+  Server, 
+  Database, 
+  Box, 
+  Workflow, 
+  Cloud, 
+  Compass, 
+  Sparkles, 
+  Zap, 
+  Binary, 
+  Bot, 
+  Orbit, 
+  Radio, 
+  Rocket
+} from 'lucide-react';
 
 import PanelLayout from '@/components/PanelLayout';
+
+interface IconLabItem {
+  icon: any;
+  bg: string;
+}
+
+const ICON_LAB: IconLabItem[] = [
+  { icon: Code, bg: 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' },
+  { icon: Terminal, bg: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white' },
+  { icon: Cpu, bg: 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' },
+  { icon: Layers, bg: 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white' },
+  { icon: Server, bg: 'bg-sky-50 text-sky-600 group-hover:bg-sky-600 group-hover:text-white' },
+  { icon: Database, bg: 'bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white' },
+  { icon: Box, bg: 'bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white' },
+  { icon: Workflow, bg: 'bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white' },
+  { icon: Cloud, bg: 'bg-cyan-50 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white' },
+  { icon: Zap, bg: 'bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white' },
+  { icon: Rocket, bg: 'bg-orange-50 text-orange-600 group-hover:bg-orange-600 group-hover:text-white' },
+  { icon: Bot, bg: 'bg-fuchsia-50 text-fuchsia-600 group-hover:bg-fuchsia-600 group-hover:text-white' },
+  { icon: Sparkles, bg: 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' },
+  { icon: Orbit, bg: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white' },
+  { icon: Binary, bg: 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' },
+  { icon: Radio, bg: 'bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white' },
+  { icon: Compass, bg: 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white' },
+];
+
+function getProjectIconConfig(key: string): IconLabItem {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash << 5) - hash + key.charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % ICON_LAB.length;
+  return ICON_LAB[index];
+}
 
 interface Project {
   id: string;
@@ -190,12 +246,14 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {projects.map((project) => {
                   const status = getStatusConfig(project.status);
+                  const iconItem = getProjectIconConfig(project.name || project.id);
+                  const ProjectIcon = iconItem.icon;
                   return (
                     <Link key={project.id} href={`/dashboard/project/${project.id}`} className="group block">
                       <div className="h-full flex flex-col bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:border-blue-500/30 transition-all duration-300">
                         <div className="flex items-start justify-between mb-4">
-                          <div className="p-3 bg-blue-50 rounded-xl text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-                            <Code size={24} />
+                          <div className={`p-3 rounded-xl transition-all duration-300 ${iconItem.bg}`}>
+                            <ProjectIcon size={24} />
                           </div>
                           <div className={`flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${status.bg} ${status.color} ${status.border}`}>
                             <div className={`w-1.5 h-1.5 rounded-full mr-2 ${project.status === 'running' ? 'bg-emerald-500 animate-pulse' : status.color.replace('text-', 'bg-')}`} />

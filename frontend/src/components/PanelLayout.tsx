@@ -197,7 +197,7 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
           </div>
         </header>
 
-        <div className="p-3 sm:p-6 md:p-10 max-w-[1400px] w-full mx-auto flex-1">
+        <div className="p-3 sm:p-6 md:p-10 pb-24 md:pb-10 max-w-[1400px] w-full mx-auto flex-1">
           {children}
         </div>
       </main>

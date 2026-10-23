@@ -155,7 +155,7 @@ function SignupForm() {
               <input
                 type="text"
                 className="block w-full rounded-xl border border-slate-200 py-2.5 px-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 sm:text-sm"
-                placeholder="Arsh Pathan"
+                placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -167,7 +167,7 @@ function SignupForm() {
                 type="text"
                 required
                 className="block w-full rounded-xl border border-slate-200 py-2.5 px-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 sm:text-sm"
-                placeholder="arsh_dev"
+                placeholder="johndoe"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase())}
               />
@@ -178,7 +178,7 @@ function SignupForm() {
               <input
                 type="tel"
                 className="block w-full rounded-xl border border-slate-200 py-2.5 px-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 sm:text-sm"
-                placeholder="+91 98765 43210"
+                placeholder="+1 (555) 000-0000"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
               />

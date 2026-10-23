@@ -434,28 +434,30 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center space-x-1 p-1 bg-slate-200/50 rounded-2xl w-fit overflow-x-auto">
-           {[
-             { id: 'console', label: 'Console', icon: Terminal },
-             { id: 'files', label: 'File Manager', icon: FileCode },
-             { id: 'network', label: 'Network', icon: Network },
-             { id: 'history', label: 'History', icon: History },
-             { id: 'settings', label: 'Settings', icon: Settings },
-           ].map((tab) => (
-             <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
-                className={`
-                  flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap
-                  ${activeTab === tab.id
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}
-                `}
-             >
-                <tab.icon size={16} />
-                <span>{tab.label}</span>
-             </button>
-           ))}
+        <div className="w-full max-w-full overflow-x-auto scrollbar-none py-1 -mx-1 px-1">
+           <div className="inline-flex items-center space-x-1.5 p-1.5 bg-slate-200/60 rounded-2xl min-w-max border border-slate-200/50">
+              {[
+                { id: 'console', label: 'Console', icon: Terminal },
+                { id: 'files', label: 'File Manager', icon: FileCode },
+                { id: 'network', label: 'Network', icon: Network },
+                { id: 'history', label: 'History', icon: History },
+                { id: 'settings', label: 'Settings', icon: Settings },
+              ].map((tab) => (
+                <button
+                   key={tab.id}
+                   onClick={() => setActiveTab(tab.id as TabType)}
+                   className={`
+                     flex items-center space-x-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer shrink-0
+                     ${activeTab === tab.id
+                       ? 'bg-white text-blue-600 shadow-xs'
+                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'}
+                   `}
+                >
+                   <tab.icon size={16} />
+                   <span>{tab.label}</span>
+                </button>
+              ))}
+           </div>
         </div>
 
         {/* Error Alert */}

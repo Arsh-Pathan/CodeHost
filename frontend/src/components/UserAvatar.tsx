@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Github } from 'lucide-react';
 
 export function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -31,75 +31,26 @@ export interface UserAvatarProps {
 export default function UserAvatar({
   user,
   size = 'md',
-  preference,
   showBadge = true,
   className = '',
 }: UserAvatarProps) {
-  const [selectedPref, setSelectedPref] = useState<'google' | 'github'>('google');
-  const [attemptStage, setAttemptStage] = useState<'primary' | 'secondary' | 'fallback'>('primary');
-
-  useEffect(() => {
-    const updatePref = () => {
-      if (preference && preference !== 'auto') {
-        setSelectedPref(preference);
-      } else {
-        const stored = localStorage.getItem('codehost_avatar_type');
-        if (stored === 'github') {
-          setSelectedPref('github');
-        } else {
-          // Default: Prefer Google first
-          setSelectedPref('google');
-        }
-      }
-      setAttemptStage('primary');
-    };
-
-    updatePref();
-    window.addEventListener('codehost_avatar_changed', updatePref);
-    return () => window.removeEventListener('codehost_avatar_changed', updatePref);
-  }, [preference, user]);
+  const [imageFailed, setImageFailed] = useState(false);
 
   const username = user?.username || 'user';
   const initial = (user?.name || user?.username || user?.email || 'U').charAt(0).toUpperCase();
 
-  const isGoogleAvatar = user?.avatarUrl?.includes('googleusercontent.com');
-  const googleImg = isGoogleAvatar ? user?.avatarUrl : (user?.provider === 'google' ? user?.avatarUrl : null);
-  const githubImg = user?.provider === 'github' && user?.avatarUrl 
-    ? user.avatarUrl 
-    : `https://github.com/${username}.png`;
+  const isGoogle = user?.provider === 'google' || user?.avatarUrl?.includes('googleusercontent.com');
+  const isGithub = user?.provider === 'github';
+  const isDirect = !isGoogle && !isGithub;
 
-  let primarySrc: string | null = null;
-  let secondarySrc: string | null = null;
-  let activeType: 'google' | 'github' = selectedPref;
-
-  if (selectedPref === 'google') {
-    primarySrc = googleImg || null;
-    secondarySrc = githubImg;
-  } else {
-    primarySrc = githubImg;
-    secondarySrc = googleImg || null;
-  }
-
-  let currentImgSrc: string | null = null;
-  if (attemptStage === 'primary') {
-    currentImgSrc = primarySrc || secondarySrc;
-    if (!primarySrc && secondarySrc) {
-      activeType = selectedPref === 'google' ? 'github' : 'google';
+  let imgSrc: string | null = null;
+  if (!imageFailed) {
+    if (user?.avatarUrl) {
+      imgSrc = user.avatarUrl;
+    } else if (isGithub) {
+      imgSrc = `https://github.com/${username}.png`;
     }
-  } else if (attemptStage === 'secondary') {
-    currentImgSrc = secondarySrc;
-    activeType = selectedPref === 'google' ? 'github' : 'google';
-  } else {
-    currentImgSrc = null;
   }
-
-  const handleImageError = () => {
-    if (attemptStage === 'primary' && secondarySrc && currentImgSrc !== secondarySrc) {
-      setAttemptStage('secondary');
-    } else {
-      setAttemptStage('fallback');
-    }
-  };
 
   const sizeClasses = {
     xs: 'w-6 h-6 text-[10px]',
@@ -132,20 +83,20 @@ export default function UserAvatar({
           ${sizeClasses[size]} 
           rounded-full overflow-hidden flex items-center justify-center font-black select-none
           border border-slate-200/80 shadow-xs transition-all duration-200
-          ${currentImgSrc ? 'bg-slate-100' : (activeType === 'google' ? 'bg-blue-600 text-white' : 'bg-[#0F172A] text-white')}
+          ${imgSrc ? 'bg-slate-100' : isGoogle ? 'bg-blue-600 text-white' : isGithub ? 'bg-[#0F172A] text-white' : 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white'}
         `}
       >
-        {currentImgSrc ? (
+        {imgSrc ? (
           <img
-            src={currentImgSrc}
+            src={imgSrc}
             alt={user?.username || 'User Avatar'}
             className="w-full h-full object-cover"
-            onError={handleImageError}
+            onError={() => setImageFailed(true)}
             loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center relative">
-            {activeType === 'google' ? (
+            {isGoogle ? (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold">
                 {size === 'xl' ? (
                   <div className="flex flex-col items-center justify-center space-y-2">
@@ -156,7 +107,7 @@ export default function UserAvatar({
                   <span className="leading-none">{initial}</span>
                 )}
               </div>
-            ) : (
+            ) : isGithub ? (
               <div className="w-full h-full flex items-center justify-center bg-[#0F172A] text-white font-bold">
                 {size === 'xl' ? (
                   <div className="flex flex-col items-center justify-center space-y-2">
@@ -167,20 +118,25 @@ export default function UserAvatar({
                   <Github className={iconSizes[size]} />
                 )}
               </div>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold">
+                <span className="leading-none">{initial}</span>
+              </div>
             )}
           </div>
         )}
       </div>
 
-      {showBadge && (
+      {/* Provider badge: Only show Google for google accounts, GitHub for github accounts, and nothing for direct login */}
+      {showBadge && !isDirect && (
         <div
           className={`
             absolute ${badgeSizes[size]} rounded-full bg-white border border-slate-200 shadow-sm
             flex items-center justify-center shrink-0 z-10
           `}
-          title={activeType === 'google' ? 'Google Account' : 'GitHub Account'}
+          title={isGoogle ? 'Google Account' : 'GitHub Account'}
         >
-          {activeType === 'google' ? (
+          {isGoogle ? (
             <GoogleIcon className="w-full h-full" />
           ) : (
             <Github className="w-full h-full text-slate-900" />

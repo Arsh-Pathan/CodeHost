@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchApi } from '@/lib/api';
 import PanelLayout from '@/components/PanelLayout';
-import { Check, Code, Settings, Loader2, Cpu, HardDrive, Database, Layers } from 'lucide-react';
+import { Check, Code, Settings, Loader2, Cpu, HardDrive, Database, Layers, Zap, ArrowRight } from 'lucide-react';
 
 interface TierInfo {
   id: string;
@@ -58,14 +58,16 @@ export default function NewProject() {
 
   const selectedTier = tiers.find(t => t.id === tier);
 
-  const handleCreate = async () => {
+  const handleCreate = async (overrideTier?: string | React.MouseEvent) => {
     setLoading(true);
     setError('');
+
+    const targetTier = typeof overrideTier === 'string' ? overrideTier : (tier || 'free');
 
     try {
       const data = await fetchApi('/projects', {
         method: 'POST',
-        body: JSON.stringify({ name: name.toLowerCase(), tier }),
+        body: JSON.stringify({ name: name.toLowerCase(), tier: targetTier }),
       });
       router.push(`/dashboard/project/${data.project.id}`);
     } catch (err: any) {
@@ -177,13 +179,40 @@ export default function NewProject() {
                 </div>
               </div>
 
-              <button
-                onClick={() => { setError(''); setStep(2); }}
-                disabled={name.length < 3}
-                className="w-full rounded-2xl bg-slate-900 px-6 py-4 text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-slate-900/10 hover:bg-slate-800 disabled:opacity-30 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 active:translate-y-0.5 flex items-center justify-center space-x-2 cursor-pointer"
-              >
-                <span>Next: Choose Plan</span>
-              </button>
+              <div className="space-y-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleCreate('free')}
+                  disabled={loading || name.length < 3}
+                  className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 text-sm font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 disabled:opacity-30 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 active:translate-y-0.5 flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} />
+                      <span>Deploying Project...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={18} className="fill-current text-white" />
+                      <span>1-Click Deploy (Free Plan)</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setError(''); setStep(2); }}
+                  disabled={loading || name.length < 3}
+                  className="w-full rounded-2xl border-2 border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-6 py-3.5 text-xs font-black uppercase tracking-widest disabled:opacity-30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                  <span>Customize Plan &amp; Resources</span>
+                  <ArrowRight size={14} />
+                </button>
+
+                <p className="text-[11px] text-center text-slate-400 font-medium">
+                  Free plan includes 512MB RAM, 1 vCPU, auto-HTTPS and free subdomain.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -270,7 +299,7 @@ export default function NewProject() {
                 Back
               </button>
               <button
-                onClick={handleCreate}
+                onClick={() => handleCreate()}
                 disabled={loading || (selectedTier && selectedTier.creditsPerMonth > 0 && walletBalance < selectedTier.creditsPerMonth)}
                 className="flex-1 rounded-2xl bg-slate-900 px-6 py-4 text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-slate-900/10 hover:bg-slate-800 disabled:opacity-30 transition-all flex items-center justify-center space-x-2"
               >

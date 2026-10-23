@@ -22,14 +22,10 @@ import {
 } from 'lucide-react';
 import UserAvatar, { GoogleIcon } from '@/components/UserAvatar';
 
-type AvatarType = 'google' | 'github';
-
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [avatarType, setAvatarType] = useState<AvatarType>('google');
-  const [isSavedNotice, setIsSavedNotice] = useState(false);
 
   const [certStatus, setCertStatus] = useState<{
     claimed: boolean;
@@ -49,13 +45,6 @@ export default function ProfilePage() {
         setUser(authRes.user);
         if (certRes) {
           setCertStatus(certRes);
-        }
-        const stored = localStorage.getItem('codehost_avatar_type') as AvatarType;
-        if (stored === 'google' || stored === 'github') {
-          setAvatarType(stored);
-        } else {
-          // Default: Prefer Google first, fall back to GitHub
-          setAvatarType('google');
         }
       })
       .catch((err) => {
@@ -91,14 +80,6 @@ export default function ProfilePage() {
     setTimeout(() => setCopiedCertLink(false), 2000);
   };
 
-  const selectAvatarType = (type: AvatarType) => {
-    setAvatarType(type);
-    localStorage.setItem('codehost_avatar_type', type);
-    window.dispatchEvent(new Event('codehost_avatar_changed'));
-    setIsSavedNotice(true);
-    setTimeout(() => setIsSavedNotice(false), 2000);
-  };
-
   if (loading) {
     return (
       <PanelLayout user={user} projectName="Profile">
@@ -109,7 +90,7 @@ export default function ProfilePage() {
     );
   }
 
-  const isGoogleConnected = user?.provider === 'google' || user?.email?.endsWith('@gmail.com');
+  const isGoogleConnected = user?.provider === 'google' || user?.avatarUrl?.includes('googleusercontent.com');
   const isGithubConnected = user?.provider === 'github';
 
   return (
@@ -118,16 +99,9 @@ export default function ProfilePage() {
         
         {/* Profile Header & Avatar */}
         <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-10 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8 relative overflow-hidden">
-          {isSavedNotice && (
-            <div className="absolute top-4 right-4 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-full text-xs font-bold flex items-center space-x-1.5 shadow-sm animate-in fade-in duration-200">
-              <CheckCircle2 size={13} />
-              <span>Avatar Saved</span>
-            </div>
-          )}
-
           {/* Avatar Display Frame */}
           <div className="flex flex-col items-center shrink-0">
-            <UserAvatar user={user} size="xl" preference={avatarType} />
+            <UserAvatar user={user} size="xl" />
           </div>
 
           <div className="flex-1 text-center md:text-left space-y-2 w-full">
@@ -147,48 +121,18 @@ export default function ProfilePage() {
                   {user.tier} Tier
                 </span>
               )}
-            </div>
-
-            {/* Icon Switcher */}
-            <div className="pt-4 border-t border-slate-100 mt-4 space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block flex items-center justify-center md:justify-start space-x-1">
-                  <span>Account Icon:</span>
-                </label>
-                <span className="text-[10px] font-semibold text-slate-400 text-center md:text-left">
-                  Prefer Google first · Falls back to GitHub
+              {isGoogleConnected && (
+                <span className="px-3 py-1 bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1.5 shadow-xs">
+                  <GoogleIcon className="w-3 h-3" />
+                  <span>Google Account</span>
                 </span>
-              </div>
-
-              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                <button
-                  type="button"
-                  onClick={() => selectAvatarType('google')}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-2.5 cursor-pointer border active:scale-95 ${
-                    avatarType === 'google'
-                      ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm ring-2 ring-blue-500/20'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <GoogleIcon className="w-4 h-4" />
-                  <span>Google (Email Icon)</span>
-                  {avatarType === 'google' && (
-                    <span className="text-[9px] font-black uppercase tracking-wider bg-blue-200/60 text-blue-800 px-1.5 py-0.5 rounded-md">Default</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectAvatarType('github')}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-2.5 cursor-pointer border active:scale-95 ${
-                    avatarType === 'github'
-                      ? 'bg-[#0F172A] border-[#0F172A] text-white shadow-sm'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <Github size={15} />
-                  <span>GitHub (Account Icon)</span>
-                </button>
-              </div>
+              )}
+              {isGithubConnected && (
+                <span className="px-3 py-1 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1.5 shadow-xs">
+                  <Github size={12} />
+                  <span>GitHub Account</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
