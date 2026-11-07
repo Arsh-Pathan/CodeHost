@@ -69,7 +69,7 @@ COPY --from=builder /app/packages/redis/dist ./packages/redis/dist
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 
 EXPOSE 4000
-CMD ["sh", "-c", "cd database && npx prisma db push --accept-data-loss --skip-generate && cd .. && node backend/dist/index.js"]
+CMD ["sh", "-c", "cd database && npx prisma migrate deploy && cd .. && node backend/dist/index.js"]
 
 # --- Stage 3: Web Runner ---
 FROM node:20-alpine AS web
@@ -83,6 +83,11 @@ ENV NODE_ENV=production
 COPY --from=builder /app/frontend/public ./frontend/public
 COPY --from=builder /app/frontend/.next/standalone ./
 COPY --from=builder /app/frontend/.next/static ./frontend/.next/static
+
+# Ensure Next.js cache directory exists and is writable by non-root users
+RUN mkdir -p /app/frontend/.next/cache && \
+    chown -R node:node /app/frontend/.next && \
+    chmod -R 777 /app/frontend/.next
 
 EXPOSE 3000
 CMD ["node", "frontend/server.js"]

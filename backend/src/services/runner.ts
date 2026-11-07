@@ -23,15 +23,28 @@ export class RunnerService {
     try {
       const containerName = `codehost-run-${projectId}`;
 
+      let oldImage: string | null = null;
       try {
         const existing = docker.getContainer(containerName);
         const info = await existing.inspect().catch(() => null);
         if (info) {
+          oldImage = info.Config?.Image || null;
           if (info.State.Running) {
             await existing.stop();
           }
           await existing.remove({ force: true });
           logger.info(`Removed old container ${containerName}`);
+
+          // Untag and remove previous deployment image if it belonged to this project
+          if (
+            oldImage &&
+            oldImage !== imageName &&
+            oldImage.toLowerCase().startsWith(`codehost-project-${projectId.toLowerCase()}:`)
+          ) {
+            docker.getImage(oldImage).remove({ force: true })
+              .then(() => logger.info(`Pruned old deployment image ${oldImage}`))
+              .catch((err: any) => logger.warn(`Failed to prune old image ${oldImage}: ${err.message}`));
+          }
         }
       } catch (e: any) {
         logger.warn(`Failed to remove old container: ${e.message}`);
@@ -71,7 +84,7 @@ export class RunnerService {
           ...Object.entries((project?.envVars as Record<string, string>) || {}).map(([k, v]) => `${k}=${v}`)
         ],
         HostConfig: {
-          PublishAllPorts: true,
+          PublishAllPorts: false,
           Memory: memoryLimit,
           MemorySwap: memoryLimit,
           NanoCpus: nanoCpus,
@@ -80,27 +93,8 @@ export class RunnerService {
           NetworkMode: 'proxy', // Connect to the proxy network
         },
         Labels: {
-          'traefik.enable': 'true',
-
-          // 1. Subdomain-based router (New: projectname.code-host.online and custom domains)
-          [`traefik.http.routers.${containerName}-subdomain.rule`]: project?.customDomain ? `Host(\`${projectSlug}.${host}\`) || Host(\`${project.customDomain}\`)` : `Host(\`${projectSlug}.${host}\`)`,
-          [`traefik.http.routers.${containerName}-subdomain.priority`]: '200',
-          [`traefik.http.routers.${containerName}-subdomain.entrypoints`]: 'web',
-          [`traefik.http.routers.${containerName}-subdomain.service`]: containerName,
-
-          // 2. Path-based router (Legacy: host.com/user/project)
-          [`traefik.http.routers.${containerName}-path.rule`]: `(Host(\`${host}\`) || Host(\`host.arsh-io.website\`)) && (PathPrefix(\`/${username}/${projectSlug}/\`) || Path(\`/${username}/${projectSlug}\`))`,
-          [`traefik.http.routers.${containerName}-path.priority`]: '100',
-          [`traefik.http.routers.${containerName}-path.entrypoints`]: 'web',
-          [`traefik.http.routers.${containerName}-path.middlewares`]: `${containerName}-slash,${containerName}-strip`,
-          [`traefik.http.routers.${containerName}-path.service`]: containerName,
-          
-          [`traefik.http.services.${containerName}.loadbalancer.server.port`]: containerPort,
-          
-          // Middlewares for path-based routing
-          [`traefik.http.middlewares.${containerName}-strip.stripprefix.prefixes`]: `/${username}/${projectSlug}`,
-          [`traefik.http.middlewares.${containerName}-slash.redirectregex.regex`]: `^(https?://[^/]+/${username}/${projectSlug})$`,
-          [`traefik.http.middlewares.${containerName}-slash.redirectregex.replacement`]: `$1/`,
+          'codehost.project.id': projectId,
+          'codehost.deployment.id': deploymentId,
         }
       });
 
@@ -136,9 +130,9 @@ export class RunnerService {
         }
       } catch {}
 
-      // If the actual port differs from what we told Traefik, recreate with correct port
+      // If the actual port differs from what we told the proxy, recreate with correct port
       if (actualPort && actualPort !== containerPort) {
-        logger.info(`Port mismatch: Traefik label=${containerPort}, actual=${actualPort}. Recreating container...`);
+        logger.info(`Port mismatch: proxy port=${containerPort}, actual=${actualPort}. Recreating container...`);
         emitLog(`> Detected app listening on port ${actualPort}, reconfiguring...`);
 
         await container.stop();
@@ -157,7 +151,7 @@ export class RunnerService {
             ...Object.entries((project?.envVars as Record<string, string>) || {}).map(([k, v]) => `${k}=${v}`)
           ],
           HostConfig: {
-            PublishAllPorts: true,
+            PublishAllPorts: false,
             Memory: memoryLimit,
             MemorySwap: memoryLimit,
             NanoCpus: nanoCpus,
@@ -166,20 +160,8 @@ export class RunnerService {
             NetworkMode: 'proxy',
           },
           Labels: {
-            'traefik.enable': 'true',
-            [`traefik.http.routers.${containerName}-subdomain.rule`]: project?.customDomain ? `Host(\`${projectSlug}.${host}\`) || Host(\`${project.customDomain}\`)` : `Host(\`${projectSlug}.${host}\`)`,
-            [`traefik.http.routers.${containerName}-subdomain.priority`]: '200',
-            [`traefik.http.routers.${containerName}-subdomain.entrypoints`]: 'web',
-            [`traefik.http.routers.${containerName}-subdomain.service`]: containerName,
-            [`traefik.http.routers.${containerName}-path.rule`]: `(Host(\`${host}\`) || Host(\`host.arsh-io.website\`)) && (PathPrefix(\`/${username}/${projectSlug}/\`) || Path(\`/${username}/${projectSlug}\`))`,
-            [`traefik.http.routers.${containerName}-path.priority`]: '100',
-            [`traefik.http.routers.${containerName}-path.entrypoints`]: 'web',
-            [`traefik.http.routers.${containerName}-path.middlewares`]: `${containerName}-slash,${containerName}-strip`,
-            [`traefik.http.routers.${containerName}-path.service`]: containerName,
-            [`traefik.http.services.${containerName}.loadbalancer.server.port`]: actualPort,
-            [`traefik.http.middlewares.${containerName}-strip.stripprefix.prefixes`]: `/${username}/${projectSlug}`,
-            [`traefik.http.middlewares.${containerName}-slash.redirectregex.regex`]: `^(https?://[^/]+/${username}/${projectSlug})$`,
-            [`traefik.http.middlewares.${containerName}-slash.redirectregex.replacement`]: `$1/`,
+            'codehost.project.id': projectId,
+            'codehost.deployment.id': deploymentId,
           }
         });
         await fixedContainer.start();
@@ -189,16 +171,17 @@ export class RunnerService {
 
       const containerInfo = await container.inspect();
 
-      let mappedPort = null;
+      let mappedPort: number | null = null;
       if (containerInfo.NetworkSettings.Ports) {
         const keys = Object.keys(containerInfo.NetworkSettings.Ports);
-        if (keys.length > 0 && containerInfo.NetworkSettings.Ports[keys[0]]) {
-           mappedPort = parseInt(containerInfo.NetworkSettings.Ports[keys[0]][0].HostPort, 10);
+        if (keys.length > 0 && containerInfo.NetworkSettings.Ports[keys[0]]?.[0]?.HostPort) {
+          mappedPort = parseInt(containerInfo.NetworkSettings.Ports[keys[0]][0].HostPort, 10);
         }
       }
+      mappedPort = mappedPort || (actualPort ? parseInt(actualPort, 10) : parseInt(containerPort, 10) || null);
 
       emitLog('> Your app is now live!');
-      logger.info(`Started container ${containerName} on port ${mappedPort} (internal: ${actualPort || containerPort})`);
+      logger.info(`Started container ${containerName} (internal: ${actualPort || containerPort})`);
 
       // Clean up any existing log stream for this project to prevent memory & socket leaks
       if (this.activeLogStreams.has(projectId)) {
