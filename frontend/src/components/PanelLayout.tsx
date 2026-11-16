@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from './Logo';
@@ -14,9 +14,13 @@ import {
   Compass,
   CreditCard,
   LifeBuoy,
-  Gift
+  Gift,
+  Coins,
+  Plus
 } from 'lucide-react';
 import UserAvatar from './UserAvatar';
+import CreditTopUpModal from './CreditTopUpModal';
+import { fetchApi } from '@/lib/api';
 
 interface PanelLayoutProps {
   children: React.ReactNode;
@@ -27,15 +31,49 @@ interface PanelLayoutProps {
     name?: string | null;
     avatarUrl?: string | null;
     provider?: string | null;
+    tier?: string;
   } | null;
   projectName?: string;
+  walletBalance?: number;
+  onBalanceUpdate?: (newBalance: number) => void;
 }
 
-export default function PanelLayout({ children, user, projectName }: PanelLayoutProps) {
+export default function PanelLayout({ 
+  children, 
+  user, 
+  projectName, 
+  walletBalance, 
+  onBalanceUpdate 
+}: PanelLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [balance, setBalance] = useState<number>(walletBalance ?? 0);
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+
+  useEffect(() => {
+    if (walletBalance !== undefined) {
+      setBalance(walletBalance);
+    }
+  }, [walletBalance]);
+
+  useEffect(() => {
+    if (user && walletBalance === undefined) {
+      fetchApi('/billing/wallet')
+        .then((data) => {
+          if (data?.wallet?.balance !== undefined) {
+            setBalance(data.wallet.balance);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user, walletBalance]);
+
+  const handleTopUpSuccess = (newBalance: number) => {
+    setBalance(newBalance);
+    onBalanceUpdate?.(newBalance);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -117,7 +155,33 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
         </nav>
 
         <div className="p-4 border-t border-slate-100 mt-auto">
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-3">
+            {/* Plan & Credits Status Card */}
+            {isSidebarOpen && (
+              <div className="p-3 bg-gradient-to-br from-blue-50/60 to-slate-50 rounded-2xl border border-blue-100/80 shadow-2xs">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 bg-blue-100/70 px-2 py-0.5 rounded-md">
+                    {user?.tier ? `${user.tier.toUpperCase()} TIER` : 'FREE TIER'}
+                  </span>
+                  <div className="flex items-center space-x-1 text-slate-700 font-black text-xs">
+                    <Coins size={12} className="text-amber-500 fill-amber-500 shrink-0" />
+                    <span>{balance ?? 0}</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium mb-2.5">
+                  {balance === 0 ? '0 credits remaining. Top up to keep services running.' : `${balance} compute credits available.`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsTopUpOpen(true)}
+                  className="w-full py-1.5 px-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-wider flex items-center justify-center space-x-1 shadow-xs transition-all cursor-pointer"
+                >
+                  <Plus size={11} />
+                  <span>Top Up Credits</span>
+                </button>
+              </div>
+            )}
+
             <div className={`p-3 sm:p-4 bg-slate-50/70 rounded-2xl border border-slate-100 flex items-center space-x-3 ${!isSidebarOpen && 'md:hidden'}`}>
               <UserAvatar user={user} size="md" />
               <div className="flex flex-col min-w-0">
@@ -179,7 +243,24 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
               </div>
           </div>
           
-          <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
+          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+            {/* Header Credit Balance Pill */}
+            <div className="flex items-center space-x-1.5 bg-slate-50 border border-slate-200/90 hover:border-slate-300 px-2.5 sm:px-3 py-1.5 rounded-xl transition-all shadow-2xs">
+              <Coins size={14} className="text-amber-500 fill-amber-500 shrink-0" />
+              <span className="text-xs font-black text-slate-800 tabular-nums">
+                {balance ?? 0}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400 hidden sm:inline">credits</span>
+              <button
+                type="button"
+                onClick={() => setIsTopUpOpen(true)}
+                className="ml-1 sm:ml-1.5 inline-flex items-center space-x-0.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
+              >
+                <Plus size={10} />
+                <span>Buy</span>
+              </button>
+            </div>
+
             {user?.role === 'ADMIN' && (
               <Link href="/admin">
                 <button className="text-[10px] font-black uppercase tracking-widest text-[#2563EB] bg-blue-50 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl hover:bg-blue-100 transition border border-blue-200 shadow-xs cursor-pointer">
@@ -233,6 +314,13 @@ export default function PanelLayout({ children, user, projectName }: PanelLayout
           );
         })}
       </nav>
+
+      {/* Global Credit Top-Up Modal */}
+      <CreditTopUpModal
+        isOpen={isTopUpOpen}
+        onClose={() => setIsTopUpOpen(false)}
+        onSuccess={handleTopUpSuccess}
+      />
     </div>
   );
 }

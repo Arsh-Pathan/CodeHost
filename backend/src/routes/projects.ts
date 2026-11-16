@@ -371,6 +371,13 @@ router.put('/:id', async (req: AuthRequest, res) => {
       newTier = tier;
     }
 
+    // Require a paid plan for attaching a custom domain
+    if (customDomain && typeof customDomain === 'string' && customDomain.trim().length > 0 && newTier === 'free') {
+      return res.status(403).json({
+        error: 'Custom domains require a paid plan (Basic, Pro, or Business). Please upgrade to attach a custom domain.'
+      });
+    }
+
     const updated = await prisma.project.update({
       where: { id: project.id },
       data: {

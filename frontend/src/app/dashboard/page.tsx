@@ -24,10 +24,13 @@ import {
   Bot, 
   Orbit, 
   Radio, 
-  Rocket
+  Rocket,
+  Flame,
+  Coins
 } from 'lucide-react';
 
 import PanelLayout from '@/components/PanelLayout';
+import CreditTopUpModal from '@/components/CreditTopUpModal';
 
 interface IconLabItem {
   icon: any;
@@ -77,6 +80,10 @@ export default function Dashboard() {
   const [resending, setResending] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+  const [topUpInitialCredits, setTopUpInitialCredits] = useState<number | undefined>(undefined);
+  const [topUpInitialPlanType, setTopUpInitialPlanType] = useState<'hackathon' | null>(null);
 
   useEffect(() => {
     // 1. Instant cache hydration: Render dashboard in 0ms if visited before
@@ -84,6 +91,7 @@ export default function Dashboard() {
       try {
         const cachedUser = localStorage.getItem('codehost_user_cache');
         const cachedProjects = localStorage.getItem('codehost_projects_cache');
+        const cachedWallet = localStorage.getItem('codehost_wallet_cache');
         if (cachedUser) {
           setUser(JSON.parse(cachedUser));
           setLoading(false);
@@ -91,31 +99,42 @@ export default function Dashboard() {
         if (cachedProjects) {
           setProjects(JSON.parse(cachedProjects));
         }
+        if (cachedWallet) {
+          setWalletBalance(JSON.parse(cachedWallet)?.balance ?? 0);
+        }
       } catch (e) {
         // Ignore JSON parse errors
       }
     }
 
-    // 2. Fetch fresh user and projects in the background
+    // 2. Fetch fresh user, projects, and wallet in the background
     const checkAuthAndFetchProjects = async () => {
       try {
-        const [meData, projData] = await Promise.all([
+        const [meData, projData, walletData] = await Promise.all([
           fetchApi('/auth/me'),
-          fetchApi('/projects')
+          fetchApi('/projects'),
+          fetchApi('/billing/wallet').catch(() => null)
         ]);
         
         setUser(meData.user);
         setProjects(projData.projects);
+        if (walletData?.wallet?.balance !== undefined) {
+          setWalletBalance(walletData.wallet.balance);
+        }
 
         if (typeof window !== 'undefined') {
           localStorage.setItem('codehost_user_cache', JSON.stringify(meData.user));
           localStorage.setItem('codehost_projects_cache', JSON.stringify(projData.projects));
+          if (walletData?.wallet) {
+            localStorage.setItem('codehost_wallet_cache', JSON.stringify(walletData.wallet));
+          }
         }
       } catch (err: any) {
         if (err.status === 401 || err.status === 403) {
           localStorage.removeItem('token');
           localStorage.removeItem('codehost_user_cache');
           localStorage.removeItem('codehost_projects_cache');
+          localStorage.removeItem('codehost_wallet_cache');
           router.push('/login');
         }
       } finally {
@@ -152,7 +171,12 @@ export default function Dashboard() {
   const isLimitReached = projects.length >= (user?.serverLimit || 1);
 
   return (
-    <PanelLayout user={user} projectName={user ? `${user.username}'s Workspace` : 'Console'}>
+    <PanelLayout 
+      user={user} 
+      projectName={user ? `${user.username}'s Workspace` : 'Console'}
+      walletBalance={walletBalance}
+      onBalanceUpdate={(newBal) => setWalletBalance(newBal)}
+    >
       <div className="flex flex-col space-y-8">
         {/* Email Verification Banner */}
         {isUnverified && (
@@ -207,20 +231,123 @@ export default function Dashboard() {
         ) : (
           <>
             {/* Limit Display */}
-            <div className={`rounded-xl p-6 shadow-xl flex items-center justify-between border ${isLimitReached ? 'bg-red-600 shadow-red-500/10 border-white/10 text-white' : 'bg-white shadow-sm border-slate-200'}`}>
+            <div className={`rounded-xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border ${isLimitReached ? 'bg-red-600 shadow-red-500/10 border-white/10 text-white' : 'bg-white shadow-sm border-slate-200'}`}>
               <div className="flex items-center space-x-4">
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isLimitReached ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${isLimitReached ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
                    <Activity size={24} />
                 </div>
                 <div>
                   <h3 className={`font-bold text-lg ${isLimitReached ? 'text-white' : 'text-slate-900'}`}>
                     {projects.length} / {user?.serverLimit || 1} Servers Active
                   </h3>
-                  <p className={`text-sm font-medium ${isLimitReached ? 'text-red-100/80' : 'text-slate-500'}`}>
+                  <p className={`text-sm font-medium ${isLimitReached ? 'text-red-100/90' : 'text-slate-500'}`}>
                     {isLimitReached 
-                      ? "You've reached your account limit. Delete a server to deploy another, or upgrade your capacity from Time-Man." 
+                      ? "You've reached your free server limit (1 server). Purchase credits or upgrade your plan to deploy additional servers." 
                       : "You have available capacity to deploy more servers."}
                   </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setTopUpInitialPlanType(null);
+                  setTopUpInitialCredits(100);
+                  setIsTopUpOpen(true);
+                }}
+                className={`px-4 py-2.5 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto shrink-0 shadow-sm hover:scale-105 active:scale-95 ${
+                  isLimitReached 
+                    ? 'bg-white text-red-600 hover:bg-red-50' 
+                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200/80'
+                }`}
+              >
+                {isLimitReached ? 'Buy Credits / Upgrade Server Limit' : '+ Buy Credits'}
+              </button>
+            </div>
+
+            {/* Quick Buy Credits Widget */}
+            <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden border border-slate-800">
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="max-w-md">
+                  <div className="flex items-center space-x-2 text-xs font-black uppercase tracking-wider text-blue-400 mb-2">
+                    <Zap size={15} className="fill-blue-400" />
+                    <span>Quick Top-Up &amp; Scale</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight">Need More Power or Capacity?</h2>
+                  <p className="text-slate-300 text-xs sm:text-sm mt-1 leading-relaxed">
+                    Top up compute credits to deploy more servers, attach custom domains, and unlock 24/7 high-performance containers.
+                  </p>
+                  <div className="mt-3 flex items-center space-x-3 text-xs font-bold text-slate-300">
+                    <span>Wallet Balance: <strong className="text-white text-sm">{walletBalance} credits</strong></span>
+                    <span className="text-slate-600">&bull;</span>
+                    <Link href="/dashboard/billing" className="text-blue-400 hover:text-blue-300 underline font-semibold">
+                      Billing History
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Quick Purchase Options */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTopUpInitialPlanType(null);
+                      setTopUpInitialCredits(50);
+                      setIsTopUpOpen(true);
+                    }}
+                    className="bg-white/10 hover:bg-white/20 border border-white/10 p-3 rounded-xl text-left transition-all group cursor-pointer hover:scale-105 active:scale-95"
+                  >
+                    <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Starter</div>
+                    <div className="text-sm font-black text-white mt-0.5">50 cr</div>
+                    <div className="text-xs font-bold text-blue-300 mt-1">₹80</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTopUpInitialPlanType(null);
+                      setTopUpInitialCredits(100);
+                      setIsTopUpOpen(true);
+                    }}
+                    className="bg-blue-600/30 hover:bg-blue-600/40 border border-blue-400/40 p-3 rounded-xl text-left transition-all group cursor-pointer relative hover:scale-105 active:scale-95"
+                  >
+                    <span className="absolute -top-1.5 -right-1 text-[8px] font-black uppercase tracking-wider bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
+                      Popular
+                    </span>
+                    <div className="text-[10px] font-bold text-blue-200 uppercase tracking-wider">Dev Pack</div>
+                    <div className="text-sm font-black text-white mt-0.5">100 cr</div>
+                    <div className="text-xs font-bold text-blue-300 mt-1">₹160</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTopUpInitialPlanType(null);
+                      setTopUpInitialCredits(300);
+                      setIsTopUpOpen(true);
+                    }}
+                    className="bg-white/10 hover:bg-white/20 border border-white/10 p-3 rounded-xl text-left transition-all group cursor-pointer hover:scale-105 active:scale-95"
+                  >
+                    <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Team · 17% off</div>
+                    <div className="text-sm font-black text-white mt-0.5">300 cr</div>
+                    <div className="text-xs font-bold text-blue-300 mt-1">₹400</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTopUpInitialPlanType('hackathon');
+                      setIsTopUpOpen(true);
+                    }}
+                    className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-orange-400/40 p-3 rounded-xl text-left transition-all group cursor-pointer hover:scale-105 active:scale-95"
+                  >
+                    <div className="text-[10px] font-bold text-orange-300 uppercase tracking-wider flex items-center space-x-1">
+                      <Flame size={10} className="fill-orange-400" />
+                      <span>Weekend</span>
+                    </div>
+                    <div className="text-sm font-black text-white mt-0.5">72h Pro</div>
+                    <div className="text-xs font-bold text-orange-300 mt-1">₹49 only</div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -291,6 +418,14 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      <CreditTopUpModal
+        isOpen={isTopUpOpen}
+        onClose={() => setIsTopUpOpen(false)}
+        onSuccess={(newBal) => setWalletBalance(newBal)}
+        initialCredits={topUpInitialCredits}
+        initialPlanType={topUpInitialPlanType}
+      />
     </PanelLayout>
   );
 }

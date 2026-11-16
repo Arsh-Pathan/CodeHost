@@ -60,6 +60,7 @@ export interface CreditPackage {
 }
 
 export const CREDIT_PACKAGES: CreditPackage[] = [
+  { credits: 50, priceUsd: 1.00, priceInr: 80, label: '50 Credits (Starter)', savings: null },
   { credits: 100, priceUsd: 2.00, priceInr: 160, label: '100 Credits', savings: null },
   { credits: 300, priceUsd: 5.00, priceInr: 400, label: '300 Credits', savings: '17% savings' },
   { credits: 600, priceUsd: 9.00, priceInr: 720, label: '600 Credits', savings: '25% savings' },

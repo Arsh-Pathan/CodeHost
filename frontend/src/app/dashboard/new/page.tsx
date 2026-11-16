@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchApi } from '@/lib/api';
 import PanelLayout from '@/components/PanelLayout';
-import { Check, Code, Settings, Loader2, Cpu, HardDrive, Database, Layers, Zap, ArrowRight } from 'lucide-react';
+import CreditTopUpModal from '@/components/CreditTopUpModal';
+import { Check, Code, Settings, Loader2, Cpu, HardDrive, Database, Layers, Zap, ArrowRight, Plus } from 'lucide-react';
 
 interface TierInfo {
   id: string;
@@ -27,6 +28,8 @@ export default function NewProject() {
   const [user, setUser] = useState<{ email: string; username: string; role: string } | null>(null);
   const [tiers, setTiers] = useState<TierInfo[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+  const [topUpCredits, setTopUpCredits] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -77,7 +80,12 @@ export default function NewProject() {
   };
 
   return (
-    <PanelLayout user={user} projectName="New Project">
+    <PanelLayout 
+      user={user} 
+      projectName="New Project"
+      walletBalance={walletBalance}
+      onBalanceUpdate={(newBal) => setWalletBalance(newBal)}
+    >
       <div className="max-w-4xl mx-auto py-8">
         {/* Wizard Steps */}
         <nav aria-label="Progress" className="mb-12">
@@ -210,7 +218,7 @@ export default function NewProject() {
                 </button>
 
                 <p className="text-[11px] text-center text-slate-400 font-medium">
-                  Free plan includes 512MB RAM, 1 vCPU, auto-HTTPS and free subdomain.
+                  Free plan includes 128MB RAM, 0.5 vCPU, auto-HTTPS and free subdomain.
                 </p>
               </div>
             </div>
@@ -284,12 +292,48 @@ export default function NewProject() {
                       <p className="mt-3 text-[10px] font-bold text-slate-400">≈ ₹{t.priceInr}/month</p>
                     )}
                     {!canAfford && t.creditsPerMonth > 0 && (
-                      <p className="mt-2 text-[10px] font-bold text-red-500">Insufficient credits</p>
+                      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-red-500">Insufficient credits</span>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTopUpCredits(t.creditsPerMonth - walletBalance);
+                            setIsTopUpOpen(true);
+                          }}
+                          className="inline-flex items-center space-x-1 text-[10px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                        >
+                          <Plus size={10} />
+                          <span>Top Up</span>
+                        </span>
+                      </div>
                     )}
                   </button>
                 );
               })}
             </div>
+
+            {selectedTier && selectedTier.creditsPerMonth > 0 && walletBalance < selectedTier.creditsPerMonth && (
+              <div className="max-w-md mx-auto mb-6 p-4 bg-amber-50 rounded-2xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div>
+                  <p className="font-bold text-amber-900">Insufficient credits for {selectedTier.label} tier</p>
+                  <p className="text-amber-700 font-medium mt-0.5">
+                    Requires {selectedTier.creditsPerMonth} credits/mo. You have {walletBalance} credits (need {selectedTier.creditsPerMonth - walletBalance} more).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTopUpCredits(selectedTier.creditsPerMonth - walletBalance);
+                    setIsTopUpOpen(true);
+                  }}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap shrink-0 hover:scale-105 active:scale-95"
+                >
+                  Top Up Credits
+                </button>
+              </div>
+            )}
 
             <div className="flex space-x-4 max-w-md mx-auto">
               <button
@@ -309,6 +353,13 @@ export default function NewProject() {
           </div>
         )}
       </div>
+
+      <CreditTopUpModal
+        isOpen={isTopUpOpen}
+        onClose={() => setIsTopUpOpen(false)}
+        onSuccess={(newBal) => setWalletBalance(newBal)}
+        initialCredits={topUpCredits}
+      />
     </PanelLayout>
   );
 }

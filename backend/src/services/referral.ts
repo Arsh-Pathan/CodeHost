@@ -4,8 +4,8 @@ import { logger } from '@codehost/logger';
 import { env } from '@codehost/config';
 import { sendReferralEarnedEmail } from '../lib/email.js';
 
-export const REFERRER_REWARD_CREDITS = 100;
-export const REFEREE_REWARD_CREDITS = 50;
+export const REFERRER_REWARD_CREDITS = 50;
+export const REFEREE_REWARD_CREDITS = 25;
 
 /**
  * Generate a clean, unique referral code (e.g., ARSH-7K2M)
