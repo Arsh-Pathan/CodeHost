@@ -5,6 +5,7 @@ node_modules/
 
 # --- 🏗️ Build Outputs ---
 **/dist/
+**/dist-test/
 **/.next/
 **/out/
 **/build/

@@ -167,6 +167,34 @@ export default function Dashboard() {
     }
   };
 
+  const [unlockingSlot, setUnlockingSlot] = useState(false);
+
+  const handleUnlockSlot = async () => {
+    if (walletBalance < 25) {
+      setTopUpInitialPlanType(null);
+      setTopUpInitialCredits(50);
+      setIsTopUpOpen(true);
+      return;
+    }
+
+    setUnlockingSlot(true);
+    try {
+      const data = await fetchApi('/billing/unlock-slot', { method: 'POST' });
+      if (typeof data?.balance === 'number') {
+        setWalletBalance(data.balance);
+      }
+      if (typeof data?.serverLimit === 'number' && user) {
+        setUser({ ...user, serverLimit: data.serverLimit });
+      }
+    } catch {
+      setTopUpInitialPlanType(null);
+      setTopUpInitialCredits(50);
+      setIsTopUpOpen(true);
+    } finally {
+      setUnlockingSlot(false);
+    }
+  };
+
   const isUnverified = user && user.emailVerified === false;
   const isLimitReached = projects.length >= (user?.serverLimit || 1);
 
@@ -247,21 +275,33 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setTopUpInitialPlanType(null);
-                  setTopUpInitialCredits(100);
-                  setIsTopUpOpen(true);
-                }}
-                className={`px-4 py-2.5 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto shrink-0 shadow-sm hover:scale-105 active:scale-95 ${
-                  isLimitReached 
-                    ? 'bg-white text-red-600 hover:bg-red-50' 
-                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200/80'
-                }`}
-              >
-                {isLimitReached ? 'Buy Credits / Upgrade Server Limit' : '+ Buy Credits'}
-              </button>
+              <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
+                {isLimitReached && (
+                  <button
+                    type="button"
+                    onClick={handleUnlockSlot}
+                    disabled={unlockingSlot}
+                    className="px-4 py-2.5 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap shadow-sm hover:scale-105 active:scale-95 bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
+                  >
+                    {unlockingSlot ? 'Unlocking...' : 'Unlock +1 Slot (25 cr)'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTopUpInitialPlanType(null);
+                    setTopUpInitialCredits(100);
+                    setIsTopUpOpen(true);
+                  }}
+                  className={`px-4 py-2.5 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap shadow-sm hover:scale-105 active:scale-95 ${
+                    isLimitReached 
+                      ? 'bg-white text-red-600 hover:bg-red-50' 
+                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200/80'
+                  }`}
+                >
+                  {isLimitReached ? 'Buy Credits' : '+ Buy Credits'}
+                </button>
+              </div>
             </div>
 
             {/* Quick Buy Credits Widget */}

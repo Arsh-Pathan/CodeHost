@@ -22,7 +22,16 @@ export interface CreditTopUpModalProps {
   initialPlanType?: 'hackathon' | null;
 }
 
-const PRESET_PACKAGES = [
+interface PackageItem {
+  credits: number;
+  priceInr: number;
+  priceUsd: number;
+  label: string;
+  badge: string | null;
+  desc: string;
+}
+
+const DEFAULT_PRESET_PACKAGES: PackageItem[] = [
   { credits: 50, priceInr: 80, priceUsd: 1.00, label: 'Starter', badge: null, desc: '1 mo Basic tier' },
   { credits: 100, priceInr: 160, priceUsd: 2.00, label: 'Developer', badge: 'Popular', desc: 'Standard pack' },
   { credits: 300, priceInr: 400, priceUsd: 5.00, label: 'Team', badge: '17% OFF', desc: 'Best value for 2+ apps' },
@@ -56,6 +65,9 @@ export default function CreditTopUpModal({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [packages, setPackages] = useState<PackageItem[]>(DEFAULT_PRESET_PACKAGES);
+  const [creditPriceInr, setCreditPriceInr] = useState<number>(1.60);
+  const [creditPriceUsd, setCreditPriceUsd] = useState<number>(0.02);
   const [razorpayKeyId, setRazorpayKeyId] = useState<string>('');
   const [user, setUser] = useState<{ email?: string; name?: string; username?: string } | null>(null);
 
@@ -72,7 +84,7 @@ export default function CreditTopUpModal({
     if (initialPlanType === 'hackathon') {
       setMode('hackathon');
     } else if (initialCredits) {
-      const match = PRESET_PACKAGES.find(p => p.credits === initialCredits);
+      const match = packages.find(p => p.credits === initialCredits);
       if (match) {
         setSelectedCredits(initialCredits);
         setMode('packages');
@@ -82,7 +94,7 @@ export default function CreditTopUpModal({
       }
     }
 
-    // Fetch user and tiers for Razorpay key
+    // Fetch user and tiers for Razorpay key & authoritative credit packages
     Promise.all([
       fetchApi('/auth/me').catch(() => null),
       fetchApi('/billing/tiers').catch(() => null),
@@ -93,14 +105,35 @@ export default function CreditTopUpModal({
       if (tiersData?.razorpayKeyId) {
         setRazorpayKeyId(tiersData.razorpayKeyId);
       }
+      if (typeof tiersData?.creditPriceInr === 'number') {
+        setCreditPriceInr(tiersData.creditPriceInr);
+      }
+      if (typeof tiersData?.creditPriceUsd === 'number') {
+        setCreditPriceUsd(tiersData.creditPriceUsd);
+      }
+      if (Array.isArray(tiersData?.creditPackages) && tiersData.creditPackages.length > 0) {
+        setPackages(
+          tiersData.creditPackages.map((p: any) => {
+            const fallback = DEFAULT_PRESET_PACKAGES.find(d => d.credits === p.credits);
+            return {
+              credits: p.credits,
+              priceInr: p.priceInr,
+              priceUsd: p.priceUsd,
+              label: fallback?.label || p.label || `${p.credits} Credits`,
+              badge: p.savings ? p.savings.replace(' savings', ' OFF').toUpperCase() : (fallback?.badge || null),
+              desc: fallback?.desc || `${p.credits} compute credits`,
+            };
+          })
+        );
+      }
     });
   }, [isOpen, initialCredits, initialPlanType]);
 
   if (!isOpen) return null;
 
   const parsedCustom = parseInt(customCredits, 10);
-  const customInr = !isNaN(parsedCustom) && parsedCustom > 0 ? Math.round(parsedCustom * 1.60) : 0;
-  const customUsd = !isNaN(parsedCustom) && parsedCustom > 0 ? (parsedCustom * 0.02).toFixed(2) : '0.00';
+  const customInr = !isNaN(parsedCustom) && parsedCustom > 0 ? Math.round(parsedCustom * creditPriceInr) : 0;
+  const customUsd = !isNaN(parsedCustom) && parsedCustom > 0 ? (parsedCustom * creditPriceUsd).toFixed(2) : '0.00';
 
   const handlePurchase = async () => {
     setError(null);
@@ -305,7 +338,7 @@ export default function CreditTopUpModal({
         {/* Content Mode 1: Credit Packages */}
         {mode === 'packages' && (
           <div className="grid grid-cols-2 gap-3 mb-6">
-            {PRESET_PACKAGES.map((pkg) => {
+            {packages.map((pkg) => {
               const isSelected = selectedCredits === pkg.credits;
               return (
                 <button
@@ -427,7 +460,7 @@ export default function CreditTopUpModal({
                   ? 'Get Hackathon Pass · ₹49' 
                   : mode === 'custom' 
                     ? `Pay ₹${customInr} Securely` 
-                    : `Pay ₹${PRESET_PACKAGES.find(p => p.credits === selectedCredits)?.priceInr || 160} Securely`}
+                    : `Pay ₹${packages.find(p => p.credits === selectedCredits)?.priceInr || 160} Securely`}
               </span>
               <ArrowRight size={16} />
             </>

@@ -91,6 +91,14 @@ export class RunnerService {
           PidsLimit: 128,
           SecurityOpt: ['no-new-privileges:true'],
           NetworkMode: 'proxy', // Connect to the proxy network
+          RestartPolicy: { Name: 'on-failure', MaximumRetryCount: 3 },
+          LogConfig: {
+            Type: 'json-file',
+            Config: { 'max-size': '10m', 'max-file': '3' },
+          },
+          ...(process.env.ENABLE_DOCKER_STORAGE_OPT === 'true'
+            ? { StorageOpt: { size: `${Math.round(tierConfig.storage / (1024 * 1024))}M` } }
+            : {}),
         },
         Labels: {
           'codehost.project.id': projectId,

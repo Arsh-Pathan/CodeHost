@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "ts-node-dev --respawn --esm src/index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "tsc -p tsconfig.test.json && node --import ./dist-test/test/setup.js --test dist-test/test/*.test.js"
   },
   "dependencies": {
     "@codehost/config": "*",

@@ -835,14 +835,34 @@ ${this.cmdFrom(startCmd)}
       
       emitLog('> Building your app...');
 
+      const isFreeTier = !project?.tier || project.tier === 'free';
+      const buildTimeoutMs = isFreeTier ? 180_000 : 600_000; // 3m free, 10m paid
+      const buildMemoryBytes = isFreeTier ? 512 * 1024 * 1024 : 2048 * 1024 * 1024;
+      const buildCpuShares = isFreeTier ? 256 : 1024;
+
       const stream = await docker.buildImage(tarStream, {
         t: imageName,
+        memory: buildMemoryBytes,
+        cpushares: buildCpuShares,
       });
 
       await new Promise((resolve, reject) => {
+        let settled = false;
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          try {
+            (stream as any).destroy?.();
+          } catch {}
+          reject(new Error(`Build timed out after ${Math.round(buildTimeoutMs / 1000)}s (${isFreeTier ? 'Free tier limit — upgrade for 10m priority builds' : 'build limit'})`));
+        }, buildTimeoutMs);
+
         docker.modem.followProgress(
           stream,
           (err, res) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
             if (err) return reject(err);
             // Check the last result in the stream for internal build errors
             const lastMessage = Array.isArray(res) ? res[res.length - 1] : res;

@@ -30,7 +30,8 @@ import {
   RotateCcw,
   X,
   Check,
-  Award
+  Award,
+  Zap
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
@@ -138,11 +139,12 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
 
   const fetchInitialData = async () => {
     try {
-      const [meRes, projRes, depRes, tierRes] = await Promise.all([
+      const [meRes, projRes, depRes, tierRes, logsRes] = await Promise.all([
         fetchApi('/auth/me'),
         fetchApi(`/projects/${params.id}`),
         fetchApi(`/deployments/${params.id}`),
         fetchApi('/billing/tiers'),
+        fetchApi(`/projects/${params.id}/logs`).catch(() => null),
       ]);
 
       setUser(meRes.user);
@@ -150,6 +152,22 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       setDeployments(depRes.deployments);
       setTiers(tierRes.tiers);
       if (!selectedTier) setSelectedTier(projRes.project.tier || 'free');
+
+      if (logsRes?.logs && typeof logsRes.logs === 'string' && logsRes.logs !== 'Container not running.') {
+        const parsedLines = logsRes.logs
+          .split('\n')
+          .map((line: string) => line.trim())
+          .filter(Boolean)
+          .slice(-200)
+          .map((message: string) => ({
+            message,
+            timestamp: new Date().toISOString(),
+            type: 'run',
+          }));
+        if (parsedLines.length > 0) {
+          setLogs((prev) => (prev.length === 0 ? parsedLines : prev));
+        }
+      }
 
       setSettings({
         buildCommand: projRes.project.buildCommand || '',
@@ -200,7 +218,10 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   }, [params.id, project?.status]);
 
   useEffect(() => {
-    const socket = io(API_URL);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const socket = io(API_URL, {
+      auth: { token },
+    });
 
     socket.on('connect', () => {
       socket.emit('join-project-logs', params.id);
@@ -459,6 +480,40 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
               ))}
            </div>
         </div>
+
+        {/* Free-Tier Hibernation Banner */}
+        {(!project.tier || project.tier === 'free') && project.status === 'stopped' && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start space-x-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                <Zap size={18} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-amber-900">Server Offline / Auto-Hibernated (Free Tier)</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Free-tier containers automatically sleep after 30 minutes of inactivity. Upgrade to Basic (50 cr/mo) for 24/7 uptime, 256MB RAM, and custom domains.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleAction('restart')}
+                disabled={actionLoading !== null}
+                className="px-3.5 py-2 bg-white border border-amber-300 text-amber-900 rounded-xl text-xs font-bold hover:bg-amber-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Wake Server
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('settings')}
+                className="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-500 transition-colors cursor-pointer shadow-sm"
+              >
+                Upgrade to 24/7
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (

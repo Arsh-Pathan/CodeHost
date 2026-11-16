@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs-extra';
 import { prisma } from '@codehost/database';
+import { redis } from '@codehost/redis';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { logger } from '@codehost/logger';
 import { z } from 'zod';
@@ -11,6 +12,43 @@ import { RunnerService } from '../services/runner.js';
 
 const router = Router();
 router.use(requireAuth);
+
+const FREE_DAILY_DEPLOY_LIMIT = 10;
+
+async function acquireDeploySlot(projectId: string, tier: string): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const lockKey = `deploy-lock:${projectId}`;
+  const acquired = await redis.set(lockKey, '1', 'EX', 600, 'NX').catch(() => 'OK');
+  if (acquired !== 'OK') {
+    return {
+      ok: false,
+      status: 409,
+      error: 'A deployment is already in progress for this project. Please wait for it to finish.',
+    };
+  }
+
+  if (tier === 'free') {
+    const today = new Date().toISOString().slice(0, 10);
+    const dailyKey = `deploy-daily:${projectId}:${today}`;
+    const count = await redis.incr(dailyKey).catch(() => 1);
+    if (count === 1) {
+      await redis.expire(dailyKey, 86400).catch(() => {});
+    }
+    if (count > FREE_DAILY_DEPLOY_LIMIT) {
+      await redis.del(lockKey).catch(() => {});
+      return {
+        ok: false,
+        status: 429,
+        error: `Free tier allows up to ${FREE_DAILY_DEPLOY_LIMIT} deployments per day. Upgrade to Basic (50 cr/mo) for unlimited deployments.`,
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
+async function releaseDeployLock(projectId: string): Promise<void> {
+  await redis.del(`deploy-lock:${projectId}`).catch(() => {});
+}
 
 // Setup multer for zip uploads
 const uploadDir = path.join(process.cwd(), 'tmp', 'uploads');
@@ -51,6 +89,17 @@ router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) 
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    if (project.status === 'building') {
+      await fs.remove(req.file.path).catch(() => {});
+      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
+    }
+
+    const slot = await acquireDeploySlot(projectId, project.tier || 'free');
+    if (!slot.ok) {
+      await fs.remove(req.file.path).catch(() => {});
+      return res.status(slot.status).json({ error: slot.error });
+    }
+
     // 1. Create Deployment Record
     const deployment = await prisma.deployment.create({
       data: {
@@ -77,6 +126,7 @@ router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) 
       } catch (err) {
         logger.error(`Pipeline failed for ${deployment.id}`);
       } finally {
+        await releaseDeployLock(projectId);
         // Cleanup uploaded zip
         await fs.remove(req.file!.path).catch(() => {});
       }
@@ -108,6 +158,15 @@ router.post('/:projectId/github', async (req: AuthRequest, res) => {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== userId) {
       return res.status(404).json({ error: 'Project not found' });
+    }
+
+    if (project.status === 'building') {
+      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
+    }
+
+    const slot = await acquireDeploySlot(projectId, project.tier || 'free');
+    if (!slot.ok) {
+      return res.status(slot.status).json({ error: slot.error });
     }
 
     // Save repo info on the project
@@ -142,6 +201,8 @@ router.post('/:projectId/github', async (req: AuthRequest, res) => {
         await RunnerService.startContainer(projectId, deployment.id, imageName);
       } catch (err) {
         logger.error(`GitHub pipeline failed for ${deployment.id}`);
+      } finally {
+        await releaseDeployLock(projectId);
       }
     })();
   } catch (error: any) {

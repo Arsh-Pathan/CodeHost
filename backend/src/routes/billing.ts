@@ -411,6 +411,60 @@ router.post('/purchase', requireAuth, handleCreateRazorpayOrder);
 router.post('/verify', requireAuth, handleVerifyRazorpayPayment);
 router.post('/webhook', handleRazorpayWebhook);
 
+const SLOT_UNLOCK_COST = 25;
+
+router.post('/unlock-slot', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+
+    const result = await prisma.$transaction(async (tx: any) => {
+      const wallet = await tx.wallet.findUnique({ where: { userId } });
+      if (!wallet || wallet.balance < SLOT_UNLOCK_COST) {
+        const balance = wallet?.balance ?? 0;
+        const err: any = new Error(`Insufficient credits. Unlocking +1 server slot requires ${SLOT_UNLOCK_COST} credits.`);
+        err.statusCode = 402;
+        err.balance = balance;
+        throw err;
+      }
+
+      const updatedWallet = await tx.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { decrement: SLOT_UNLOCK_COST } },
+      });
+
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { serverLimit: { increment: 1 } },
+        select: { serverLimit: true },
+      });
+
+      await tx.transaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: -SLOT_UNLOCK_COST,
+          type: 'slot_unlock',
+          description: `Unlocked +1 server slot (new limit: ${updatedUser.serverLimit})`,
+        },
+      });
+
+      return { serverLimit: updatedUser.serverLimit, balance: updatedWallet.balance };
+    });
+
+    logger.info(`User ${userId} unlocked +1 server slot (new limit: ${result.serverLimit})`);
+    res.json(result);
+  } catch (error: any) {
+    if (error.statusCode === 402) {
+      return res.status(402).json({
+        error: error.message,
+        required: SLOT_UNLOCK_COST,
+        balance: error.balance ?? 0,
+      });
+    }
+    logger.error({ error }, 'Unlock server slot error');
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.get('/transactions/:id', requireAuth, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.id;

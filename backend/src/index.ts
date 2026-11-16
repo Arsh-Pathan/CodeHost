@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import jwt from 'jsonwebtoken';
 import { env } from '@codehost/config';
 import { logger } from '@codehost/logger';
 import { prisma } from '@codehost/database';
@@ -34,7 +35,7 @@ import billingRouter from './routes/billing.js';
 import referralsRouter from './routes/referrals.js';
 import certificatesRouter from './routes/certificates.js';
 import { RunnerService } from './services/runner.js';
-import { RESOURCE_TIERS } from '@codehost/config';
+import { startLifecycleJobs } from './services/lifecycle.js';
 app.use('/auth', authRouter);
 app.use('/auth/oauth', oauthRouter);
 app.use('/projects', projectsRouter);
@@ -71,13 +72,55 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// WebSocket Configuration
+// WebSocket Authentication & Configuration
+io.use((socket, next) => {
+  try {
+    const authToken = socket.handshake.auth?.token;
+    const headerToken = socket.handshake.headers.authorization?.startsWith('Bearer ')
+      ? socket.handshake.headers.authorization.split(' ')[1]
+      : undefined;
+    const token = authToken || headerToken;
+
+    if (!token) {
+      return next(new Error('Unauthorized'));
+    }
+
+    const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; role?: string };
+    if (!decoded?.id) {
+      return next(new Error('Invalid token'));
+    }
+
+    socket.data.userId = decoded.id;
+    socket.data.role = decoded.role || 'USER';
+    next();
+  } catch {
+    next(new Error('Unauthorized'));
+  }
+});
+
 io.on('connection', (socket) => {
-  logger.info(`Client connected: ${socket.id}`);
+  logger.info(`Client connected: ${socket.id} (user: ${socket.data.userId})`);
   
-  socket.on('join-project-logs', (projectId) => {
-    socket.join(`project:${projectId}`);
-    logger.info(`Client ${socket.id} joined logs for ${projectId}`);
+  socket.on('join-project-logs', async (projectId: string) => {
+    if (!projectId || typeof projectId !== 'string') return;
+    try {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { userId: true },
+      });
+      if (!project || (project.userId !== socket.data.userId && socket.data.role !== 'ADMIN')) {
+        socket.emit('log', {
+          type: 'error',
+          message: 'Unauthorized to view logs for this project.',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+      socket.join(`project:${projectId}`);
+      logger.info(`Client ${socket.id} joined logs for ${projectId}`);
+    } catch {
+      // Ignore transient lookup errors
+    }
   });
 
   socket.on('disconnect', () => {
@@ -103,69 +146,28 @@ setInterval(async () => {
   }
 }, 5000);
 
-// Billing cron: check every 24h for monthly tier charges
-setInterval(async () => {
-  try {
-    const paidProjects = await prisma.project.findMany({
-      where: { tier: { not: 'free' }, status: 'running' },
-      include: { user: true },
-    });
-
-    for (const project of paidProjects) {
-      const tierConfig = RESOURCE_TIERS[project.tier];
-      if (!tierConfig || tierConfig.creditsPerMonth === 0) continue;
-
-      const wallet = await prisma.wallet.findUnique({ where: { userId: project.userId } });
-      if (!wallet) continue;
-
-      // Check last tier_charge for this project
-      const lastCharge = await prisma.transaction.findFirst({
-        where: { walletId: wallet.id, type: 'tier_charge', projectId: project.id },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      if (lastCharge && lastCharge.createdAt > thirtyDaysAgo) continue;
-
-      // Deduct credits
-      if (wallet.balance >= tierConfig.creditsPerMonth) {
-        await prisma.$transaction(async (tx) => {
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { decrement: tierConfig.creditsPerMonth } },
-          });
-          await tx.transaction.create({
-            data: {
-              walletId: wallet.id,
-              amount: -tierConfig.creditsPerMonth,
-              type: 'tier_charge',
-              description: `Monthly charge for ${project.name} (${tierConfig.label} tier)`,
-              projectId: project.id,
-            },
-          });
-        });
-        logger.info(`Charged ${tierConfig.creditsPerMonth} credits for project ${project.id}`);
-      } else {
-        // Insufficient balance: stop container
-        try {
-          await RunnerService.stopContainer(project.id);
-          await prisma.project.update({
-            where: { id: project.id },
-            data: { status: 'stopped' },
-          });
-          logger.info(`Stopped project ${project.id} due to insufficient credits`);
-        } catch (err) {
-          logger.error({ error: err }, `Failed to stop project ${project.id} for billing`);
-        }
-      }
-    }
-  } catch (error) {
-    logger.error({ error }, 'Billing cron error');
-  }
-}, 24 * 60 * 60 * 1000);
+// Start background lifecycle, idle hibernation, storage quota, and hourly billing jobs
+startLifecycleJobs();
 
 const PORT = env.PORT || 4000;
 
 httpServer.listen(PORT, () => {
   logger.info(`API Service running on port ${PORT}`);
 });
+
+const shutdown = async (signal: string) => {
+  logger.info(`Received ${signal}, shutting down gracefully...`);
+  io.close();
+  httpServer.close(async () => {
+    await Promise.allSettled([
+      prisma.$disconnect(),
+      redis.quit(),
+    ]);
+    logger.info('Graceful shutdown complete');
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10_000).unref();
+};
+
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));

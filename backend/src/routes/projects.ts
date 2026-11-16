@@ -32,7 +32,7 @@ router.post('/', async (req: AuthRequest, res) => {
     });
 
     if (projectCount >= user.serverLimit) {
-      return res.status(403).json({ error: `Server limit reached. Your account is limited to ${user.serverLimit} server(s). Please contact an administrator to increase your capacity.` });
+      return res.status(403).json({ error: `Server limit reached (${user.serverLimit} server${user.serverLimit === 1 ? '' : 's'}). Unlock an additional server slot with credits from your dashboard.` });
     }
 
     // Check if name is taken
@@ -65,6 +65,13 @@ router.post('/', async (req: AuthRequest, res) => {
             description: `Initial charge for ${name} (${tierConfig.label} tier)`,
           },
         });
+
+        if (tierConfig.maxProjects > user.serverLimit) {
+          await tx.user.update({
+            where: { id: userId },
+            data: { serverLimit: tierConfig.maxProjects },
+          });
+        }
       }
 
       return await tx.project.create({
@@ -366,6 +373,13 @@ router.put('/:id', async (req: AuthRequest, res) => {
               projectId: project.id,
             },
           });
+          const owner = await tx.user.findUnique({ where: { id: req.user!.id }, select: { serverLimit: true } });
+          if (owner && newTierConfig.maxProjects > owner.serverLimit) {
+            await tx.user.update({
+              where: { id: req.user!.id },
+              data: { serverLimit: newTierConfig.maxProjects },
+            });
+          }
         });
       }
       newTier = tier;
