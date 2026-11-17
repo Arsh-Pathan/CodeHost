@@ -46,28 +46,37 @@ Launch pre-configured, production-ready fullstack applications and APIs with zer
 - **Drag-and-Drop Archives**: Deploy single or multi-file zip archives directly through the browser console.
 - **Automatic Framework Detection**: Zero-configuration detection for over 20 stacks including Next.js, Node.js, Python, Go, Rust, PHP, Bun, Deno, .NET, Ruby, and custom Dockerfiles.
 
-### 3. Scale-to-Zero Engine and Traffic Sleep
-- Idle containers automatically hibernate after prolonged periods of zero HTTP traffic to conserve account credits.
-- Instant cold-start wakeups in under 800 milliseconds when incoming requests hit your assigned subdomain.
+### 3. Scale-to-Zero Engine & 24/7 Always-On Compute
+- **Free Tier Hibernation**: Free-tier containers automatically sleep after 30 minutes of zero HTTP traffic to conserve shared host memory and compute.
+- **Instant Cold Starts**: Wakes up in under 800 milliseconds on incoming web requests or via one-click manual resume from the console.
+- **24/7 Always-On for Paid Workloads**: Projects on Basic, Pro, Business, or the Weekend Hackathon Pass run 24/7 uninterrupted without hibernation.
 
 ### 4. Managed One-Click Databases
 - Provision isolated instances of PostgreSQL, MySQL, Redis, and MongoDB alongside your compute workloads.
 - Automatic internal DNS resolution with persistent volume storage for database workloads.
 
 ### 5. Automated Subdomains and Free TLS/SSL
-- Every deployed service receives a free `https://<service-name>.code-host.online` subdomain with automatic Let's Encrypt TLS encryption.
-- Connect custom root domains or subdomains with CNAME and DNS verification.
+- **Free HTTPS Subdomain**: Every deployed service receives a free `https://<service-name>.code-host.online` subdomain with automatic Let's Encrypt TLS encryption.
+- **Custom Domains**: Connect custom apex or subdomains with CNAME/A records and automated TLS certificates on all paid tiers (Basic, Pro, Business).
 
-### 6. Transparent Prepaid Credits and Hackathon Pass
-- **Predictable Billing**: No surprise charges or unexpected recurring bills. Buy preset bundles or any custom credit amount starting from INR 16.
-- **Free Tier Forever**: Deploy an active sandbox with 128MB RAM, 0.5 CPU quota, 1GB NVMe storage, and free SSL at zero cost.
-- **Weekend Hackathon Pass**: Dedicated compute (2 vCPUs, 2GB RAM, 5GB NVMe, priority build queues) for rapid hackathons and production demos.
+### 6. Transparent Prepaid Credits, Starter Pack & Hackathon Pass
+- **Zero Surprises**: No recurring credit card surprises. Buy credits as needed via Razorpay (UPI, NetBanking, Cards). 1 credit = ₹1.60 ($0.02).
+- **Preset Packages & Volume Savings**:
+  - **Starter Pack**: 50 credits (₹80 / $1.00) — covers 1 full month of Basic Tier hosting.
+  - **Developer Pack**: 100 credits (₹160 / $2.00) — standard bundle for prototyping.
+  - **Team Pack**: 300 credits (₹400 / $5.00) — 17% savings for multi-app setups.
+  - **Pro Scale**: 600 credits (₹720 / $9.00) — 25% savings for heavy production workloads.
+  - **Custom Amount**: Purchase any amount starting from just ₹16 (10 credits).
+- **Self-Serve Server Slot Unlocks**: Instantly unlock additional permanent server capacity directly from the dashboard for 25 credits per slot.
+- **Free Tier Forever**: Deploy a sandbox with 128MB RAM, 0.5 CPU, 1GB NVMe storage, and free SSL at zero cost.
+- **Weekend Hackathon Pass**: Dedicated compute (2 vCPUs, 512MB RAM, 5GB NVMe, priority build queues, 24/7 always-on) for ₹49 (72 hours).
 
-### 7. Notification and Operations Suite
-- Automated transactional email receipts and balance top-up confirmations.
-- Real-time container health monitors and status change events.
-- Proactive balance thresholds before services undergo auto-hibernation.
-- Credential validation and verifiable deployment certificates.
+### 7. Reliability, Security & Notification Suite
+- **Authenticated Real-Time Streams**: Cryptographically authenticated Socket.IO terminal logs and live container metrics.
+- **Deployment Concurrency Locks**: Atomic per-project build locks prevent overlapping deployment races.
+- **Container Lifecycle Reconciliation**: Automatic synchronization recovers crashed or OOM-killed containers and updates dashboard state.
+- **Professional Transactional Emails**: Corporate branded emails featuring the official CodeHost logo, itemized payment receipts, pre-renewal low-credit warnings, and zero emojis.
+- **Verifiable Deployment Certificates**: Cryptographically verified student achievement credentials shareable directly on LinkedIn and resumes.
 
 ---
 
@@ -119,15 +128,15 @@ Launch pre-configured, production-ready fullstack applications and APIs with zer
 
 ## Resource Plans and Compute Tiers
 
-| Tier | Price / Month | Included Credits | RAM Quota | vCPU Quota | NVMe Storage | Active Projects |
-|---|---|---|---|---|---|---|
-| **Free** | **INR 0** (Forever) | 0 | 128 MB | 0.5 | 1 GB | 1 |
-| **Basic** | **INR 80** | 50 | 256 MB | 1.0 | 2 GB | 3 |
-| **Pro** | **INR 240** | 150 | 512 MB | 2.0 | 5 GB | 5 |
-| **Business** | **INR 640** | 400 | 1.0 GB | 4.0 | 10 GB | 10 |
-| **Hackathon Pass** | **INR 49** (72h) | — | 2.0 GB | 2.0 | 5 GB | 1 |
+| Tier | Price / Month | Included Credits | RAM Quota | vCPU Quota | NVMe Storage | Active Projects | Uptime Policy | Custom Domains | Daily Builds |
+|---|---|---|---|---|---|---|---|---|---|
+| **Free** | **INR 0** (Forever) | 0 | 128 MB | 0.5 | 1 GB | 1 (+1 slot / 25 cr) | Sleep after 30m idle | Subdomain only | 10 / day |
+| **Basic** | **INR 80** | 50 | 256 MB | 1.0 | 2 GB | 3 | 24/7 Always-On | Custom Apex & Sub | Unlimited |
+| **Pro** | **INR 240** | 150 | 512 MB | 2.0 | 5 GB | 5 | 24/7 Always-On | Custom Apex & Sub | Unlimited |
+| **Business** | **INR 640** | 400 | 1.0 GB | 4.0 | 10 GB | 10 | 24/7 Always-On | Custom Apex & Sub | Unlimited |
+| **Hackathon Pass** | **INR 49** (72h) | — | 512 MB | 2.0 | 5 GB | 1 | 24/7 Always-On | Subdomain only | Unlimited |
 
-*Note: Custom credit top-ups can be purchased at any time starting from INR 16.*
+*Note: Custom credit top-ups can be purchased at any time starting from INR 16 (10 credits). Additional server slots can be unlocked on-demand for 25 credits.*
 
 ---
 
@@ -184,6 +193,15 @@ docker compose up -d
 ### 5. Apply Database Schema
 ```bash
 docker exec -it codehost-api npx prisma migrate deploy --schema=./database/prisma/schema.prisma
+```
+
+### 6. Run Automated Tests and Build Verification
+```bash
+# Run unit and integration test suites
+npm test --workspaces --if-present
+
+# Compile TypeScript and production builds
+npm run build --workspaces --if-present
 ```
 
 ---

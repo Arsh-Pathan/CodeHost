@@ -463,7 +463,7 @@ export default function DocsPage() {
                 <div className="p-4 rounded-2xl border border-slate-100 bg-white">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Phase 1</p>
                   <h4 className="font-black text-slate-900 text-sm mb-1">Inactivity Detection</h4>
-                  <p className="text-xs text-slate-500">After 15m of zero requests, CPU & RAM freeze. 0 credits are burned.</p>
+                  <p className="text-xs text-slate-500">Free-tier containers hibernate after 30 minutes of inactivity to save compute. Paid tiers (Basic, Pro, Business) stay 24/7 always-on.</p>
                 </div>
                 <div className="p-4 rounded-2xl border border-slate-100 bg-white">
                   <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-1">Phase 2</p>
@@ -489,9 +489,15 @@ export default function DocsPage() {
                 </div>
                 <h2 className="text-2xl font-black text-[#0F172A]">Custom Domains & Instant Free SSL</h2>
               </div>
-              <p className="text-slate-600 leading-relaxed mb-6">
-                Every project automatically receives a free <InlineCode>your-app.code-host.online</InlineCode> subdomain with Let&apos;s Encrypt TLS. You can also connect any custom domain (e.g. <InlineCode>api.mybrand.com</InlineCode> or apex <InlineCode>mybrand.com</InlineCode>).
+              <p className="text-slate-600 leading-relaxed mb-4">
+                Every project automatically receives a free <InlineCode>your-app.code-host.online</InlineCode> subdomain with Let&apos;s Encrypt TLS.
               </p>
+              <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-sm text-blue-900 mb-6 flex items-start gap-3">
+                <span className="font-black text-blue-600 uppercase tracking-widest text-[10px] bg-white px-2 py-0.5 rounded border border-blue-200 shrink-0 mt-0.5">Plan Requirement</span>
+                <p className="text-xs text-blue-800 leading-relaxed">
+                  Attaching custom apex or subdomains requires an active paid tier (<strong>Basic</strong>, <strong>Pro</strong>, or <strong>Business</strong>). Free-tier projects remain fully accessible via their included <InlineCode>.code-host.online</InlineCode> subdomain.
+                </p>
+              </div>
 
               <h3 className="text-lg font-black text-[#0F172A] mb-3">DNS Configuration Steps</h3>
               <div className="space-y-4 mb-8">
@@ -912,30 +918,45 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
               </div>
 
               <h3 className="text-lg font-black text-[#0F172A] mb-3">Credit Packages & Custom Amount</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 mb-8">
                 <div className="p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Starter</p>
+                  <p className="text-xl font-black text-slate-900">50 Credits</p>
+                  <p className="text-sm font-bold text-blue-600 mt-2">₹80 ($1.00)</p>
+                  <p className="text-[10px] text-slate-400 mt-1">1 mo Basic tier</p>
+                </div>
+                <div className="p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Developer</p>
                   <p className="text-xl font-black text-slate-900">100 Credits</p>
                   <p className="text-sm font-bold text-blue-600 mt-2">₹160 ($2.00)</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Standard pack</p>
                 </div>
                 <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/30 shadow-sm relative overflow-hidden">
                    <div className="absolute top-0 right-0 px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black uppercase tracking-tighter">Save 17%</div>
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Growth</p>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Team</p>
                   <p className="text-xl font-black text-slate-900">300 Credits</p>
                   <p className="text-sm font-bold text-blue-600 mt-2">₹400 ($5.00)</p>
+                  <p className="text-[10px] text-slate-400 mt-1">2+ apps</p>
                 </div>
                 <div className="p-4 rounded-xl border border-slate-100 bg-white shadow-sm relative overflow-hidden">
                    <div className="absolute top-0 right-0 px-2 py-0.5 bg-emerald-600 text-white text-[8px] font-black uppercase tracking-tighter">Save 25%</div>
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Team</p>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Pro Scale</p>
                   <p className="text-xl font-black text-slate-900">600 Credits</p>
                   <p className="text-sm font-bold text-blue-600 mt-2">₹720 ($9.00)</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Heavy workloads</p>
                 </div>
                 <div className="p-4 rounded-xl border border-purple-100 bg-purple-50/30 shadow-sm relative overflow-hidden">
                   <p className="text-xs font-black text-purple-600 uppercase tracking-widest mb-1">Custom</p>
                   <p className="text-xl font-black text-slate-900">Any Amount</p>
-                  <p className="text-sm font-bold text-purple-600 mt-2">₹1.60 / credit</p>
+                  <p className="text-sm font-bold text-purple-600 mt-2">₹1.60 / cr</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Min. 10 credits</p>
                 </div>
               </div>
+
+              <h3 className="text-lg font-black text-[#0F172A] mb-3">Self-Serve Server Slot Unlocks</h3>
+              <p className="text-slate-600 leading-relaxed mb-6">
+                Need more concurrent server capacity? You don&apos;t need to file an admin ticket. Directly from your dashboard, click <strong>&ldquo;Unlock +1 Slot&rdquo;</strong> to instantly add permanent server capacity for <strong>25 credits</strong>. Upgrading to a paid tier (Basic, Pro, or Business) also automatically expands your server limit to that tier&apos;s quota.
+              </p>
             </section>
 
             {/* Hackathon Pass */}
@@ -1116,7 +1137,7 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
                   <tbody className="text-slate-600">
                     <tr className="border-b border-slate-50">
                       <td className="py-3 pr-4 font-semibold">Max Projects</td>
-                      <td className="py-3 pr-4">1</td>
+                      <td className="py-3 pr-4">1 (+1 slot / 25 cr)</td>
                       <td className="py-3 pr-4">3</td>
                       <td className="py-3 pr-4">5</td>
                       <td className="py-3">10</td>
@@ -1144,14 +1165,42 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
                     </tr>
                     <tr className="border-b border-slate-50">
                       <td className="py-3 pr-4 font-semibold">Credits/Month</td>
-                      <td className="py-3 pr-4">0</td>
-                      <td className="py-3 pr-4">50</td>
-                      <td className="py-3 pr-4">150</td>
-                      <td className="py-3">400</td>
+                      <td className="py-3 pr-4">0 (Free Forever)</td>
+                      <td className="py-3 pr-4">50 (₹80)</td>
+                      <td className="py-3 pr-4">150 (₹240)</td>
+                      <td className="py-3">400 (₹640)</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">Uptime Policy</td>
+                      <td className="py-3 pr-4">Sleep after 30m idle</td>
+                      <td className="py-3 pr-4">24/7 Always-On</td>
+                      <td className="py-3 pr-4">24/7 Always-On</td>
+                      <td className="py-3">24/7 Always-On</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">Custom Domains</td>
+                      <td className="py-3 pr-4">Subdomain only</td>
+                      <td className="py-3 pr-4">Custom Apex & Sub</td>
+                      <td className="py-3 pr-4">Custom Apex & Sub</td>
+                      <td className="py-3">Custom Apex & Sub</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">Daily Builds</td>
+                      <td className="py-3 pr-4">10 / day</td>
+                      <td className="py-3 pr-4">Unlimited</td>
+                      <td className="py-3 pr-4">Unlimited</td>
+                      <td className="py-3">Unlimited</td>
+                    </tr>
+                    <tr className="border-b border-slate-50">
+                      <td className="py-3 pr-4 font-semibold">Build Sandbox</td>
+                      <td className="py-3 pr-4">512MB RAM · 3m max</td>
+                      <td className="py-3 pr-4">2GB RAM · 10m max</td>
+                      <td className="py-3 pr-4">2GB RAM · 10m max</td>
+                      <td className="py-3">2GB RAM · 10m max</td>
                     </tr>
                     <tr>
                       <td className="py-3 pr-4 font-semibold">Upload Size</td>
-                      <td className="py-3" colSpan={4}>50MB max per zip</td>
+                      <td className="py-3" colSpan={4}>50MB max per zip archive</td>
                     </tr>
                   </tbody>
                 </table>
