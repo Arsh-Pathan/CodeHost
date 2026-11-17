@@ -16,42 +16,60 @@ const transporter = canSendEmail
     })
   : null;
 
-// ─── Branded HTML Wrapper (CodeHost Light Theme) ─────────────────────
-function wrapEmail(title: string, body: string): string {
-  const currentYear = new Date().getFullYear();
+const appBaseUrl = env.APP_URL && !env.APP_URL.includes('localhost')
+  ? env.APP_URL
+  : 'https://code-host.online';
+const logoUrl = `${appBaseUrl}/logo.png`;
 
-  return `
-<!DOCTYPE html>
+// ─── Branded HTML Wrapper (CodeHost Production Theme) ───────────────
+export function wrapEmail(title: string, body: string, options?: { badge?: string; previewText?: string }): string {
+  const badgeText = options?.badge || title;
+  const previewText = options?.previewText || title;
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>${title}</title>
+  <title>${title} - CodeHost</title>
 </head>
-<body style="margin:0;padding:0;background:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#F8FAFC;padding:32px 16px;">
+<body style="margin:0;padding:0;background-color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;color:#334155;">
+  <!-- Preheader text for inbox previews -->
+  <div style="display:none;font-size:1px;color:#FFFFFF;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+    ${previewText}
+  </div>
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color:#F8FAFC;padding:32px 16px;">
     <tr>
       <td align="center">
         <!-- Main Card -->
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;background:#FFFFFF;border-radius:20px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 20px rgba(0,0,0,0.03);">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width:580px;background-color:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 16px rgba(15,23,42,0.04);">
           
-          <!-- Top Brand Header -->
+          <!-- Top Brand Header with Logo -->
           <tr>
-            <td style="padding:28px 36px 20px;border-bottom:1px solid #F1F5F9;text-align:left;">
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            <td style="padding:24px 32px 20px;border-bottom:1px solid #F1F5F9;background-color:#FFFFFF;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
                 <tr>
-                  <td>
-                    <span style="font-size:24px;font-weight:900;letter-spacing:-0.5px;color:#0F172A;text-decoration:none;">
-                      Code<span style="color:#2563EB;">Host</span>
-                    </span>
-                    <span style="display:inline-block;margin-left:8px;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#2563EB;background:#EFF6FF;padding:3px 8px;border-radius:6px;border:1px solid #DBEAFE;">
-                      Cloud
-                    </span>
+                  <td style="vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" border="0" role="presentation">
+                      <tr>
+                        <td style="vertical-align:middle;padding-right:12px;">
+                          <a href="https://code-host.online" target="_blank" style="text-decoration:none;display:block;">
+                            <img src="${logoUrl}" width="34" height="34" alt="CodeHost" style="display:block;border:0;outline:none;border-radius:8px;" />
+                          </a>
+                        </td>
+                        <td style="vertical-align:middle;">
+                          <a href="https://code-host.online" target="_blank" style="text-decoration:none;font-size:20px;font-weight:800;letter-spacing:-0.4px;color:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                            Code<span style="color:#2563EB;">Host</span>
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                   <td align="right" style="vertical-align:middle;">
-                    <span style="font-size:11px;font-weight:700;color:#64748B;letter-spacing:0.5px;text-transform:uppercase;">
-                      ${title}
+                    <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#475569;background-color:#F1F5F9;padding:4px 10px;border-radius:6px;border:1px solid #E2E8F0;">
+                      ${badgeText}
                     </span>
                   </td>
                 </tr>
@@ -61,20 +79,20 @@ function wrapEmail(title: string, body: string): string {
 
           <!-- Main Content Body -->
           <tr>
-            <td style="padding:36px;color:#334155;font-size:14px;line-height:1.65;">
+            <td style="padding:32px;color:#334155;font-size:14px;line-height:1.65;">
               ${body}
             </td>
           </tr>
 
           <!-- Help / Support Callout -->
           <tr>
-            <td style="padding:0 36px 24px;">
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 18px;">
+            <td style="padding:0 32px 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 18px;">
                 <tr>
                   <td style="font-size:12px;color:#64748B;line-height:1.5;">
-                    Need assistance or have feedback? Join our 
-                    <a href="https://discord.gg/gsh2qpEXT4" style="color:#2563EB;font-weight:700;text-decoration:none;">Developer Discord</a> 
-                    or consult the 
+                    Need assistance or have technical questions? Join our
+                    <a href="https://discord.gg/gsh2qpEXT4" style="color:#2563EB;font-weight:700;text-decoration:none;">Developer Community</a> 
+                    or consult our 
                     <a href="https://code-host.online/docs" style="color:#2563EB;font-weight:700;text-decoration:none;">Documentation</a>.
                   </td>
                 </tr>
@@ -84,18 +102,19 @@ function wrapEmail(title: string, body: string): string {
 
           <!-- Clean Footer -->
           <tr>
-            <td style="background:#F8FAFC;padding:24px 36px;border-top:1px solid #E2E8F0;text-align:center;">
-              <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0F172A;">
+            <td style="background-color:#F8FAFC;padding:24px 32px;border-top:1px solid #E2E8F0;text-align:center;">
+              <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#0F172A;">
                 CodeHost Cloud Platform
               </p>
-              <p style="margin:0 0 12px;font-size:11px;color:#94A3B8;line-height:1.5;">
-                Zero DevOps, instant cloud containers for developers and students.<br>
-                Core hosted and powered by <strong style="color:#64748B;">CSky Developments</strong>.
+              <p style="margin:0 0 12px;font-size:11px;color:#64748B;line-height:1.5;">
+                Automated container virtualization and edge hosting for developers and students.<br>
+                Core platform engineered by CSky Developments.
               </p>
               <p style="margin:0;font-size:11px;color:#94A3B8;">
-                <a href="https://code-host.online" style="color:#64748B;text-decoration:none;font-weight:600;margin:0 6px;">Home</a> ·
-                <a href="https://code-host.online/dashboard" style="color:#64748B;text-decoration:none;font-weight:600;margin:0 6px;">Dashboard</a> ·
-                <a href="https://code-host.online/terms" style="color:#64748B;text-decoration:none;font-weight:600;margin:0 6px;">Terms</a> ·
+                <a href="https://code-host.online" style="color:#64748B;text-decoration:none;font-weight:600;margin:0 6px;">Home</a> &middot;
+                <a href="https://code-host.online/dashboard" style="color:#64748B;text-decoration:none;font-weight:600;margin:0 6px;">Dashboard</a> &middot;
+                <a href="https://code-host.online/docs" style="color:#64748B;text-decoration:none;font-weight:600;margin:0 6px;">Docs</a> &middot;
+                <a href="https://code-host.online/terms" style="color:#64748B;text-decoration:none;font-weight:600;margin:0 6px;">Terms</a> &middot;
                 <a href="https://code-host.online/privacy" style="color:#64748B;text-decoration:none;font-weight:600;margin:0 6px;">Privacy</a>
               </p>
             </td>
@@ -109,13 +128,13 @@ function wrapEmail(title: string, body: string): string {
 </html>`;
 }
 
-function ctaButton(label: string, href: string): string {
+export function ctaButton(label: string, href: string): string {
   return `
-    <table cellpadding="0" cellspacing="0" role="presentation" style="margin:24px 0 16px;">
+    <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:24px 0 16px;">
       <tr>
-        <td style="border-radius:12px;background:#2563EB;text-align:center;">
-          <a href="${href}" target="_blank" style="background:#2563EB;border:1px solid #2563EB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;font-weight:700;line-height:1;color:#FFFFFF;text-decoration:none;padding:14px 28px;border-radius:12px;display:inline-block;letter-spacing:0.2px;">
-            ${label} →
+        <td align="center" style="border-radius:10px;background-color:#2563EB;">
+          <a href="${href}" target="_blank" style="background-color:#2563EB;border:1px solid #2563EB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;line-height:1;color:#FFFFFF;text-decoration:none;padding:14px 28px;border-radius:10px;display:inline-block;letter-spacing:0.2px;">
+            ${label}
           </a>
         </td>
       </tr>
@@ -143,76 +162,92 @@ async function sendMail(to: string, subject: string, html: string) {
 
 // ─── 1. Email Verification Email ─────────────────────────────────────
 export async function sendVerificationEmail(to: string, token: string, username?: string) {
-  const verifyUrl = `${env.APP_URL}/verify-email?token=${token}`;
+  const verifyUrl = `${env.APP_URL || 'https://code-host.online'}/verify-email?token=${token}`;
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
-      Verify your CodeHost account
+      Verify your email address
     </h1>
     <p style="margin:0 0 16px;color:#475569;font-size:14px;line-height:1.6;">
-      Hey ${username ? `<strong>${username}</strong>` : 'there'}, thanks for joining CodeHost! Please verify your email address to activate your cloud workspace and start deploying projects.
+      Hello ${username ? `<strong>${username}</strong>` : 'there'}, thank you for signing up for CodeHost. Please verify your email address to activate your cloud account and start deploying projects.
     </p>
 
-    <div style="background:#F0FDF4;border:1px solid #DCFCE7;border-radius:12px;padding:14px 18px;margin-bottom:20px;">
+    <div style="background-color:#F0FDF4;border:1px solid #DCFCE7;border-radius:12px;padding:14px 18px;margin-bottom:20px;">
       <p style="margin:0;color:#166534;font-size:13px;font-weight:600;">
-        🎁 Once verified, you get free cloud compute credits and persistent subdomains.
+        Account Benefits: Verified accounts receive complimentary cloud compute quota, automated TLS certificates, and persistent subdomains.
       </p>
     </div>
 
     ${ctaButton('Verify Email Address', verifyUrl)}
 
-    <p style="margin:18px 0 6px;color:#64748B;font-size:12px;line-height:1.5;">
-      Or copy and paste this link in your browser:
+    <p style="margin:20px 0 6px;color:#64748B;font-size:12px;line-height:1.5;">
+      If the button above does not work, copy and paste this verification URL into your browser:
     </p>
-    <p style="margin:0;font-size:11px;font-family:monospace;background:#F1F5F9;padding:8px 12px;border-radius:8px;word-break:break-all;color:#0F172A;">
+    <p style="margin:0;font-size:11px;font-family:monospace;background-color:#F1F5F9;padding:10px 14px;border-radius:8px;word-break:break-all;color:#0F172A;border:1px solid #E2E8F0;">
       ${verifyUrl}
     </p>
-    <p style="color:#94A3B8;font-size:11px;margin:20px 0 0;">
-      This security link expires in 24 hours. If you did not create an account on CodeHost, you can safely ignore this email.
+    <p style="color:#94A3B8;font-size:11px;margin:20px 0 0;line-height:1.5;">
+      This security link expires in 24 hours. If you did not create an account on CodeHost, you can safely disregard this message.
     </p>
   `;
-  await sendMail(to, 'Verify your email - CodeHost', wrapEmail('Email Verification', body));
+
+  await sendMail(
+    to,
+    'Verify your email address - CodeHost',
+    wrapEmail('Email Verification', body, {
+      badge: 'Account Security',
+      previewText: 'Verify your email address to activate your CodeHost cloud account.',
+    })
+  );
 }
 
 // ─── 2. Welcome Email ────────────────────────────────────────────────
 export async function sendWelcomeEmail(to: string, username: string, bonusCredits = 0) {
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
-      Welcome to CodeHost, ${username}! 🚀
+      Welcome to CodeHost, ${username}
     </h1>
     <p style="margin:0 0 18px;color:#475569;font-size:14px;line-height:1.6;">
-      Your cloud developer environment is ready. Deploy fullstack web apps, microservices, and databases in seconds with zero terminal configuration.
+      Your cloud development environment is active and ready. You can now launch full-stack applications, background workers, and APIs in seconds with automated containerization.
     </p>
 
     ${bonusCredits > 0 ? `
-    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:14px;padding:16px 20px;margin-bottom:22px;">
-      <span style="font-size:11px;font-weight:800;text-transform:uppercase;color:#1D4ED8;letter-spacing:1px;">Bonus Unlocked</span>
+    <div style="background-color:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:16px 20px;margin-bottom:22px;">
+      <span style="font-size:11px;font-weight:800;text-transform:uppercase;color:#1D4ED8;letter-spacing:0.8px;">Welcome Promotion</span>
       <p style="margin:4px 0 0;font-size:15px;font-weight:800;color:#1E3A8A;">
-        +${bonusCredits} Free Deployment Credits Deposited in your Wallet! 🎁
+        +${bonusCredits} Free Deployment Credits Credited to Your Wallet
       </p>
     </div>` : ''}
 
-    <h2 style="color:#0F172A;margin:20px 0 12px;font-size:15px;font-weight:800;">
-      How to deploy your first project in 3 steps:
+    <h2 style="color:#0F172A;margin:22px 0 12px;font-size:15px;font-weight:800;letter-spacing:-0.2px;">
+      Getting Started in 3 Steps
     </h2>
 
-    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px;margin-bottom:10px;">
-      <strong style="color:#0F172A;font-size:13px;">1. Connect GitHub or Upload ZIP</strong>
-      <p style="margin:4px 0 0;color:#64748B;font-size:12px;">Push code directly from Git or drop a project archive.</p>
+    <div style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 18px;margin-bottom:10px;">
+      <strong style="color:#0F172A;font-size:13px;">1. Connect Repository or Upload Code</strong>
+      <p style="margin:4px 0 0;color:#64748B;font-size:12px;line-height:1.5;">Connect any public or private GitHub repository, or drag-and-drop a project ZIP archive directly from your browser.</p>
     </div>
 
-    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px;margin-bottom:10px;">
-      <strong style="color:#0F172A;font-size:13px;">2. Pick from 20+ Optimized Frameworks</strong>
-      <p style="margin:4px 0 0;color:#64748B;font-size:12px;">Next.js, FastAPI, Express, Django, Go Fiber, and more.</p>
+    <div style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 18px;margin-bottom:10px;">
+      <strong style="color:#0F172A;font-size:13px;">2. Automated Framework Detection</strong>
+      <p style="margin:4px 0 0;color:#64748B;font-size:12px;line-height:1.5;">Automatic builds for Next.js, Node.js, Python FastAPI/Django, Go, Rust, and custom Dockerfiles.</p>
     </div>
 
-    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px;margin-bottom:18px;">
-      <strong style="color:#0F172A;font-size:13px;">3. Instant Free SSL Subdomain & Certificate</strong>
-      <p style="margin:4px 0 0;color:#64748B;font-size:12px;">Get a live HTTPS URL and earn your official deployment certificate to share on LinkedIn!</p>
+    <div style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 18px;margin-bottom:18px;">
+      <strong style="color:#0F172A;font-size:13px;">3. Instant HTTPS Subdomain & Verification</strong>
+      <p style="margin:4px 0 0;color:#64748B;font-size:12px;line-height:1.5;">Every deployment receives an encrypted HTTPS URL along with an official deployment certificate to showcase your skills.</p>
     </div>
 
-    ${ctaButton('Go to My Dashboard', 'https://code-host.online/dashboard')}
+    ${ctaButton('Open Developer Dashboard', 'https://code-host.online/dashboard')}
   `;
-  await sendMail(to, 'Welcome to CodeHost! 🚀', wrapEmail('Welcome', body));
+
+  await sendMail(
+    to,
+    'Welcome to CodeHost - Getting Started',
+    wrapEmail('Welcome', body, {
+      badge: 'Account Ready',
+      previewText: `Welcome to CodeHost, ${username}. Your cloud development environment is active.`,
+    })
+  );
 }
 
 // ─── 3. Student Certificate Award Email ─────────────────────────────
@@ -227,22 +262,24 @@ export async function sendCertificateAwardEmail(
   }
 ) {
   const body = `
-    <div style="text-align:center;margin-bottom:20px;">
-      <span style="font-size:42px;">🎓</span>
-      <h1 style="color:#0F172A;margin:8px 0 6px;font-size:22px;font-weight:900;letter-spacing:-0.5px;">
-        Congratulations, ${data.recipientName}!
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="display:inline-block;padding:6px 14px;border-radius:20px;background-color:#EFF6FF;border:1px solid #DBEAFE;margin-bottom:12px;">
+        <span style="font-size:11px;font-weight:800;color:#2563EB;text-transform:uppercase;letter-spacing:1px;">Official Accreditation</span>
+      </div>
+      <h1 style="color:#0F172A;margin:4px 0 6px;font-size:22px;font-weight:900;letter-spacing:-0.5px;">
+        Certificate Awarded to ${data.recipientName}
       </h1>
-      <p style="margin:0;color:#2563EB;font-weight:800;font-size:14px;">
-        You are now a Certified Cloud Deployer
+      <p style="margin:0;color:#2563EB;font-weight:700;font-size:14px;">
+        Certified Cloud Deployer
       </p>
     </div>
 
     <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px;">
-      You successfully shipped <strong>${data.projectName}</strong> to production on CodeHost cloud infrastructure. Your official cryptographic certificate has been generated and verified.
+      You have successfully deployed <strong>${data.projectName}</strong> to production on CodeHost cloud infrastructure. Your official cryptographic certificate has been generated and validated.
     </p>
 
     <!-- Certificate Summary Card -->
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;margin-bottom:22px;overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;margin-bottom:22px;overflow:hidden;">
       <tr>
         <td style="padding:12px 18px;border-bottom:1px solid #E2E8F0;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;">
           Certificate Number
@@ -257,7 +294,7 @@ export async function sendCertificateAwardEmail(
         </td>
         <td style="padding:12px 18px;border-bottom:1px solid #E2E8F0;text-align:right;">
           <a href="${data.liveUrl}" target="_blank" style="color:#2563EB;font-weight:700;font-size:12px;text-decoration:none;">
-            ${data.projectName}.code-host.online ↗
+            ${data.projectName}.code-host.online
           </a>
         </td>
       </tr>
@@ -266,23 +303,27 @@ export async function sendCertificateAwardEmail(
           Verification Status
         </td>
         <td style="padding:12px 18px;text-align:right;">
-          <span style="background:#DCFCE7;color:#166534;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;">
-            ✓ Verified Authentic
+          <span style="background-color:#DCFCE7;color:#166534;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;display:inline-block;">
+            Verified Authentic
           </span>
         </td>
       </tr>
     </table>
 
     <p style="color:#475569;font-size:13px;line-height:1.6;margin:0 0 16px;">
-      Share your achievement on <strong>LinkedIn</strong> and <strong>Twitter</strong>. Your certificate includes an interactive QR code allowing recruiters, professors, and peers to verify your live deployment!
+      You can share this credential on LinkedIn, Twitter, or attach it to your resume. The certificate features a permanent public verification link and QR code for recruiters and educators.
     </p>
 
-    ${ctaButton('View & Share My Certificate', data.certUrl)}
+    ${ctaButton('View Official Certificate', data.certUrl)}
   `;
+
   await sendMail(
     to,
-    `🎓 You earned your Cloud Deployment Certificate for ${data.projectName}!`,
-    wrapEmail('Official Certificate', body)
+    `Certificate of Achievement: Cloud Deployment for ${data.projectName}`,
+    wrapEmail('Official Certificate', body, {
+      badge: 'Certificate',
+      previewText: `Official accreditation: Cloud Deployment Certificate awarded for ${data.projectName}.`,
+    })
   );
 }
 
@@ -299,33 +340,37 @@ export async function sendReferralEarnedEmail(
 ) {
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
-      You just earned +${data.creditsEarned} free credits! 🎁
+      Referral Reward Credited: +${data.creditsEarned} Credits
     </h1>
     <p style="margin:0 0 18px;color:#475569;font-size:14px;line-height:1.6;">
-      Great news! <strong>@${data.refereeUsername}</strong> just registered on CodeHost using your referral link.
+      Developer <strong>@${data.refereeUsername}</strong> has registered on CodeHost using your referral invitation link.
     </p>
 
     <!-- Credits Card -->
-    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:14px;padding:20px;margin-bottom:20px;text-align:center;">
-      <span style="font-size:11px;font-weight:800;text-transform:uppercase;color:#2563EB;letter-spacing:1px;">Reward Credited</span>
+    <div style="background-color:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:22px;margin-bottom:20px;text-align:center;">
+      <span style="font-size:11px;font-weight:800;text-transform:uppercase;color:#2563EB;letter-spacing:0.8px;">Reward Processed</span>
       <div style="font-size:32px;font-weight:900;color:#1E3A8A;margin:6px 0;">
         +${data.creditsEarned} Credits
       </div>
       <p style="margin:0;color:#475569;font-size:13px;">
-        Your new wallet balance is <strong>${data.totalBalance} credits</strong>.
+        Your updated account balance is <strong>${data.totalBalance} credits</strong>.
       </p>
     </div>
 
     <p style="color:#475569;font-size:13px;line-height:1.6;margin:0 0 16px;">
-      Keep inviting friends to earn 100 credits for every signup. Your friends also receive 50 bonus credits on registration!
+      Share your referral link with colleagues and students to earn 50 compute credits for every signup. New signups also receive 25 bonus credits.
     </p>
 
     ${ctaButton('View Referrals Dashboard', 'https://code-host.online/dashboard/referrals')}
   `;
+
   await sendMail(
     to,
-    `🎁 You earned +${data.creditsEarned} credits on CodeHost!`,
-    wrapEmail('Referral Reward', body)
+    `Referral Reward Credited: +${data.creditsEarned} Credits`,
+    wrapEmail('Referral Reward', body, {
+      badge: 'Rewards',
+      previewText: `You earned +${data.creditsEarned} compute credits from a successful referral.`,
+    })
   );
 }
 
@@ -336,18 +381,18 @@ export async function sendPaymentConfirmationEmail(
 ) {
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
-      Payment Confirmed ✅
+      Payment Confirmation & Receipt
     </h1>
     <p style="color:#475569;line-height:1.6;margin:0 0 20px;font-size:14px;">
-      Your payment was processed successfully. Here is your official receipt:
+      Thank you for your purchase. Your payment has been processed successfully, and compute credits have been deposited to your account.
     </p>
 
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#F8FAFC;border-radius:14px;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:22px;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:22px;">
       <tr>
         <td style="padding:12px 18px;border-bottom:1px solid #E2E8F0;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;">
           Credits Purchased
         </td>
-        <td style="padding:12px 18px;border-bottom:1px solid #E2E8F0;text-align:right;font-weight:800;font-size:15px;color:#0F172A;">
+        <td style="padding:12px 18px;border-bottom:1px solid #E2E8F0;text-align:right;font-weight:800;font-size:14px;color:#0F172A;">
           +${data.credits} credits
         </td>
       </tr>
@@ -356,12 +401,12 @@ export async function sendPaymentConfirmationEmail(
           Amount Paid
         </td>
         <td style="padding:12px 18px;border-bottom:1px solid #E2E8F0;text-align:right;font-weight:800;color:#0F172A;">
-          ₹${data.amountInr} INR
+          INR ${data.amountInr}.00
         </td>
       </tr>
       <tr>
         <td style="padding:12px 18px;border-bottom:1px solid #E2E8F0;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;">
-          New Balance
+          Updated Balance
         </td>
         <td style="padding:12px 18px;border-bottom:1px solid #E2E8F0;text-align:right;font-weight:800;color:#16A34A;">
           ${data.newBalance} credits
@@ -369,7 +414,7 @@ export async function sendPaymentConfirmationEmail(
       </tr>
       <tr>
         <td style="padding:12px 18px;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;">
-          Transaction ID
+          Transaction Reference
         </td>
         <td style="padding:12px 18px;text-align:right;font-family:monospace;font-size:11px;color:#64748B;">
           ${data.transactionId}
@@ -377,9 +422,17 @@ export async function sendPaymentConfirmationEmail(
       </tr>
     </table>
 
-    ${ctaButton('View Invoice', `https://code-host.online/dashboard/billing/invoice/${data.transactionId}`)}
+    ${ctaButton('View Billing Statement', `https://code-host.online/dashboard/billing/invoice/${data.transactionId}`)}
   `;
-  await sendMail(to, `Payment Confirmed — +${data.credits} Credits Added`, wrapEmail('Payment Receipt', body));
+
+  await sendMail(
+    to,
+    `Payment Receipt: +${data.credits} Credits Added`,
+    wrapEmail('Payment Receipt', body, {
+      badge: 'Receipt',
+      previewText: `Payment confirmed: +${data.credits} credits deposited to your CodeHost account.`,
+    })
+  );
 }
 
 // ─── 6. Low Credit Warning Email ────────────────────────────────────
@@ -389,22 +442,30 @@ export async function sendLowCreditWarningEmail(
 ) {
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
-      ⚠️ Low Credit Warning
+      Low Credit Balance Alert
     </h1>
     <p style="color:#475569;line-height:1.6;margin:0 0 16px;font-size:14px;">
-      Your CodeHost credit balance is low: <strong style="color:#DC2626;">${data.balance} credits remaining</strong>.
-      ${data.projectName ? `Your project <strong>${data.projectName}</strong> may automatically pause soon.` : 'Your active containers will safely pause if credits reach zero.'}
+      Your CodeHost compute credit balance is running low: <strong style="color:#DC2626;">${data.balance} credits remaining</strong>.
+      ${data.projectName ? `Your project <strong>${data.projectName}</strong> may automatically hibernate soon.` : 'Active containers will safely hibernate if your credit balance reaches zero.'}
     </p>
 
-    <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:14px 18px;margin-bottom:20px;">
-      <p style="margin:0;color:#991B1B;font-size:13px;font-weight:600;">
-        Top up any custom amount starting at just ₹16 (10 credits) to keep your containers live uninterrupted.
+    <div style="background-color:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:14px 18px;margin-bottom:20px;">
+      <p style="margin:0;color:#991B1B;font-size:13px;font-weight:600;line-height:1.5;">
+        Action Recommended: Top up your credits to ensure uninterrupted uptime for your live applications and services.
       </p>
     </div>
 
-    ${ctaButton('Top Up Credits', 'https://code-host.online/dashboard/billing')}
+    ${ctaButton('Top Up Account Balance', 'https://code-host.online/dashboard/billing')}
   `;
-  await sendMail(to, '⚠️ Low Credit Warning — CodeHost', wrapEmail('Credit Alert', body));
+
+  await sendMail(
+    to,
+    'Action Required: Low Credit Balance Alert',
+    wrapEmail('Credit Alert', body, {
+      badge: 'Balance Notice',
+      previewText: `Low credit balance alert: ${data.balance} credits remaining on your CodeHost account.`,
+    })
+  );
 }
 
 // ─── 7. Server Status Notification Email ────────────────────────────
@@ -412,31 +473,64 @@ export async function sendServerStatusEmail(
   to: string,
   data: { projectName: string; status: string; projectId: string }
 ) {
-  const statusConfig: Record<string, { emoji: string; color: string; message: string }> = {
-    running: { emoji: '🟢', color: '#16A34A', message: 'Your server is live and accepting incoming web traffic.' },
-    stopped: { emoji: '🔴', color: '#DC2626', message: 'Your server has been safely stopped. You can restart it anytime.' },
-    failed: { emoji: '❌', color: '#DC2626', message: 'Your build or startup process encountered an issue. Check the logs.' },
-    building: { emoji: '🔨', color: '#D97706', message: 'A new deployment has begun building inside an isolated sandbox.' },
+  const statusConfig: Record<string, { color: string; bg: string; border: string; message: string }> = {
+    running: {
+      color: '#16A34A',
+      bg: '#F0FDF4',
+      border: '#DCFCE7',
+      message: 'Your container is active, healthy, and serving incoming web traffic.',
+    },
+    stopped: {
+      color: '#64748B',
+      bg: '#F8FAFC',
+      border: '#E2E8F0',
+      message: 'Your container is currently stopped. You can restart it anytime from your dashboard.',
+    },
+    failed: {
+      color: '#DC2626',
+      bg: '#FEF2F2',
+      border: '#FECACA',
+      message: 'The build or startup process encountered an error. Please inspect the container logs.',
+    },
+    building: {
+      color: '#2563EB',
+      bg: '#EFF6FF',
+      border: '#DBEAFE',
+      message: 'A deployment build is actively in progress within an isolated container sandbox.',
+    },
   };
 
-  const config = statusConfig[data.status] || { emoji: '📋', color: '#64748B', message: `Status changed to ${data.status}.` };
+  const config = statusConfig[data.status] || {
+    color: '#64748B',
+    bg: '#F8FAFC',
+    border: '#E2E8F0',
+    message: `Status updated to ${data.status}.`,
+  };
 
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
-      ${config.emoji} Server Status Update
+      Server Status Notification
     </h1>
-    <div style="background:#F8FAFC;border-radius:14px;border:1px solid #E2E8F0;padding:18px;margin-bottom:20px;">
+    <div style="background-color:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0;padding:18px;margin-bottom:20px;">
       <p style="margin:0 0 4px;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;">Project</p>
       <p style="margin:0 0 14px;color:#0F172A;font-weight:800;font-size:16px;">${data.projectName}</p>
-      <p style="margin:0 0 6px;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;">Status</p>
-      <span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:800;color:#FFFFFF;background:${config.color};">
+      <p style="margin:0 0 6px;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;">Current State</p>
+      <span style="display:inline-block;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:800;color:${config.color};background-color:${config.bg};border:1px solid ${config.border};letter-spacing:0.5px;">
         ${data.status.toUpperCase()}
       </span>
     </div>
     <p style="color:#475569;line-height:1.6;margin:0 0 18px;font-size:14px;">${config.message}</p>
-    ${ctaButton('View Project & Logs', `https://code-host.online/dashboard/project/${data.projectId}`)}
+    ${ctaButton('Open Project Console', `https://code-host.online/dashboard/project/${data.projectId}`)}
   `;
-  await sendMail(to, `${config.emoji} ${data.projectName} is now ${data.status.toUpperCase()}`, wrapEmail('Server Status', body));
+
+  await sendMail(
+    to,
+    `Server Status: ${data.projectName} is now ${data.status.toUpperCase()}`,
+    wrapEmail('Server Status', body, {
+      badge: 'Deployment Event',
+      previewText: `Server status update: ${data.projectName} is now ${data.status.toUpperCase()}.`,
+    })
+  );
 }
 
 // ─── 8. Hackathon Pass Activated Email ──────────────────────────────
@@ -452,22 +546,39 @@ export async function sendHackathonPassActivatedEmail(
 
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
-      🔥 Weekend Hackathon Pass Activated!
+      Weekend Hackathon Pass Activated
     </h1>
     <p style="color:#475569;line-height:1.6;margin:0 0 20px;font-size:14px;">
-      Hey ${data.username}, your 72-hour Pro access is live! Build and demo your project with maximum speed and capacity:
+      Hello ${data.username}, your 72-hour Pro access is now active. Your projects are enabled with dedicated high-performance compute:
     </p>
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:20px;">
-      ${['2 vCPUs Dedicated Compute', '512MB High-Speed RAM', '5GB NVMe Storage', 'Priority Build Sandboxes', 'Automatic SSL Routing'].map(f => `
-      <tr><td style="padding:6px 0;">
-        <span style="color:#16A34A;font-weight:800;margin-right:8px;">✓</span>
-        <span style="color:#0F172A;font-size:13px;font-weight:600;">${f}</span>
-      </td></tr>`).join('')}
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 18px;margin-bottom:20px;">
+      ${[
+        '2 Dedicated vCPUs Compute',
+        '512MB High-Speed RAM',
+        '5GB NVMe Persistent Storage',
+        'Priority Multi-Stage Build Queues',
+        'Automated TLS and Subdomain Routing',
+      ].map(f => `
+      <tr>
+        <td style="padding:6px 0;font-size:13px;color:#0F172A;font-weight:600;">
+          <span style="color:#2563EB;margin-right:8px;font-weight:bold;">&bull;</span> ${f}
+        </td>
+      </tr>`).join('')}
     </table>
-    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:14px 18px;margin-bottom:20px;">
-      <p style="margin:0;color:#1E40AF;font-size:13px;font-weight:700;">⏰ Pass Valid Until: ${expiryStr} IST (72 Hours)</p>
+    <div style="background-color:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:14px 18px;margin-bottom:20px;">
+      <p style="margin:0;color:#1E40AF;font-size:13px;font-weight:700;">
+        Access Valid Until: ${expiryStr} IST (72-Hour Duration)
+      </p>
     </div>
     ${ctaButton('Open Dashboard', 'https://code-host.online/dashboard')}
   `;
-  await sendMail(to, '🔥 Hackathon Pass Activated — 72 Hours of Pro Access', wrapEmail('Hackathon Pass', body));
+
+  await sendMail(
+    to,
+    'Hackathon Pass Activated: 72 Hours of Pro Access',
+    wrapEmail('Hackathon Pass', body, {
+      badge: 'Pro Tier Access',
+      previewText: `Hackathon Pass active: 72 hours of dedicated Pro compute unlocked for ${data.username}.`,
+    })
+  );
 }
