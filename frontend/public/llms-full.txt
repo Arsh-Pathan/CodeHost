@@ -1,0 +1,134 @@
+# CodeHost — Full Technical & LLM Reference
+
+> Comprehensive platform specification, pricing, REST API reference, and Model Context Protocol (MCP) server schemas for CodeHost (`https://code-host.online`).
+
+## 1. Platform Capabilities & Architecture
+CodeHost is an automated Platform as a Service (PaaS) running isolated Docker workloads behind an edge reverse proxy with automated Let's Encrypt TLS termination.
+
+- **Web App**: https://code-host.online
+- **Control Plane API**: https://api.code-host.online
+- **MCP Server**: https://api.code-host.online/mcp
+- **Documentation**: https://code-host.online/docs
+- **Public Stats**: https://api.code-host.online/stats/public
+- **System Health**: https://code-host.online/status
+
+### Isolation & Runtime Guarantees
+- Workloads run in isolated Docker containers on the `proxy` bridge network with strict cgroup Memory, MemorySwap, CPU (`NanoCpus`), and PIDs limits (`PidsLimit: 128`, `no-new-privileges:true`).
+- Docker `json-file` log rotation (`max-size: 10m`, `max-file: 3`) and `on-failure` restart policies (`MaximumRetryCount: 3`).
+- Automatic port detection scans `Dockerfile` (`EXPOSE`, `ENV PORT`), `nginx.conf` (`listen`), and Docker image `ExposedPorts`.
+- **Free Tier Idle Hibernation**: Free-tier containers sleep after 30 minutes of inactivity to preserve host compute; paid tiers run 24/7 uninterrupted.
+- **Deployment Concurrency Locks**: Atomic Redis locks prevent overlapping builds per project (`409 Conflict`).
+
+---
+
+## 2. Compute Tiers, Quotas & Pricing
+
+1 Credit = ₹1.60 INR ($0.02 USD).
+
+| Tier | Credits / Month | Monthly Price | RAM | vCPU | Storage | Max Projects | Uptime Policy | Custom Domains | Daily Builds | Build Sandbox |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `free` | 0 | ₹0 (Forever) | 128 MB | 0.5 | 1 GB | 1 (+1 slot / 25 cr) | Sleeps after 30m idle | `.code-host.online` only | 10 / day | 512 MB RAM, 3m timeout |
+| `basic` | 50 | ₹80 ($1.00) | 256 MB | 1.0 | 2 GB | 3 | 24/7 Always-On | Included (Free TLS) | Unlimited | 2 GB RAM, 10m timeout |
+| `pro` | 150 | ₹240 ($3.00) | 512 MB | 2.0 | 5 GB | 5 | 24/7 Always-On | Included (Free TLS) | Unlimited | 2 GB RAM, 10m timeout |
+| `business` | 400 | ₹640 ($8.00) | 1024 MB | 4.0 | 10 GB | 10 | 24/7 Always-On | Included (Free TLS) | Unlimited | 2 GB RAM, 10m timeout |
+| Hackathon Pass | — | ₹49 (72h one-time) | 512 MB | 2.0 | 5 GB | 1 | 24/7 Always-On | `.code-host.online` only | Unlimited | 2 GB RAM, 10m timeout |
+
+### Credit Top-Up Bundles
+- **Starter**: 50 credits — ₹80 ($1.00)
+- **Developer**: 100 credits — ₹160 ($2.00)
+- **Team**: 300 credits — ₹400 ($5.00, 17% savings)
+- **Pro Scale**: 600 credits — ₹720 ($9.00, 25% savings)
+- **Custom Amount**: Any amount starting from 10 credits (₹16).
+- **Server Slot Unlock**: Spend 25 credits to permanently increase `serverLimit` by +1 from the dashboard (`POST /billing/unlock-slot`).
+
+---
+
+## 3. REST API Reference (`https://api.code-host.online`)
+
+All authenticated endpoints require `Authorization: Bearer <JWT_TOKEN>`.
+
+- `POST /auth/login` — Body: `{ identifier, password }` -> `{ accessToken, refreshToken, user }`
+- `GET /auth/me` — Returns current authenticated user profile and `serverLimit`.
+- `GET /projects` — List projects belonging to the user.
+- `POST /projects` — Body: `{ name, tier }` -> Creates a project (validates `serverLimit` and atomically deducts tier credits if paid).
+- `GET /projects/:id` — Fetch single project details.
+- `PUT /projects/:id` — Update `name`, `buildCommand`, `startCommand`, `dockerfileOverride`, `envVars`, `tier`, or `customDomain` (paid tiers only).
+- `POST /projects/:id/restart` | `POST /projects/:id/stop` | `POST /projects/:id/redeploy` — Control container lifecycle.
+- `GET /projects/:id/logs` — Retrieve recent container logs.
+- `DELETE /projects/:id` — Stop container and delete project.
+- `POST /deployments/:projectId` — Multipart upload of `.zip` archive (`code` field, max 50MB).
+- `POST /deployments/:projectId/github` — Body: `{ repoUrl, branch, subdir? }` -> Clones public GitHub repository and deploys.
+- `GET /deployments/:projectId` — List latest 10 deployments and status.
+- `POST /files/:projectId` — Body: `{ filePath, content }` -> Write source file directly into project workspace.
+- `POST /files/:projectId/deploy` — Build and deploy directly from files written in project workspace.
+- `GET /billing/wallet` | `GET /billing/tiers` | `POST /billing/unlock-slot` — Check credits, tiers, and unlock slots.
+
+---
+
+## 4. Model Context Protocol (MCP) Server
+
+CodeHost exposes a native **Streamable HTTP JSON-RPC 2.0 MCP Server** so LLMs and coding agents can write code, deploy applications, read build/runtime logs, and manage live services autonomously.
+
+### Connection Details
+- **Discovery (`GET`)**: `https://api.code-host.online/mcp`
+- **RPC Endpoint (`POST`)**: `https://api.code-host.online/mcp` (alias: `https://api.code-host.online/api/mcp`)
+- **Protocol Version**: `2024-11-05`
+- **Headers**:
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <JWT_TOKEN>` (optional if calling `codehost_login` first and passing `token` in tool arguments)
+
+### Example MCP Client Configuration
+```json
+{
+  "mcpServers": {
+    "codehost": {
+      "url": "https://api.code-host.online/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_CODEHOST_JWT_TOKEN"
+      }
+    }
+  }
+}
+```
+
+### Supported JSON-RPC Methods
+- `initialize`
+- `notifications/initialized`
+- `ping`
+- `resources/list`
+- `resources/read` (`codehost://docs/overview`, `codehost://config/tiers`)
+- `tools/list`
+- `tools/call`
+
+### Available MCP Tools & Input Schemas
+
+1. **`codehost_login`**
+   - Authenticate with CodeHost email/username and password to obtain a JWT token.
+   - Schema: `{ identifier: string, password: string }` (required: `identifier`, `password`)
+2. **`list_projects`**
+   - List all projects owned by the authenticated user along with status, tier, and live URL.
+   - Schema: `{ token?: string }`
+3. **`get_project`**
+   - Fetch detailed configuration and the 5 most recent deployments for a project.
+   - Schema: `{ projectId: string, token?: string }` (required: `projectId`)
+4. **`create_project`**
+   - Create a new cloud project/subdomain (`3-50` lowercase alphanumeric/dash characters).
+   - Schema: `{ name: string, tier?: "free" | "basic" | "pro" | "business", buildCommand?: string, startCommand?: string, envVars?: Record<string, string>, token?: string }` (required: `name`)
+5. **`deploy_github`**
+   - Deploy a public GitHub repository (`https://github.com/owner/repo`) into an existing project.
+   - Schema: `{ projectId: string, repoUrl: string, branch?: string, subdir?: string, token?: string }` (required: `projectId`, `repoUrl`)
+6. **`write_project_files`**
+   - Write one or more source code files (e.g., `package.json`, `server.js`, `app.py`, `Dockerfile`) directly into a project's workspace before calling `deploy_files`.
+   - Schema: `{ projectId: string, files: Array<{ path: string, content: string }>, token?: string }` (required: `projectId`, `files`)
+7. **`deploy_files`**
+   - Trigger a Docker build and start the container from files currently saved in the project's workspace.
+   - Schema: `{ projectId: string, token?: string }` (required: `projectId`)
+8. **`get_project_logs`**
+   - Read live container stdout/stderr logs and the latest deployment build status/logs.
+   - Schema: `{ projectId: string, tail?: number, token?: string }` (required: `projectId`)
+9. **`control_project`**
+   - Start/restart, stop, redeploy, or delete a project.
+   - Schema: `{ projectId: string, action: "restart" | "stop" | "redeploy" | "delete", token?: string }` (required: `projectId`, `action`)
+10. **`get_wallet_and_tiers`**
+    - Retrieve current wallet credit balance, account `serverLimit`, and full resource tier/credit package definitions.
+    - Schema: `{ token?: string }`

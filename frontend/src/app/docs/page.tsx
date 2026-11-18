@@ -23,8 +23,17 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'Documentation — CodeHost',
-  description: 'Learn how to deploy your projects on CodeHost. Step-by-step guides, supported technologies, starter templates, and databases.',
+  title: 'Documentation — Deployments, Pricing & MCP Server',
+  description: 'Complete guide to deploying Next.js, Python, Go, and Docker apps on CodeHost, configuring custom domains, managing prepaid credits, and connecting AI agents via MCP.',
+  alternates: {
+    canonical: 'https://code-host.online/docs',
+  },
+  openGraph: {
+    title: 'Documentation | CodeHost',
+    description: 'Step-by-step guides for GitHub/ZIP deployments, resource tiers, custom domains, llms.txt, and the CodeHost MCP Server.',
+    url: 'https://code-host.online/docs',
+    type: 'article',
+  },
 };
 
 function SidebarLink({ href, children, indent }: { href: string; children: React.ReactNode; indent?: boolean }) {
@@ -113,6 +122,7 @@ export default function DocsPage() {
             <SidebarLink href="#project-requirements">Project Requirements</SidebarLink>
             <SidebarLink href="#dashboard">Dashboard</SidebarLink>
             <SidebarLink href="#custom-configuration">Custom Configuration</SidebarLink>
+            <SidebarLink href="#mcp-server">AI Agents &amp; MCP</SidebarLink>
           </div>
 
           <div className="space-y-2">
@@ -1204,6 +1214,69 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </section>
+
+            {/* AI Agents & MCP Server */}
+            <section id="mcp-server">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center">
+                  <Sparkles size={20} className="text-blue-600" />
+                </div>
+                <h2 className="text-2xl font-black text-[#0F172A]">AI Agents &amp; MCP Server</h2>
+              </div>
+              <p className="text-slate-600 leading-relaxed mb-6">
+                CodeHost is natively readable by Large Language Models and supports the <strong>Model Context Protocol (MCP)</strong> over Streamable HTTP JSON-RPC 2.0 so coding agents (Claude, Cursor, Windsurf, Antigravity) can deploy and manage apps directly.
+              </p>
+
+              <h3 className="text-lg font-black text-[#0F172A] mb-3">LLM-Readable Documentation</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                <a href="/llms.txt" target="_blank" className="p-4 rounded-xl border border-slate-200 hover:border-blue-300 bg-slate-50 transition-colors block">
+                  <p className="text-xs font-black text-blue-600 uppercase tracking-widest mb-1">Summary Context</p>
+                  <p className="text-sm font-bold text-slate-900">/llms.txt</p>
+                  <p className="text-xs text-slate-500 mt-1">Concise platform overview, tiers, and MCP quickstart for LLMs.</p>
+                </a>
+                <a href="/llms-full.txt" target="_blank" className="p-4 rounded-xl border border-slate-200 hover:border-blue-300 bg-slate-50 transition-colors block">
+                  <p className="text-xs font-black text-blue-600 uppercase tracking-widest mb-1">Full Technical Spec</p>
+                  <p className="text-sm font-bold text-slate-900">/llms-full.txt</p>
+                  <p className="text-xs text-slate-500 mt-1">Complete REST API &amp; MCP tool JSON schemas.</p>
+                </a>
+              </div>
+
+              <h3 className="text-lg font-black text-[#0F172A] mb-3">Connect an MCP Client</h3>
+              <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                Point your MCP client to <InlineCode>https://api.code-host.online/mcp</InlineCode> with your JWT token in the <InlineCode>Authorization</InlineCode> header (or call the <InlineCode>codehost_login</InlineCode> tool):
+              </p>
+              <CodeBlock>{`{
+  "mcpServers": {
+    "codehost": {
+      "url": "https://api.code-host.online/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_CODEHOST_JWT_TOKEN"
+      }
+    }
+  }
+}`}</CodeBlock>
+
+              <h3 className="text-lg font-black text-[#0F172A] mt-8 mb-3">Available MCP Deployment Tools</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                {[
+                  { name: 'codehost_login', desc: 'Authenticate with email/username & password to get a JWT.' },
+                  { name: 'list_projects', desc: 'List projects, live URLs, tiers, and container status.' },
+                  { name: 'get_project', desc: 'Inspect project configuration and latest 5 deployments.' },
+                  { name: 'create_project', desc: 'Provision a new subdomain and compute tier.' },
+                  { name: 'deploy_github', desc: 'Clone and deploy a public GitHub repository.' },
+                  { name: 'write_project_files', desc: 'Write generated source files directly into a project.' },
+                  { name: 'deploy_files', desc: 'Build and run a container from written workspace files.' },
+                  { name: 'get_project_logs', desc: 'Stream recent container stdout/stderr and build logs.' },
+                  { name: 'control_project', desc: 'Restart, stop, redeploy, or delete a project.' },
+                  { name: 'get_wallet_and_tiers', desc: 'Check credit balance, serverLimit, and tier pricing.' },
+                ].map((tool) => (
+                  <div key={tool.name} className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <p className="font-mono text-xs font-bold text-blue-600">{tool.name}</p>
+                    <p className="text-xs text-slate-600 mt-1">{tool.desc}</p>
+                  </div>
+                ))}
               </div>
             </section>
 

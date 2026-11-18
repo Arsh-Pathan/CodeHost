@@ -40,6 +40,7 @@ The central control plane and execution API for the CodeHost cloud platform. Bui
 | `/referrals` | Referral Program | `GET /`, `GET /stats` |
 | `/certificates` | Student Credential Generator | `POST /issue`, `GET /:certNumber`, `GET /user` |
 | `/files` | Web-Based File Manager | `GET /:projectId`, `POST /:projectId/read`, `POST /:projectId/write`, `DELETE /:projectId` |
+| `/mcp` | Model Context Protocol Server | `GET /` (discovery), `POST /` (JSON-RPC 2.0 `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`) |
 | `/admin` | Infrastructure & User Admin | `/stats`, `/health`, `/users`, `/projects`, `/system/metrics` |
 
 ---

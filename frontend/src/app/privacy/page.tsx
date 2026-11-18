@@ -3,8 +3,11 @@ import { LogoWithText } from '@/components/Logo';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
-  title: 'Privacy Policy — CodeHost',
-  description: 'CodeHost Privacy Policy — how we collect, use, and protect your data.',
+  title: 'Privacy Policy',
+  description: 'CodeHost Privacy Policy — how we collect, use, and protect your account, deployment, and telemetry data.',
+  alternates: {
+    canonical: 'https://code-host.online/privacy',
+  },
 };
 
 export default function PrivacyPage() {

@@ -1,0 +1,37 @@
+# CodeHost
+
+> Developer-first Cloud Platform & PaaS for students and engineering teams. Deploy Next.js, Node.js, Python (FastAPI/Django/Flask), Go, Rust, Docker containers, and databases in seconds with automated Let's Encrypt TLS, isolated cgroups, transparent prepaid credits, and a native Model Context Protocol (MCP) server for AI-driven deployments.
+
+## Overview
+CodeHost removes cloud DevOps complexity with automatic framework detection across 20+ stacks, instant `https://<project-name>.code-host.online` subdomains, and predictable prepaid compute credits (`1 credit = ₹1.60 / $0.02`).
+
+- **Website**: https://code-host.online
+- **Documentation**: https://code-host.online/docs
+- **Status**: https://code-host.online/status
+- **Full LLM Reference**: https://code-host.online/llms-full.txt
+- **MCP Server Endpoint**: https://api.code-host.online/mcp
+- **GitHub**: https://github.com/Arsh-Pathan/CodeHost
+
+## Compute Tiers & Pricing
+- **Free (INR 0 / Forever)**: 128 MB RAM, 0.5 vCPU, 1 GB NVMe storage, 1 active project (+1 slot for 25 cr), sleeps after 30m idle, 10 deploys/day, `.code-host.online` subdomain with TLS.
+- **Basic (50 credits / INR 80 per month)**: 256 MB RAM, 1.0 vCPU, 2 GB NVMe storage, up to 3 projects, 24/7 always-on, custom domains with TLS, unlimited deploys.
+- **Pro (150 credits / INR 240 per month)**: 512 MB RAM, 2.0 vCPU, 5 GB NVMe storage, up to 5 projects, 24/7 always-on, custom domains with TLS, unlimited deploys.
+- **Business (400 credits / INR 640 per month)**: 1.0 GB RAM, 4.0 vCPU, 10 GB NVMe storage, up to 10 projects, 24/7 always-on, custom domains with TLS, unlimited deploys.
+- **Weekend Hackathon Pass (INR 49 / 72h)**: Dedicated Pro compute (512 MB RAM, 2.0 vCPU, 5 GB NVMe, 24/7 always-on, priority build queue).
+- **Credit Packs**: Starter (50 cr / ₹80), Developer (100 cr / ₹160), Team (300 cr / ₹400), Pro Scale (600 cr / ₹720), Custom (min 10 cr / ₹16).
+
+## Supported Runtimes & Templates
+- Next.js, Node.js, Express, TypeScript, Bun, Deno
+- Python (FastAPI, Django, Flask)
+- Go (Fiber, standard `net/http`)
+- Rust, Java, .NET, PHP, Ruby
+- Custom `Dockerfile` & Docker containers
+
+## MCP Server Quickstart (For LLMs & AI Agents)
+Connect any MCP-compatible client (Claude Desktop, Cursor, Windsurf, Antigravity, custom agents) using Streamable HTTP JSON-RPC 2.0:
+
+- **Endpoint**: `https://api.code-host.online/mcp` (Discovery metadata available via `GET /mcp`)
+- **Authentication**: Pass `Authorization: Bearer <JWT_TOKEN>` header, or invoke the `codehost_login` MCP tool with `{ identifier, password }`.
+- **Deployment Tools**: `codehost_login`, `list_projects`, `get_project`, `create_project`, `deploy_github`, `write_project_files`, `deploy_files`, `get_project_logs`, `control_project`, `get_wallet_and_tiers`.
+
+See [https://code-host.online/llms-full.txt](https://code-host.online/llms-full.txt) for complete REST API documentation, tool JSON schemas, and deployment examples.

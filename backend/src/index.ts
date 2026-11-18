@@ -34,6 +34,7 @@ import filesRouter from './routes/files.js';
 import billingRouter from './routes/billing.js';
 import referralsRouter from './routes/referrals.js';
 import certificatesRouter from './routes/certificates.js';
+import mcpRouter from './routes/mcp.js';
 import { RunnerService } from './services/runner.js';
 import { startLifecycleJobs } from './services/lifecycle.js';
 app.use('/auth', authRouter);
@@ -46,6 +47,8 @@ app.use('/billing', billingRouter);
 app.use('/api', billingRouter);
 app.use('/referrals', referralsRouter);
 app.use('/certificates', certificatesRouter);
+app.use('/mcp', mcpRouter);
+app.use('/api/mcp', mcpRouter);
 
 // Public Stats (for landing page)
 app.get('/stats/public', async (req, res) => {

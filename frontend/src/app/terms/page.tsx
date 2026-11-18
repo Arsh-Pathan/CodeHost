@@ -3,8 +3,11 @@ import { LogoWithText } from '@/components/Logo';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
-  title: 'Terms of Service — CodeHost',
-  description: 'CodeHost Terms of Service and acceptable use policy.',
+  title: 'Terms of Service',
+  description: 'CodeHost Terms of Service, acceptable use policy, compute resource quotas, and prepaid credit billing terms.',
+  alternates: {
+    canonical: 'https://code-host.online/terms',
+  },
 };
 
 export default function TermsPage() {

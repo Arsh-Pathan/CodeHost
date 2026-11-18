@@ -78,6 +78,10 @@ Launch pre-configured, production-ready fullstack applications and APIs with zer
 - **Professional Transactional Emails**: Corporate branded emails featuring the official CodeHost logo, itemized payment receipts, pre-renewal low-credit warnings, and zero emojis.
 - **Verifiable Deployment Certificates**: Cryptographically verified student achievement credentials shareable directly on LinkedIn and resumes.
 
+### 8. AI-Native Deployment (MCP Server & `llms.txt`)
+- **Model Context Protocol (MCP)**: Streamable HTTP JSON-RPC 2.0 server at `/mcp` (`https://api.code-host.online/mcp`) exposing 10 tools (`codehost_login`, `list_projects`, `get_project`, `create_project`, `deploy_github`, `write_project_files`, `deploy_files`, `get_project_logs`, `control_project`, `get_wallet_and_tiers`) so LLMs can write code and deploy directly.
+- **LLM-Readable Context**: Machine-friendly documentation served at `/llms.txt` and `/llms-full.txt`, explicitly permitted in `robots.txt` and indexed in `sitemap.xml`.
+
 ---
 
 ## System Architecture
