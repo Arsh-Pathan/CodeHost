@@ -25,7 +25,8 @@ export default function NewProject() {
   const [tier, setTier] = useState('free');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [user, setUser] = useState<{ email: string; username: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ email: string; username: string; role: string; emailVerified?: boolean } | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [tiers, setTiers] = useState<TierInfo[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
@@ -35,9 +36,12 @@ export default function NewProject() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const tpl = urlParams.get('template');
-      if (tpl && !name) {
-        const randomSuffix = Math.floor(100 + Math.random() * 900);
-        setName(`${tpl}-app-${randomSuffix}`);
+      if (tpl) {
+        setSelectedTemplateId(tpl);
+        if (!name) {
+          const randomSuffix = Math.floor(100 + Math.random() * 900);
+          setName(`${tpl}-app-${randomSuffix}`);
+        }
       }
     }
 
@@ -87,6 +91,17 @@ export default function NewProject() {
       onBalanceUpdate={(newBal) => setWalletBalance(newBal)}
     >
       <div className="max-w-4xl mx-auto py-8">
+        {user && user.emailVerified === false && (
+          <div className="mb-8 rounded-2xl bg-amber-50 border border-amber-200 p-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-amber-900">Email verification required</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Please verify your email address before deploying your server. Check your inbox or return to the dashboard to resend the link.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Wizard Steps */}
         <nav aria-label="Progress" className="mb-12">
           <ol role="list" className="flex items-center justify-center space-x-12">
@@ -167,23 +182,37 @@ export default function NewProject() {
                     { id: 'fastapi', name: 'Python FastAPI', tag: 'AI & REST', slug: 'fastapi-service', color: 'emerald' },
                     { id: 'express', name: 'Node.js Express', tag: 'REST & WS', slug: 'express-api', color: 'purple' },
                     { id: 'portfolio', name: 'Modern Portfolio', tag: 'Static CDN', slug: 'dev-portfolio', color: 'amber' },
-                  ].map((tpl) => (
+                  ].map((tpl) => {
+                    const isTplSelected = selectedTemplateId === tpl.id;
+                    return (
                     <button
                       key={tpl.id}
                       type="button"
                       onClick={() => {
+                        setSelectedTemplateId(tpl.id);
                         const randomSuffix = Math.floor(100 + Math.random() * 900);
                         setName(`${tpl.slug}-${randomSuffix}`);
                       }}
-                      className="p-3 text-left rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-blue-500 hover:shadow-md transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 active:scale-95 group cursor-pointer"
+                      className={`p-3 text-left rounded-2xl border transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 active:scale-95 group cursor-pointer ${
+                        isTplSelected
+                          ? 'border-blue-600 bg-blue-50/50 shadow-md shadow-blue-500/10'
+                          : 'border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-blue-500 hover:shadow-md'
+                      }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-slate-900 group-hover:text-blue-600 transition-colors">{tpl.name}</span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{tpl.tag}</span>
+                        <span className={`text-xs font-black transition-colors ${isTplSelected ? 'text-blue-600' : 'text-slate-900 group-hover:text-blue-600'}`}>{tpl.name}</span>
+                        {isTplSelected ? (
+                          <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                            <Check size={10} />
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{tpl.tag}</span>
+                        )}
                       </div>
                       <p className="text-[10px] text-slate-500 mt-1">Pre-configured Docker sandbox & dependencies</p>
                     </button>
-                  ))}
+                  );
+                  })}
                 </div>
               </div>
 

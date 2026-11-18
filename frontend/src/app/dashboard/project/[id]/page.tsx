@@ -91,6 +91,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // GitHub deploy state
@@ -268,17 +269,65 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
     }
   };
 
+  const parseEnvVarsInput = (raw: string): Record<string, string> | null => {
+    const trimmed = raw.trim();
+    if (!trimmed) return {};
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+        const normalized: Record<string, string> = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          if (k.trim()) normalized[k.trim()] = v == null ? '' : String(v);
+        }
+        return normalized;
+      } catch {
+        return null;
+      }
+    }
+    const result: Record<string, string> = {};
+    for (const line of trimmed.split(/\r?\n/)) {
+      const clean = line.trim();
+      if (!clean || clean.startsWith('#')) continue;
+      const eqIdx = clean.indexOf('=');
+      if (eqIdx <= 0) return null;
+      const key = clean.slice(0, eqIdx).trim().replace(/^export\s+/, '');
+      let val = clean.slice(eqIdx + 1).trim();
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      if (!key) return null;
+      result[key] = val;
+    }
+    return result;
+  };
+
+  const showSuccess = (msg: string) => {
+    setSuccessMessage(msg);
+    setTimeout(() => {
+      setSuccessMessage((prev) => (prev === msg ? '' : prev));
+    }, 4000);
+  };
+
   const handleSaveSettings = async () => {
     setActionLoading('save-settings');
     setError('');
-    let finalSettings = { ...settings };
-    if (typeof finalSettings.envVars === 'string') {
-      try {
-        finalSettings.envVars = JSON.parse(finalSettings.envVars);
-      } catch (e) {
-        finalSettings.envVars = {};
+    setSuccessMessage('');
+    let parsedEnvVars: Record<string, string> = {};
+
+    if (typeof settings.envVars === 'string') {
+      const parsed = parseEnvVarsInput(settings.envVars);
+      if (parsed === null) {
+        setError('Invalid Environment Variables format. Enter valid JSON (e.g. {"PORT": "3000"}) or KEY=VALUE lines.');
+        setActionLoading(null);
+        return;
       }
+      parsedEnvVars = parsed;
+    } else if (settings.envVars && typeof settings.envVars === 'object') {
+      parsedEnvVars = settings.envVars as Record<string, string>;
     }
+
+    const finalSettings = { ...settings, envVars: parsedEnvVars };
 
     try {
       await fetchApi(`/projects/${params.id}`, {
@@ -286,7 +335,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         body: JSON.stringify(finalSettings)
       });
       await fetchProjectData();
-      alert('Settings saved! Deploy to apply changes.');
+      showSuccess('Settings saved. Redeploy or restart to apply updated environment variables.');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -515,7 +564,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
           </div>
         )}
 
-        {/* Error Alert */}
+        {/* Error & Success Alerts */}
         {error && (
           <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm font-bold flex items-center justify-between">
              <div className="flex items-center">
@@ -523,6 +572,17 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                {error}
              </div>
              <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">
+               <X size={16} />
+             </button>
+          </div>
+        )}
+        {successMessage && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-sm font-bold flex items-center justify-between">
+             <div className="flex items-center">
+               <Check size={16} className="mr-3 text-emerald-600 shrink-0" />
+               {successMessage}
+             </div>
+             <button onClick={() => setSuccessMessage('')} className="text-emerald-500 hover:text-emerald-700">
                <X size={16} />
              </button>
           </div>
@@ -953,31 +1013,47 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                   </div>
                   
                   <div className="space-y-2 mt-8 pt-8 border-t border-slate-100">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Custom Domain</label>
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Custom Domain</label>
+                      {(!project.tier || project.tier === 'free') && (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          Paid Plan Required (Basic+)
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-col md:flex-row gap-4">
                       <input
                         type="text"
-                        placeholder="e.g., app.mywebsite.com"
-                        className="flex-1 p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold text-slate-900 focus:outline-none focus:ring-0 focus:border-blue-600 transition-all"
+                        placeholder={(!project.tier || project.tier === 'free') ? 'Upgrade to Basic, Pro, or Business to attach a custom domain' : 'e.g., app.mywebsite.com'}
+                        disabled={!project.tier || project.tier === 'free'}
+                        className="flex-1 p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold text-slate-900 focus:outline-none focus:ring-0 focus:border-blue-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         value={settings.customDomain}
                         onChange={(e) => setSettings({ ...settings, customDomain: e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, '') })}
                       />
                       <button
                         onClick={handleSaveSettings}
-                        disabled={actionLoading !== null}
-                        className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-30 transition-all flex items-center justify-center space-x-2 shrink-0"
+                        disabled={actionLoading !== null || !project.tier || project.tier === 'free'}
+                        className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-30 transition-all flex items-center justify-center space-x-2 shrink-0 cursor-pointer disabled:cursor-not-allowed"
                       >
                         {actionLoading === 'save-settings' ? <Loader2 size={16} className="animate-spin" /> : <Globe size={14} />}
                         <span>Save Domain</span>
                       </button>
                     </div>
                     <div className="px-1 mt-2 space-y-1">
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        Point your domain to the VPS IP using an <span className="text-slate-900 font-black">A Record</span> to enable this custom domain.
-                      </p>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        A free Let's Encrypt SSL certificate will automatically be generated for your custom domain by the proxy.
-                      </p>
+                      {(!project.tier || project.tier === 'free') ? (
+                        <p className="text-[11px] text-amber-700 font-medium">
+                          Custom domains are available on Basic, Pro, and Business tiers. Upgrade your Resource Tier below to attach your own domain with automated Let&apos;s Encrypt SSL.
+                        </p>
+                      ) : (
+                        <>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            Point your domain to the VPS IP using an <span className="text-slate-900 font-black">A Record</span> to enable this custom domain.
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            A free Let&apos;s Encrypt SSL certificate will automatically be generated for your custom domain by the proxy.
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1043,21 +1119,41 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
               </div>
 
               <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center">
                     <Terminal size={18} className="mr-3 text-slate-900" />
                     Environment Variables
                   </h3>
-                  <button
-                    onClick={handleSaveSettings}
-                    disabled={actionLoading === 'save-settings'}
-                    className="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center space-x-2"
-                  >
-                    {actionLoading === 'save-settings' ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                    <span>Save Variables</span>
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const raw = typeof settings.envVars === 'string' ? settings.envVars : JSON.stringify(settings.envVars, null, 2);
+                        const parsed = parseEnvVarsInput(raw);
+                        if (parsed === null) {
+                          setError('Could not format: enter valid JSON or KEY=VALUE lines.');
+                          return;
+                        }
+                        setError('');
+                        setSettings({ ...settings, envVars: JSON.stringify(parsed, null, 2) });
+                      }}
+                      className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all cursor-pointer"
+                    >
+                      Format .env / JSON
+                    </button>
+                    <button
+                      onClick={handleSaveSettings}
+                      disabled={actionLoading === 'save-settings'}
+                      className="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center space-x-2 cursor-pointer"
+                    >
+                      {actionLoading === 'save-settings' ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                      <span>Save Variables</span>
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-500 mb-4">Define environment variables as a JSON object. These will be securely injected into your container at runtime. You must redeploy to apply changes.</p>
+                <p className="text-xs text-slate-500 mb-4">
+                  Paste standard <span className="font-mono font-bold text-slate-700">.env</span> (<span className="font-mono">KEY=VALUE</span>) lines or a JSON object. Values are securely injected at runtime; redeploy or restart to apply changes.
+                </p>
                 <div className="relative">
                   <textarea
                     value={typeof settings.envVars === 'string' ? settings.envVars : JSON.stringify(settings.envVars, null, 2)}
@@ -1092,18 +1188,18 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
               <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-8 flex items-center">
                     <HardDrive size={16} className="mr-3 text-blue-600" />
-                    Connection Details
+                    Endpoints &amp; MCP Integration
                  </h3>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">SFTP Access</span>
-                       <p className="text-xs font-bold text-slate-900 mb-1">sftp.code-host.online</p>
-                       <p className="text-[10px] text-slate-400">Use your dashboard credentials.</p>
+                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">Live HTTPS Endpoint</span>
+                       <p className="text-xs font-mono font-bold text-slate-900 mb-1 break-all">https://{project.name.toLowerCase()}.code-host.online</p>
+                       <p className="text-[10px] text-slate-400">Automated Let&apos;s Encrypt TLS termination.</p>
                     </div>
                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">SSH Access</span>
-                       <p className="text-xs font-bold text-slate-900 mb-1">Disabled on Free Tier</p>
-                       <p className="text-[10px] text-slate-400 italic">Upgrade to Premium for CLI access.</p>
+                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">AI Agent MCP Endpoint</span>
+                       <p className="text-xs font-mono font-bold text-slate-900 mb-1 break-all">https://api.code-host.online/mcp</p>
+                       <p className="text-[10px] text-slate-400">Deploy files or inspect logs directly from Claude, Cursor, or Windsurf.</p>
                     </div>
                  </div>
               </div>

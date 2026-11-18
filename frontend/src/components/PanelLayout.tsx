@@ -78,14 +78,18 @@ export default function PanelLayout({
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('codehost_user_cache');
+    localStorage.removeItem('codehost_projects_cache');
+    localStorage.removeItem('codehost_wallet_cache');
     router.push('/');
   };
 
-  const navItems = [
+  const navItems: Array<{ name: string; icon: any; href: string; badge?: string; disabled?: boolean }> = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+    { name: 'New Server', icon: Plus, href: '/dashboard/new' },
     { name: 'Billing', icon: CreditCard, href: '/dashboard/billing' },
     { name: 'Refer & Earn', icon: Gift, href: '/dashboard/referrals', badge: 'Bonus' },
-    { name: 'Explore Templates', icon: Compass, href: '#', disabled: true },
+    { name: 'Docs & MCP', icon: Compass, href: '/docs' },
     { name: 'Profile', icon: Settings, href: '/dashboard/profile' },
   ];
 
