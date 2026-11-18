@@ -38,7 +38,7 @@ router.get('/my-status', requireAuth, async (req: AuthRequest, res) => {
         userId,
         OR: [
           { status: 'running' },
-          { deployments: { some: { status: 'running' } } },
+          { deployments: { some: { status: { in: ['success', 'running'] } } } },
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -95,7 +95,7 @@ router.post('/claim', requireAuth, async (req: AuthRequest, res) => {
         userId,
         OR: [
           { status: 'running' },
-          { deployments: { some: { status: 'running' } } },
+          { deployments: { some: { status: { in: ['success', 'running'] } } } },
         ],
       },
       orderBy: { createdAt: 'desc' },

@@ -82,15 +82,32 @@ export async function expireTimedTiers(): Promise<void> {
 
   for (const user of expiredUsers) {
     try {
+      const [unlockedSlots, paidProjects] = await Promise.all([
+        prisma.transaction.count({
+          where: { wallet: { userId: user.id }, type: 'slot_unlock' },
+        }),
+        prisma.project.findMany({
+          where: { userId: user.id, tier: { not: 'free' } },
+          select: { tier: true },
+        }),
+      ]);
+
+      const maxPaidProjectLimit = paidProjects.reduce(
+        (max, p) => Math.max(max, RESOURCE_TIERS[p.tier]?.maxProjects || 0),
+        0
+      );
+      const baselineLimit = Math.max(freeMaxProjects + unlockedSlots, maxPaidProjectLimit);
+      const nextServerLimit = Math.max(1, Math.min(user.serverLimit, baselineLimit));
+
       await prisma.user.update({
         where: { id: user.id },
         data: {
           tier: 'free',
           tierExpiresAt: null,
-          serverLimit: Math.min(user.serverLimit, freeMaxProjects),
+          serverLimit: nextServerLimit,
         },
       });
-      logger.info(`Expired timed tier (${user.tier}) for user ${user.id}; reverted to free`);
+      logger.info(`Expired timed tier (${user.tier}) for user ${user.id}; reverted to free (serverLimit=${nextServerLimit})`);
     } catch (err) {
       logger.error({ error: err }, `Failed to expire timed tier for user ${user.id}`);
     }

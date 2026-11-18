@@ -19,6 +19,17 @@ import {
 
 const router = Router();
 
+export function resolvePackageAmountInr(credits: number, orderAmountPaise?: number): number {
+  if (typeof orderAmountPaise === 'number' && orderAmountPaise > 0) {
+    return Math.round(orderAmountPaise / 100);
+  }
+  const pkg = CREDIT_PACKAGES.find((p) => p.credits === credits);
+  if (pkg) {
+    return pkg.priceInr;
+  }
+  return Math.round(credits * CREDIT_PRICE_INR);
+}
+
 // All routes except webhook require auth
 router.get('/wallet', requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -194,11 +205,13 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
 
       // Securely read credits and planType strictly from verified Razorpay order
       let creditsToAdd = 0;
+      let orderAmountPaise = 0;
       let isHackathon = requestedPlanType === 'hackathon';
 
       try {
         const client = getRazorpayClient();
         const orderData = await client.orders.fetch(orderId);
+        orderAmountPaise = Number(orderData?.amount) || 0;
         if (orderData && orderData.notes) {
           if (orderData.notes.planType === 'hackathon') {
             isHackathon = true;
@@ -209,7 +222,7 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
         }
         // If credits were not in notes, derive strictly from order amount (in paise)
         if (!creditsToAdd || isNaN(creditsToAdd)) {
-          const paidInr = (Number(orderData?.amount) || 0) / 100;
+          const paidInr = orderAmountPaise / 100;
           creditsToAdd = Math.max(10, Math.floor(paidInr / CREDIT_PRICE_INR));
         }
       } catch (fetchErr) {
@@ -218,6 +231,7 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
       }
 
       const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+      const proMaxProjects = RESOURCE_TIERS.pro?.maxProjects || 5;
 
       const result = await prisma.$transaction(async (tx: any) => {
         let wallet = await tx.wallet.findUnique({ where: { userId } });
@@ -230,13 +244,15 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
           data: { balance: { increment: creditsToAdd } },
         });
 
-        // If Hackathon Pass, upgrade user to pro for 72 hours
+        // If Hackathon Pass, upgrade user to pro for 72 hours and expand serverLimit
         if (isHackathon) {
+          const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { serverLimit: true } });
           await tx.user.update({
             where: { id: userId },
             data: {
               tier: 'pro',
               tierExpiresAt: hackathonExpiresAt,
+              serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
             },
           });
         }
@@ -267,7 +283,7 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
           } else {
             sendPaymentConfirmationEmail(user.email, {
               credits: creditsToAdd,
-              amountInr: Math.round(creditsToAdd * CREDIT_PRICE_INR),
+              amountInr: resolvePackageAmountInr(creditsToAdd, orderAmountPaise),
               newBalance: result.wallet.balance,
               transactionId: result.transaction.id,
             }).catch((err) => logger.error({ err }, 'Error sending payment confirmation email'));
@@ -302,9 +318,10 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
 
 // Mount Razorpay endpoints
 router.post('/razorpay/create-order', requireAuth, handleCreateRazorpayOrder);
-router.post('/create-order', handleCreateRazorpayOrder);
+router.post('/create-order', requireAuth, handleCreateRazorpayOrder);
 router.post('/razorpay/verify', requireAuth, handleVerifyRazorpayPayment);
-router.post('/verify-payment', handleVerifyRazorpayPayment);
+router.post('/razorpay/verify-payment', requireAuth, handleVerifyRazorpayPayment);
+router.post('/verify-payment', requireAuth, handleVerifyRazorpayPayment);
 
 // Webhook Handler
 export const handleRazorpayWebhook = async (req: any, res: any) => {
@@ -324,6 +341,7 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
       const order = event.payload?.order?.entity;
       const paymentId = payment?.id;
       const orderId = payment?.order_id || order?.id;
+      const webhookAmountPaise = Number(payment?.amount ?? order?.amount) || 0;
       const notes = payment?.notes || order?.notes || {};
       const userId = notes.userId;
       const credits = parseInt(notes.credits) || 0;
@@ -336,6 +354,7 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
 
         if (!existing) {
           const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+          const proMaxProjects = RESOURCE_TIERS.pro?.maxProjects || 5;
 
           const result = await prisma.$transaction(async (tx: any) => {
             let wallet = await tx.wallet.findUnique({ where: { userId } });
@@ -349,11 +368,13 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
             });
 
             if (isHackathon) {
+              const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { serverLimit: true } });
               await tx.user.update({
                 where: { id: userId },
                 data: {
                   tier: 'pro',
                   tierExpiresAt: hackathonExpiresAt,
+                  serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
                 },
               });
             }
@@ -384,7 +405,7 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
               } else {
                 sendPaymentConfirmationEmail(user.email, {
                   credits,
-                  amountInr: Math.round(credits * CREDIT_PRICE_INR),
+                  amountInr: resolvePackageAmountInr(credits, webhookAmountPaise),
                   newBalance: result.wallet.balance,
                   transactionId: result.transaction.id,
                 }).catch(() => {});
