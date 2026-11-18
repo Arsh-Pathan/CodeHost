@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { BuilderService } from '../services/builder.js';
 import { RunnerService } from '../services/runner.js';
+import { acquireDeploySlot, releaseDeployLock } from '../services/deploy-lock.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -173,11 +174,21 @@ router.post('/:projectId/deploy', async (req: AuthRequest, res) => {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== userId) return res.status(404).json({ error: 'Project not found' });
 
+    if (project.status === 'building') {
+      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
+    }
+
+    const slot = await acquireDeploySlot(projectId, project.tier || 'free');
+    if (!slot.ok) {
+      return res.status(slot.status).json({ error: slot.error });
+    }
+
     // 1. Create Deployment Record
     const deployment = await prisma.deployment.create({
       data: {
         projectId,
-        status: 'queued'
+        status: 'queued',
+        source: 'files',
       }
     });
 
@@ -193,6 +204,10 @@ router.post('/:projectId/deploy', async (req: AuthRequest, res) => {
         await RunnerService.startContainer(projectId, deployment.id, imageName);
       } catch (err) {
         logger.error(`Pipeline failed for ${deployment.id}`);
+        await prisma.deployment.update({ where: { id: deployment.id }, data: { status: 'failed' } }).catch(() => {});
+        await prisma.project.update({ where: { id: projectId }, data: { status: 'failed' } }).catch(() => {});
+      } finally {
+        await releaseDeployLock(projectId);
       }
     })();
 

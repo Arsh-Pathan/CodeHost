@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import fs from 'fs-extra';
+import path from 'path';
 import { prisma } from '@codehost/database';
 import { docker } from '@codehost/docker';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
@@ -6,6 +8,7 @@ import { logger } from '@codehost/logger';
 import { z } from 'zod';
 import { BuilderService } from '../services/builder.js';
 import { RunnerService } from '../services/runner.js';
+import { acquireDeploySlot, releaseDeployLock } from '../services/deploy-lock.js';
 import { RESOURCE_TIERS } from '@codehost/config';
 
 const router = Router();
@@ -163,6 +166,8 @@ router.delete('/:id', async (req: AuthRequest, res) => {
       where: { id: project.id }
     });
 
+    await fs.remove(path.join(process.cwd(), 'storage', 'projects', project.id)).catch(() => {});
+
     logger.info(`Project deleted: ${project.id}`);
     res.json({ success: true });
   } catch (error) {
@@ -238,6 +243,15 @@ router.post('/:id/redeploy', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    if (project.status === 'building') {
+      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
+    }
+
+    const slot = await acquireDeploySlot(project.id, project.tier || 'free');
+    if (!slot.ok) {
+      return res.status(slot.status).json({ error: slot.error });
+    }
+
     const deployment = await prisma.deployment.create({
       data: {
         projectId: project.id,
@@ -266,6 +280,8 @@ router.post('/:id/redeploy', async (req: AuthRequest, res) => {
         logger.error(`Redeploy pipeline failed for ${deployment.id}`);
         await prisma.deployment.update({ where: { id: deployment.id }, data: { status: 'failed' } }).catch(() => {});
         await prisma.project.update({ where: { id: project.id }, data: { status: 'failed' } }).catch(() => {});
+      } finally {
+        await releaseDeployLock(project.id);
       }
     })();
   } catch (error) {

@@ -77,7 +77,7 @@ export default function ReferralsPage() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const promoMessage = `Join me on CodeHost! Get ${stats?.bonusForReferee || 50} free credits to deploy Node.js, Python, or Docker apps with automated HTTPS and free subdomains:\n${stats?.referralUrl || 'https://code-host.online/signup'}`;
+  const promoMessage = `Join me on CodeHost! Get ${stats?.bonusForReferee || 25} free credits to deploy Node.js, Python, or Docker apps with automated HTTPS and free subdomains:\n${stats?.referralUrl || 'https://code-host.online/signup'}`;
 
   const handleCopyPromo = () => {
     navigator.clipboard.writeText(promoMessage);
@@ -85,7 +85,7 @@ export default function ReferralsPage() {
     setTimeout(() => setCopiedPromo(false), 2000);
   };
 
-  const shareText = `Deploy fullstack apps in seconds with @CodeHost! Use my invite link to get ${stats?.bonusForReferee || 50} free credits:`;
+  const shareText = `Deploy fullstack apps in seconds with @CodeHost! Use my invite link to get ${stats?.bonusForReferee || 25} free credits:`;
   const encodedShareText = encodeURIComponent(shareText);
   const encodedUrl = encodeURIComponent(stats?.referralUrl || '');
 
@@ -95,7 +95,7 @@ export default function ReferralsPage() {
     telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedShareText}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
     reddit: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedShareText}`,
-    email: `mailto:?subject=${encodeURIComponent('Join CodeHost & get 50 free cloud credits')}&body=${encodeURIComponent(promoMessage)}`,
+    email: `mailto:?subject=${encodeURIComponent(`Join CodeHost & get ${stats?.bonusForReferee || 25} free cloud credits`)}&body=${encodeURIComponent(promoMessage)}`,
   };
 
   return (
@@ -111,7 +111,7 @@ export default function ReferralsPage() {
               <h1 className="text-2xl font-black tracking-tight text-[#0F172A]">Refer & Earn</h1>
             </div>
             <p className="text-sm font-medium text-slate-500">
-              Invite friends and colleagues to CodeHost. They get {stats?.bonusForReferee || 50} bonus credits on signup, and you earn {stats?.rewardPerReferral || 100} credits for every friend who joins.
+              Invite friends and colleagues to CodeHost. They get {stats?.bonusForReferee || 25} bonus credits on signup, and you earn {stats?.rewardPerReferral || 50} credits for every friend who joins.
             </p>
           </div>
           {stats?.referredBy && (
@@ -288,7 +288,7 @@ export default function ReferralsPage() {
             </div>
             <div>
               <div className="text-3xl font-black text-[#0F172A] tracking-tight">
-                +{stats?.rewardPerReferral ?? 100}
+                +{stats?.rewardPerReferral ?? 50}
               </div>
               <p className="text-xs text-slate-400 mt-1 font-medium">Credits deposited instantly</p>
             </div>
@@ -303,7 +303,7 @@ export default function ReferralsPage() {
             </div>
             <div>
               <div className="text-3xl font-black text-[#0F172A] tracking-tight">
-                +{stats?.bonusForReferee ?? 50}
+                +{stats?.bonusForReferee ?? 25}
               </div>
               <p className="text-xs text-slate-400 mt-1 font-medium">Credits for your friend</p>
             </div>
@@ -328,9 +328,9 @@ export default function ReferralsPage() {
               <div className="w-8 h-8 rounded-lg bg-[#2563EB] text-white flex items-center justify-center font-black text-sm">
                 2
               </div>
-              <h3 className="font-bold text-sm text-[#0F172A] pt-1">They Get 50 Credits</h3>
+              <h3 className="font-bold text-sm text-[#0F172A] pt-1">They Get {stats?.bonusForReferee ?? 25} Credits</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                When your friend registers via email or Google/GitHub OAuth, 50 free credits are credited straight to their wallet.
+                When your friend registers via email or Google/GitHub OAuth, {stats?.bonusForReferee ?? 25} free credits are credited straight to their wallet.
               </p>
             </div>
 
@@ -338,9 +338,9 @@ export default function ReferralsPage() {
               <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-sm">
                 3
               </div>
-              <h3 className="font-bold text-sm text-[#0F172A] pt-1">You Earn 100 Credits</h3>
+              <h3 className="font-bold text-sm text-[#0F172A] pt-1">You Earn {stats?.rewardPerReferral ?? 50} Credits</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                You immediately receive 100 credits in your wallet balance to deploy servers, run databases, or upgrade tiers with zero cost.
+                You immediately receive {stats?.rewardPerReferral ?? 50} credits in your wallet balance to deploy servers, run databases, or upgrade tiers with zero cost.
               </p>
             </div>
           </div>

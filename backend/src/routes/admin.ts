@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import os from 'os';
 import fs from 'fs';
+import path from 'path';
 import { prisma } from '@codehost/database';
 import { docker } from '@codehost/docker';
 import { redis } from '@codehost/redis';
@@ -214,6 +215,7 @@ router.delete('/projects/:id', async (req: AuthRequest, res) => {
 
     await prisma.deployment.deleteMany({ where: { projectId: project.id } });
     await prisma.project.delete({ where: { id: project.id } });
+    await fs.promises.rm(path.join(process.cwd(), 'storage', 'projects', project.id), { recursive: true, force: true }).catch(() => {});
 
     logger.info(`Admin ${req.user!.email} deleted project ${project.id}`);
     res.json({ success: true });

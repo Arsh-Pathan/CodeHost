@@ -134,7 +134,7 @@ function SignupForm() {
                 You were invited by @{referrerDetails.referrerUsername || referrerDetails.referrerName}!
               </p>
               <p className="mt-0.5 text-emerald-700 font-medium">
-                <span className="font-bold text-emerald-900">+{referrerDetails.bonusCredits || 50} free credits</span> will be automatically added to your wallet upon signup.
+                <span className="font-bold text-emerald-900">+{referrerDetails.bonusCredits || 25} free credits</span> will be automatically added to your wallet upon signup.
               </p>
             </div>
           </div>

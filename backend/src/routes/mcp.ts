@@ -744,6 +744,7 @@ async function executeToolCall(name: string, args: Record<string, any>, authHead
         await RunnerService.stopContainer(project.id).catch(() => {});
         await prisma.deployment.deleteMany({ where: { projectId: project.id } });
         await prisma.project.delete({ where: { id: project.id } });
+        await fs.remove(path.join(process.cwd(), 'storage', 'projects', project.id)).catch(() => {});
         return toolResult({ success: true, deletedProjectId: project.id });
       }
 

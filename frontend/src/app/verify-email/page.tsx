@@ -14,8 +14,13 @@ function VerifyEmailContent() {
 
   const [status, setStatus] = useState<Status>("loading");
   const [errorMessage, setErrorMessage] = useState("");
+  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      setHasToken(Boolean(localStorage.getItem("token")));
+    }
+
     if (!token) {
       setStatus("error");
       setErrorMessage("No verification token provided.");
@@ -23,7 +28,18 @@ function VerifyEmailContent() {
     }
 
     fetchApi(`/auth/verify-email?token=${encodeURIComponent(token)}`)
-      .then(() => setStatus("success"))
+      .then(() => {
+        if (typeof window !== "undefined") {
+          try {
+            const cached = localStorage.getItem("codehost_user_cache");
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              localStorage.setItem("codehost_user_cache", JSON.stringify({ ...parsed, emailVerified: true }));
+            }
+          } catch {}
+        }
+        setStatus("success");
+      })
       .catch((err: Error) => {
         setStatus("error");
         setErrorMessage(err.message || "Verification failed.");
@@ -56,10 +72,10 @@ function VerifyEmailContent() {
               features.
             </p>
             <Link
-              href="/login"
+              href={hasToken ? "/dashboard" : "/login"}
               className="inline-block bg-blue-600 text-white px-6 py-2.5 rounded-md text-sm font-semibold hover:bg-blue-500 transition"
             >
-              Go to Login
+              {hasToken ? "Continue to Dashboard" : "Go to Login"}
             </Link>
           </>
         )}
