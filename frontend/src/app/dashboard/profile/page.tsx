@@ -21,6 +21,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import UserAvatar, { GoogleIcon } from '@/components/UserAvatar';
+import McpSetupCard from '@/components/McpSetupCard';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -325,6 +326,9 @@ export default function ProfilePage() {
             </button>
           </div>
         </div>
+
+        {/* AI Coding Agent & MCP Setup */}
+        <McpSetupCard />
 
       </div>
     </PanelLayout>

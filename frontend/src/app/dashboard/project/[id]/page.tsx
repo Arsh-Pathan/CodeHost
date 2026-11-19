@@ -31,11 +31,13 @@ import {
   X,
   Check,
   Award,
-  Zap
+  Zap,
+  Sparkles
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
 import FileManager from '@/components/FileManager';
+import McpSetupCard from '@/components/McpSetupCard';
 
 interface Project {
   id: string;
@@ -74,7 +76,7 @@ interface Deployment {
 }
 
 type TabType = 'console' | 'files' | 'network' | 'settings' | 'history';
-type DeployMode = 'zip' | 'github';
+type DeployMode = 'zip' | 'github' | 'mcp';
 
 export default function ProjectDetail({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise);
@@ -670,6 +672,15 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                       <GitBranch size={12} />
                       <span>GitHub</span>
                     </button>
+                    <button
+                      onClick={() => setDeployMode('mcp')}
+                      className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                        deployMode === 'mcp' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <Sparkles size={12} />
+                      <span>AI / MCP</span>
+                    </button>
                   </div>
 
                   {deployMode === 'zip' ? (
@@ -706,6 +717,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                         </div>
                       )}
                     </div>
+                  ) : deployMode === 'mcp' ? (
+                    <McpSetupCard projectId={project.id} projectName={project.name} compact />
                   ) : (
                     <div className="space-y-3">
                       <div>
@@ -1203,6 +1216,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                     </div>
                  </div>
               </div>
+
+              <McpSetupCard projectId={project.id} projectName={project.name} />
 
               <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
                 <div className="flex items-center justify-between mb-8">

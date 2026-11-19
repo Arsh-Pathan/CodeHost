@@ -35,6 +35,14 @@ export const generateTokens = (user: { id: string; email: string; role: string; 
   return { accessToken, refreshToken };
 };
 
+export const generateMcpToken = (user: { id: string; email: string; role: string; emailVerified?: boolean }) => {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role, emailVerified: user.emailVerified ?? false, scope: 'mcp' },
+    env.JWT_SECRET,
+    { expiresIn: '90d' }
+  );
+};
+
 router.post('/register', authLimiter, async (req, res) => {
   try {
     const { email, password, username, name, phoneNumber, referralCode, acceptedTos, marketingEmails } = req.body;
@@ -348,6 +356,28 @@ router.patch('/profile', requireAuth, async (req: AuthRequest, res) => {
         logger.error({ error }, 'Update profile error');
         res.status(500).json({ error: 'Internal server error' });
     }
+});
+
+router.post('/mcp-token', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { id: true, email: true, username: true, role: true, emailVerified: true },
+    });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const token = generateMcpToken(user);
+    const apiBase = (env.API_URL || 'https://api.code-host.online').replace(/\/$/, '');
+
+    res.json({
+      token,
+      expiresInDays: 90,
+      mcpEndpoint: `${apiBase}/mcp`,
+    });
+  } catch (error) {
+    logger.error({ error }, 'Generate MCP token error');
+    res.status(500).json({ error: 'Failed to generate MCP token' });
+  }
 });
 
 router.post('/logout', requireAuth, async (req: AuthRequest, res) => {

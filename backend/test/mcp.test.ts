@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import jwt from 'jsonwebtoken';
+import { env } from '@codehost/config';
+import { generateMcpToken } from '../src/routes/auth.js';
 import {
   MCP_TOOLS,
   MCP_RESOURCES,
@@ -102,4 +105,19 @@ test('assertSafeProjectFilePath rejects path traversal outside project root', as
 
   const safe = await assertSafeProjectFilePath(baseDir, 'src/index.ts');
   assert.equal(safe, path.resolve(baseDir, 'src/index.ts'));
+});
+
+test('generateMcpToken signs a 90-day MCP JWT verifiable with JWT_SECRET', () => {
+  const token = generateMcpToken({
+    id: 'user-123',
+    email: 'student@example.com',
+    role: 'USER',
+    emailVerified: true,
+  });
+
+  const decoded = jwt.verify(token, env.JWT_SECRET) as any;
+  assert.equal(decoded.id, 'user-123');
+  assert.equal(decoded.email, 'student@example.com');
+  assert.equal(decoded.role, 'USER');
+  assert.equal(decoded.scope, 'mcp');
 });

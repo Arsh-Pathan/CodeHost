@@ -1245,7 +1245,7 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
 
               <h3 className="text-lg font-black text-[#0F172A] mb-3">Connect an MCP Client</h3>
               <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                Point your MCP client to <InlineCode>https://api.code-host.online/mcp</InlineCode> with your JWT token in the <InlineCode>Authorization</InlineCode> header (or call the <InlineCode>codehost_login</InlineCode> tool):
+                Generate a 90-day MCP token and copy a one-click coding-agent deployment prompt directly from <strong>Dashboard &rarr; Profile</strong> (<InlineCode>/dashboard/profile</InlineCode>) or any project&apos;s <strong>Deploy &rarr; AI / MCP</strong> tab. Or point your MCP client manually to <InlineCode>https://api.code-host.online/mcp</InlineCode> with your Bearer token (or call <InlineCode>codehost_login</InlineCode>):
               </p>
               <CodeBlock>{`{
   "mcpServers": {
