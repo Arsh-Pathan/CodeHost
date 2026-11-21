@@ -332,6 +332,7 @@ router.delete('/users/:id', async (req: AuthRequest, res) => {
     for (const project of user.projects) {
       try { await RunnerService.stopContainer(project.id); } catch { /* ignore */ }
       await prisma.deployment.deleteMany({ where: { projectId: project.id } });
+      await fs.promises.rm(path.join(process.cwd(), 'storage', 'projects', project.id), { recursive: true, force: true }).catch(() => {});
     }
     await prisma.project.deleteMany({ where: { userId: user.id } });
     await prisma.session.deleteMany({ where: { userId: user.id } });
@@ -811,10 +812,15 @@ router.put('/users/:id/tier', async (req: AuthRequest, res) => {
       tierExpiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
     }
 
+    const tierMaxProjects = RESOURCE_TIERS[tier]?.maxProjects || 1;
+    const nextServerLimit = tier === 'free'
+      ? user.serverLimit
+      : Math.max(user.serverLimit, tierMaxProjects);
+
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { tier, tierExpiresAt },
-      select: { id: true, email: true, username: true, role: true, tier: true, tierExpiresAt: true }
+      data: { tier, tierExpiresAt, serverLimit: nextServerLimit },
+      select: { id: true, email: true, username: true, role: true, tier: true, tierExpiresAt: true, serverLimit: true }
     });
 
     logger.info(`Admin ${req.user!.email} updated tier of user ${user.email} to ${tier}`);

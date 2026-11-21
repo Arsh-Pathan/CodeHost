@@ -276,7 +276,12 @@ function BillingContent() {
   }
 
   return (
-    <PanelLayout user={user} projectName="Billing">
+    <PanelLayout
+      user={user}
+      projectName="Billing"
+      walletBalance={wallet?.balance}
+      onBalanceUpdate={(newBal) => setWallet((prev) => (prev ? { ...prev, balance: newBal } : { id: '', balance: newBal }))}
+    >
       <div className="max-w-5xl mx-auto space-y-10">
         {/* Alerts */}
         {paymentSuccess && (
@@ -322,7 +327,7 @@ function BillingContent() {
               </div>
               <h3 className="text-2xl font-black">Weekend Hackathon Pass — ₹49 for 72h</h3>
               <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                Unlock instant Pro compute (2 vCPUs, 2GB RAM, 5GB NVMe, and priority build sandboxes) for 3 full days with zero recurring commitments.
+                Unlock instant Pro compute (2 vCPUs, 512MB RAM, 5GB NVMe, and priority build sandboxes) for 3 full days with zero recurring commitments.
               </p>
             </div>
             <div className="flex items-center space-x-6 flex-shrink-0">

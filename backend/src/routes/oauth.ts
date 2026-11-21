@@ -164,7 +164,9 @@ router.get('/google/callback', async (req, res) => {
     }
 
     // Verify CSRF state
-    const [state, stateToken] = stateParam.split(':');
+    const colonIdx = stateParam.indexOf(':');
+    const state = colonIdx > 0 ? stateParam.slice(0, colonIdx) : '';
+    const stateToken = colonIdx > 0 ? stateParam.slice(colonIdx + 1) : '';
     const verification = verifyStateToken(stateToken, state);
     if (!state || !stateToken || !verification.valid) {
       return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
@@ -236,7 +238,9 @@ router.get('/github/callback', async (req, res) => {
       return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
     }
 
-    const [state, stateToken] = stateParam.split(':');
+    const colonIdx = stateParam.indexOf(':');
+    const state = colonIdx > 0 ? stateParam.slice(0, colonIdx) : '';
+    const stateToken = colonIdx > 0 ? stateParam.slice(colonIdx + 1) : '';
     const verification = verifyStateToken(stateToken, state);
     if (!state || !stateToken || !verification.valid) {
       return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
@@ -275,13 +279,16 @@ router.get('/github/callback', async (req, res) => {
       fetch('https://api.github.com/user/emails', { headers: ghHeaders }),
     ]);
 
-    const profile = await profileRes.json();
-    const emails: { email: string; primary: boolean; verified: boolean }[] = await emailsRes.json();
+    const profile: any = await profileRes.json();
+    const emailsRaw: any = await emailsRes.json();
+    const emails: { email: string; primary: boolean; verified: boolean }[] = Array.isArray(emailsRaw) ? emailsRaw : [];
 
-    const primaryEmail = emails.find((e) => e.primary && e.verified)?.email
-      || emails.find((e) => e.verified)?.email;
+    const primaryEmail =
+      emails.find((e) => e.primary && e.verified)?.email ||
+      emails.find((e) => e.verified)?.email ||
+      (typeof profile?.email === 'string' ? profile.email : undefined);
 
-    if (!primaryEmail) {
+    if (!primaryEmail || !profile?.id) {
       return res.redirect(`${env.APP_URL}/login?error=oauth_no_email`);
     }
 

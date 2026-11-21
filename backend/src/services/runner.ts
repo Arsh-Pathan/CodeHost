@@ -72,6 +72,24 @@ export class RunnerService {
       const memoryLimit = tierConfig.memory;
       const nanoCpus = tierConfig.cpus * 1e9;
 
+      const hostConfig = {
+        PublishAllPorts: false,
+        Memory: memoryLimit,
+        MemorySwap: memoryLimit,
+        NanoCpus: nanoCpus,
+        PidsLimit: 128,
+        SecurityOpt: ['no-new-privileges:true'],
+        NetworkMode: 'proxy', // Connect to the proxy network
+        RestartPolicy: { Name: 'on-failure', MaximumRetryCount: 3 },
+        LogConfig: {
+          Type: 'json-file',
+          Config: { 'max-size': '10m', 'max-file': '3' },
+        },
+        ...(process.env.ENABLE_DOCKER_STORAGE_OPT === 'true'
+          ? { StorageOpt: { size: `${Math.round(tierConfig.storage / (1024 * 1024))}M` } }
+          : {}),
+      };
+
       let container = await docker.createContainer({
         Image: imageName,
         name: containerName,
@@ -83,23 +101,7 @@ export class RunnerService {
           `VIRTUAL_NETWORK=proxy`,
           ...Object.entries((project?.envVars as Record<string, string>) || {}).map(([k, v]) => `${k}=${v}`)
         ],
-        HostConfig: {
-          PublishAllPorts: false,
-          Memory: memoryLimit,
-          MemorySwap: memoryLimit,
-          NanoCpus: nanoCpus,
-          PidsLimit: 128,
-          SecurityOpt: ['no-new-privileges:true'],
-          NetworkMode: 'proxy', // Connect to the proxy network
-          RestartPolicy: { Name: 'on-failure', MaximumRetryCount: 3 },
-          LogConfig: {
-            Type: 'json-file',
-            Config: { 'max-size': '10m', 'max-file': '3' },
-          },
-          ...(process.env.ENABLE_DOCKER_STORAGE_OPT === 'true'
-            ? { StorageOpt: { size: `${Math.round(tierConfig.storage / (1024 * 1024))}M` } }
-            : {}),
-        },
+        HostConfig: hostConfig,
         Labels: {
           'codehost.project.id': projectId,
           'codehost.deployment.id': deploymentId,
@@ -158,15 +160,7 @@ export class RunnerService {
             `VIRTUAL_NETWORK=proxy`,
             ...Object.entries((project?.envVars as Record<string, string>) || {}).map(([k, v]) => `${k}=${v}`)
           ],
-          HostConfig: {
-            PublishAllPorts: false,
-            Memory: memoryLimit,
-            MemorySwap: memoryLimit,
-            NanoCpus: nanoCpus,
-            PidsLimit: 128,
-            SecurityOpt: ['no-new-privileges:true'],
-            NetworkMode: 'proxy',
-          },
+          HostConfig: hostConfig,
           Labels: {
             'codehost.project.id': projectId,
             'codehost.deployment.id': deploymentId,
@@ -346,25 +340,26 @@ export class RunnerService {
       
       // Calculate CPU percentage
       // Formula: (cpu_delta / system_delta) * number_of_cpus * 100.0
-      const cpuDelta = stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage;
-      const systemDelta = stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage;
+      const cpuDelta = (stats.cpu_stats?.cpu_usage?.total_usage || 0) - (stats.precpu_stats?.cpu_usage?.total_usage || 0);
+      const systemDelta = (stats.cpu_stats?.system_cpu_usage || 0) - (stats.precpu_stats?.system_cpu_usage || 0);
+      const onlineCpus = stats.cpu_stats?.online_cpus || stats.cpu_stats?.cpu_usage?.percpu_usage?.length || 1;
       
       let cpuPercent = 0;
       if (systemDelta > 0 && cpuDelta > 0) {
-        cpuPercent = (cpuDelta / systemDelta) * stats.cpu_stats.online_cpus * 100.0;
+        cpuPercent = (cpuDelta / systemDelta) * onlineCpus * 100.0;
       }
 
       // Memory usage
-      const memUsage = stats.memory_stats.usage;
-      const memLimit = stats.memory_stats.limit;
-      const memPercent = (memUsage / memLimit) * 100.0;
+      const memUsage = stats.memory_stats?.usage || 0;
+      const memLimit = stats.memory_stats?.limit || 0;
+      const memPercent = memLimit > 0 ? (memUsage / memLimit) * 100.0 : 0;
 
       return {
-        cpu: parseFloat(cpuPercent.toFixed(2)),
+        cpu: parseFloat((Number.isFinite(cpuPercent) ? cpuPercent : 0).toFixed(2)),
         memory: {
           usage: memUsage,
           limit: memLimit,
-          percent: parseFloat(memPercent.toFixed(2))
+          percent: parseFloat((Number.isFinite(memPercent) ? memPercent : 0).toFixed(2))
         }
       };
     } catch (e) {
