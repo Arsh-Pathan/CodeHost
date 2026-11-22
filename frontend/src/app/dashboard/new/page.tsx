@@ -170,52 +170,6 @@ export default function NewProject() {
                 )}
               </div>
 
-              {/* Verified Starter Templates */}
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Or Start with a Verified Template</label>
-                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">1-Click Launch</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {[
-                    { id: 'nextjs', name: 'Next.js 16 Fullstack', tag: 'React & SSR', slug: 'nextjs-app', color: 'blue' },
-                    { id: 'fastapi', name: 'Python FastAPI', tag: 'AI & REST', slug: 'fastapi-service', color: 'emerald' },
-                    { id: 'express', name: 'Node.js Express', tag: 'REST & WS', slug: 'express-api', color: 'purple' },
-                    { id: 'portfolio', name: 'Modern Portfolio', tag: 'Static CDN', slug: 'dev-portfolio', color: 'amber' },
-                  ].map((tpl) => {
-                    const isTplSelected = selectedTemplateId === tpl.id;
-                    return (
-                    <button
-                      key={tpl.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedTemplateId(tpl.id);
-                        const randomSuffix = Math.floor(100 + Math.random() * 900);
-                        setName(`${tpl.slug}-${randomSuffix}`);
-                      }}
-                      className={`p-3 text-left rounded-2xl border transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 active:scale-95 group cursor-pointer ${
-                        isTplSelected
-                          ? 'border-blue-600 bg-blue-50/50 shadow-md shadow-blue-500/10'
-                          : 'border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-blue-500 hover:shadow-md'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs font-black transition-colors ${isTplSelected ? 'text-blue-600' : 'text-slate-900 group-hover:text-blue-600'}`}>{tpl.name}</span>
-                        {isTplSelected ? (
-                          <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                            <Check size={10} />
-                          </span>
-                        ) : (
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{tpl.tag}</span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-slate-500 mt-1">Pre-configured Docker sandbox & dependencies</p>
-                    </button>
-                  );
-                  })}
-                </div>
-              </div>
-
               <div className="space-y-3 pt-2">
                 <button
                   type="button"

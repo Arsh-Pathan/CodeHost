@@ -65,3 +65,6 @@ pnpm-debug.log*
 docker-runtime-logs/
 
 *.mp4
+/demos/
+/scratch/
+frontend/public/demos/

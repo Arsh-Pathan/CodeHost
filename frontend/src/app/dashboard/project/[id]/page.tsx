@@ -38,6 +38,7 @@ import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
 import FileManager from '@/components/FileManager';
 import McpSetupCard from '@/components/McpSetupCard';
+import LiveConsole from '@/components/LiveConsole';
 
 interface Project {
   id: string;
@@ -596,51 +597,12 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
               {/* Console */}
               <div className="lg:col-span-2 flex flex-col h-[600px]">
-                <div className="bg-[#0d1117] rounded-3xl shadow-2xl border border-[#30363d] overflow-hidden flex flex-col flex-1">
-                  <div className="px-6 py-4 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                       <Terminal className="w-5 h-5 text-slate-400" />
-                       <span className="text-xs font-black text-slate-200 uppercase tracking-widest">Live Terminal</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                       <button
-                         onClick={() => setLogs([])}
-                         className="text-[8px] font-black uppercase tracking-tighter text-slate-500 hover:text-slate-300 border border-[#30363d] px-2 py-0.5 rounded hover:border-slate-500 transition-all"
-                       >
-                         Clear
-                       </button>
-                       <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
-                          {project.status === 'running' ? 'Connected' : 'Offline'}
-                       </div>
-                    </div>
-                  </div>
-                  <div className="p-6 flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed text-slate-300 scrollbar-thin scrollbar-thumb-slate-700">
-                    {logs.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full space-y-4 opacity-40">
-                        <Terminal size={40} className="text-slate-600" />
-                        <p className="italic font-medium text-center max-w-xs">Initializing console session. Logs will appear once your application is active.</p>
-                      </div>
-                    ) : (
-                      logs.map((log, index) => (
-                        <div key={index} className="flex space-x-4 mb-0.5 hover:bg-white/5 px-2 py-0.5 rounded transition group">
-                          <span className="text-slate-600 shrink-0 select-none opacity-40 group-hover:opacity-100 transition-opacity">
-                            {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
-                          </span>
-                          <span className={`whitespace-pre-wrap break-all ${
-                            log.message.includes('[ERROR]') ? 'text-red-400' :
-                            log.message.includes('[notice]') ? 'text-blue-400' :
-                            log.message.includes('Success!') || log.message.includes('> Your app is now live!') ? 'text-emerald-400' :
-                            log.message.startsWith('>') ? 'text-cyan-400' :
-                            'text-slate-300'
-                          }`}>
-                            {log.message}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                    <div ref={logsEndRef} />
-                  </div>
-                </div>
+                <LiveConsole
+                  logs={logs}
+                  onClear={() => setLogs([])}
+                  status={project?.status || 'offline'}
+                  statusConfig={statusConfig}
+                />
               </div>
 
               {/* Side Panels */}

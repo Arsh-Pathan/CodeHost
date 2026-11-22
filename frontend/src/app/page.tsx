@@ -49,6 +49,32 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { fetchApi } from '@/lib/api';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { MobileFloatingIsland } from '@/components/MobileFloatingIsland';
+import {
+  NextjsIcon,
+  ReactIcon,
+  VueIcon,
+  SvelteIcon,
+  AstroIcon,
+  NodejsIcon,
+  PythonIcon,
+  FastAPIIcon,
+  DjangoIcon,
+  FlaskIcon,
+  GoIcon,
+  RustIcon,
+  JavaIcon,
+  SpringIcon,
+  PhpIcon,
+  LaravelIcon,
+  RubyIcon,
+  DotNetIcon,
+  BunIcon,
+  DenoIcon,
+  PostgresIcon,
+  RedisIcon,
+  MongoIcon,
+  DockerIcon
+} from '@/components/TechIcons';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -191,6 +217,229 @@ ALLOWED_HOSTS = ['.code-host.online', 'localhost']`,
   }
 ];
 
+const TECH_STACKS = [
+  {
+    name: "Next.js",
+    category: "frontend",
+    tag: "SSR & Turbopack",
+    detect: "next.config.js",
+    icon: NextjsIcon,
+    accent: "#000000",
+    glow: "rgba(0, 0, 0, 0.12)",
+    badge: "Fullstack"
+  },
+  {
+    name: "React & Vite",
+    category: "frontend",
+    tag: "SPA & Client Hooks",
+    detect: "vite.config.ts",
+    icon: ReactIcon,
+    accent: "#06B6D4",
+    glow: "rgba(6, 182, 212, 0.16)",
+    badge: "Frontend"
+  },
+  {
+    name: "Vue & Nuxt",
+    category: "frontend",
+    tag: "Nitro Engine & SSR",
+    detect: "nuxt.config.ts",
+    icon: VueIcon,
+    accent: "#10B981",
+    glow: "rgba(16, 185, 129, 0.16)",
+    badge: "Frontend"
+  },
+  {
+    name: "SvelteKit",
+    category: "frontend",
+    tag: "Zero-Overhead Reactive",
+    detect: "svelte.config.js",
+    icon: SvelteIcon,
+    accent: "#FF3E00",
+    glow: "rgba(255, 62, 0, 0.16)",
+    badge: "Frontend"
+  },
+  {
+    name: "Astro",
+    category: "frontend",
+    tag: "Content Islands & SSG",
+    detect: "astro.config.mjs",
+    icon: AstroIcon,
+    accent: "#BC52EE",
+    glow: "rgba(188, 82, 238, 0.16)",
+    badge: "SSG"
+  },
+  {
+    name: "Node.js",
+    category: "backend",
+    tag: "Express, Nest & Fastify",
+    detect: "package.json",
+    icon: NodejsIcon,
+    accent: "#22C55E",
+    glow: "rgba(34, 197, 94, 0.16)",
+    badge: "Backend"
+  },
+  {
+    name: "Python",
+    category: "backend",
+    tag: "FastAPI, Django & Flask",
+    detect: "requirements.txt",
+    icon: PythonIcon,
+    accent: "#3B82F6",
+    glow: "rgba(59, 130, 246, 0.16)",
+    badge: "Backend"
+  },
+  {
+    name: "FastAPI",
+    category: "backend",
+    tag: "Async & Auto OpenAPI",
+    detect: "main.py",
+    icon: FastAPIIcon,
+    accent: "#059669",
+    glow: "rgba(5, 150, 105, 0.16)",
+    badge: "API"
+  },
+  {
+    name: "Django",
+    category: "backend",
+    tag: "Batteries-Included ORM",
+    detect: "manage.py",
+    icon: DjangoIcon,
+    accent: "#092E20",
+    glow: "rgba(9, 46, 32, 0.16)",
+    badge: "Fullstack"
+  },
+  {
+    name: "Flask",
+    category: "backend",
+    tag: "Microservice WSGI",
+    detect: "app.py",
+    icon: FlaskIcon,
+    accent: "#475569",
+    glow: "rgba(71, 85, 105, 0.16)",
+    badge: "Backend"
+  },
+  {
+    name: "Go (Golang)",
+    category: "runtimes",
+    tag: "Gin, Fiber & Echo",
+    detect: "go.mod",
+    icon: GoIcon,
+    accent: "#00ADD8",
+    glow: "rgba(0, 173, 216, 0.16)",
+    badge: "Compiled"
+  },
+  {
+    name: "Rust",
+    category: "runtimes",
+    tag: "Axum, Actix & Warp",
+    detect: "Cargo.toml",
+    icon: RustIcon,
+    accent: "#CE422B",
+    glow: "rgba(206, 66, 43, 0.16)",
+    badge: "Systems"
+  },
+  {
+    name: "Spring Boot",
+    category: "backend",
+    tag: "Maven, Gradle & Java 21",
+    detect: "pom.xml",
+    icon: SpringIcon,
+    accent: "#6DB33F",
+    glow: "rgba(109, 179, 63, 0.16)",
+    badge: "Enterprise"
+  },
+  {
+    name: "PHP & Laravel",
+    category: "backend",
+    tag: "Artisan, Blade & Eloquent",
+    detect: "composer.json",
+    icon: LaravelIcon,
+    accent: "#EF4444",
+    glow: "rgba(239, 68, 68, 0.16)",
+    badge: "Backend"
+  },
+  {
+    name: "Ruby on Rails",
+    category: "backend",
+    tag: "MVC, Bundler & Puma",
+    detect: "Gemfile",
+    icon: RubyIcon,
+    accent: "#CC0000",
+    glow: "rgba(204, 0, 0, 0.16)",
+    badge: "Backend"
+  },
+  {
+    name: ".NET / C#",
+    category: "runtimes",
+    tag: "ASP.NET Core & Kestrel",
+    detect: "*.csproj",
+    icon: DotNetIcon,
+    accent: "#512BD4",
+    glow: "rgba(81, 43, 212, 0.16)",
+    badge: "Compiled"
+  },
+  {
+    name: "Bun",
+    category: "runtimes",
+    tag: "Ultra-Fast JavaScript",
+    detect: "bunfig.toml",
+    icon: BunIcon,
+    accent: "#D9A86C",
+    glow: "rgba(217, 168, 108, 0.16)",
+    badge: "Runtime"
+  },
+  {
+    name: "Deno",
+    category: "runtimes",
+    tag: "Secure TS & Edge Sandbox",
+    detect: "deno.json",
+    icon: DenoIcon,
+    accent: "#000000",
+    glow: "rgba(0, 0, 0, 0.14)",
+    badge: "Runtime"
+  },
+  {
+    name: "PostgreSQL 16",
+    category: "databases",
+    tag: "Managed ACID Relational DB",
+    detect: "1-Click DB",
+    icon: PostgresIcon,
+    accent: "#336791",
+    glow: "rgba(51, 103, 145, 0.16)",
+    badge: "Database"
+  },
+  {
+    name: "Redis 7 Cache",
+    category: "databases",
+    tag: "In-Memory Sub-ms Pub/Sub",
+    detect: "1-Click Cache",
+    icon: RedisIcon,
+    accent: "#DC382D",
+    glow: "rgba(220, 56, 45, 0.16)",
+    badge: "In-Memory"
+  },
+  {
+    name: "MongoDB",
+    category: "databases",
+    tag: "Document Store & NoSQL",
+    detect: "1-Click NoSQL",
+    icon: MongoIcon,
+    accent: "#47A248",
+    glow: "rgba(71, 162, 72, 0.16)",
+    badge: "NoSQL"
+  },
+  {
+    name: "Custom Docker",
+    category: "databases",
+    tag: "Bring Any OCI Container",
+    detect: "Dockerfile",
+    icon: DockerIcon,
+    accent: "#2496ED",
+    glow: "rgba(36, 150, 237, 0.16)",
+    badge: "Container"
+  }
+];
+
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [serverCount, setServerCount] = React.useState(0);
@@ -199,6 +448,7 @@ export default function Home() {
   const [calcCredits, setCalcCredits] = React.useState<number>(250);
   const [tplCategory, setTplCategory] = React.useState<'all' | 'fullstack' | 'backend' | 'ai'>('all');
   const [selectedTplId, setSelectedTplId] = React.useState<string>('nextjs');
+  const [stackCategory, setStackCategory] = React.useState<'all' | 'frontend' | 'backend' | 'runtimes' | 'databases'>('all');
   const [activeDbTab, setActiveDbTab] = React.useState<'postgres' | 'redis'>('postgres');
   const [copiedDbUri, setCopiedDbUri] = React.useState<boolean>(false);
   const [wakeSimState, setWakeSimState] = React.useState<'sleeping' | 'waking' | 'active'>('sleeping');
@@ -229,6 +479,7 @@ export default function Home() {
 
   const selectedTpl = STARTER_TEMPLATES.find(t => t.id === selectedTplId) || STARTER_TEMPLATES[0];
   const filteredTemplates = tplCategory === 'all' ? STARTER_TEMPLATES : STARTER_TEMPLATES.filter(t => t.category === tplCategory);
+  const filteredStacks = stackCategory === 'all' ? TECH_STACKS : TECH_STACKS.filter(s => s.category === stackCategory);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -286,18 +537,6 @@ export default function Home() {
         opacity: 0,
         duration: 1,
         delay: 0.5,
-        ease: "power3.out"
-      });
-
-      // Dashboard: fade in on scroll
-      gsap.from(".dashboard-preview", {
-        scrollTrigger: {
-          trigger: ".dashboard-preview",
-          start: "top 85%",
-        },
-        y: 60,
-        opacity: 0,
-        duration: 1.2,
         ease: "power3.out"
       });
 
@@ -421,15 +660,28 @@ export default function Home() {
        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05]"
             style={{ backgroundImage: 'radial-gradient(#2563EB 2px, transparent 2px)', backgroundSize: '60px 60px' }} />
 
-      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-2xl px-4 sm:px-8 py-3 sm:py-5 flex items-center justify-between border-b border-slate-100/60 transition-all">
+      <nav className="fixed top-0 w-full z-50 bg-white/75 backdrop-blur-2xl px-4 sm:px-8 py-3.5 sm:py-4 flex items-center justify-between border-b border-slate-100/80 transition-all">
         <div className="scale-90 sm:scale-100 origin-left">
           <LogoWithText />
         </div>
-        <div className="hidden md:flex items-center space-x-8">
-          <Link href="#features" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Features</Link>
-          <Link href="#pricing" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Pricing</Link>
-          <Link href="/docs" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Docs</Link>
-          <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="text-sm font-medium text-[#5865F2] hover:text-[#4752C4] transition-colors">Discord</Link>
+        <div className="hidden lg:flex items-center space-x-5 xl:space-x-7">
+          <Link href="#features" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Features</Link>
+          <Link href="#templates" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors flex items-center space-x-1">
+            <span>Templates</span>
+            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full">Hot</span>
+          </Link>
+          <Link href="#databases" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Databases</Link>
+          <Link href="#stacks" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Compatibility</Link>
+          <Link href="/docs#mcp" className="text-xs xl:text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors flex items-center space-x-1">
+            <span>MCP Agent</span>
+            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">New</span>
+          </Link>
+          <Link href="#pricing" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Pricing</Link>
+          <Link href="/docs" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Docs</Link>
+          <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="text-xs xl:text-sm font-semibold text-[#5865F2] hover:text-[#4752C4] transition-colors flex items-center space-x-1">
+            <MessageSquare size={13} />
+            <span>Discord</span>
+          </Link>
         </div>
         <div className="flex items-center space-x-2 sm:space-x-3">
           {isLoggedIn ? (
@@ -468,124 +720,80 @@ export default function Home() {
              See how it works
           </Link>
         </div>
-
-        {/* Dashboard Preview - Floating mockup with animated glow border */}
-        <div className="mt-16 sm:mt-24 md:mt-44 mb-16 sm:mb-20 md:mb-28 dashboard-preview relative max-w-5xl mx-auto w-full group">
-          <div className="glow-border rounded-2xl sm:rounded-[2.5rem]">
-            <div className="relative bg-[#F8FAFC] rounded-2xl sm:rounded-[2.5rem] border border-white/80 shadow-2xl overflow-hidden p-4 sm:p-6 md:p-8">
-               <div className="flex items-center space-x-2 mb-8">
-                  <div className="w-3 h-3 rounded-full bg-[#E53935]" />
-                  <div className="w-3 h-3 rounded-full bg-[#FFB300]" />
-                  <div className="w-3 h-3 rounded-full bg-[#00BFA5]" />
-                  <div className="flex-1" />
-                  <div className="px-4 py-1.5 bg-white/40 backdrop-blur rounded-full border border-white text-[10px] font-bold text-slate-400">
-                    my-website.code-host.online
-                  </div>
-               </div>
-
-                <div className="grid grid-cols-12 gap-8">
-                  {/* Sidebar - Cleanly hidden on mobile to keep mobile view simple & focused */}
-                  <div className="hidden md:block md:col-span-3 space-y-4">
-                     <div className="h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center px-4">
-                        <Activity size={14} className="text-blue-500 mr-2" />
-                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Overview</span>
-                     </div>
-                     {[
-                       { label: "Deployments", icon: <Zap size={14} /> },
-                       { label: "Settings", icon: <Shield size={14} /> },
-                       { label: "Logs", icon: <Terminal size={14} /> },
-                     ].map((item, idx) => (
-                       <div key={idx} className="h-12 rounded-2xl bg-white/60 border border-white flex items-center px-4 hover:bg-white/80 transition-colors cursor-pointer">
-                          <span className="text-slate-400 mr-2">{item.icon}</span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</span>
-                       </div>
-                     ))}
-                  </div>
-
-                  <div className="col-span-12 md:col-span-9 bg-white rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 md:p-10 shadow-sm relative border border-white/50">
-                     <div className="flex flex-row justify-between items-center gap-2 mb-6 sm:mb-10">
-                        <div>
-                           <h4 className="text-lg sm:text-2xl font-black text-[#0F172A]">Your Project</h4>
-                           <div className="flex items-center mt-1 space-x-2">
-                              <span className="relative flex h-2 w-2">
-                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                              </span>
-                              <p className="text-[9px] sm:text-[10px] text-emerald-600 font-black uppercase tracking-widest">Running</p>
-                           </div>
-                        </div>
-                        <div className="flex space-x-2 sm:space-x-3">
-                           <button className="px-3 sm:px-5 py-2 sm:py-2.5 bg-[#0F172A] text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-black transition-all">Restart</button>
-                           <button className="px-3 sm:px-5 py-2 sm:py-2.5 bg-[#FFEBEE] text-[#E53935] border border-red-100 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-red-100 transition-all">Stop</button>
-                        </div>
-                     </div>
-
-                     <div className="grid grid-cols-3 gap-2.5 sm:gap-6 mb-6 sm:mb-8">
-                        <div className="rounded-xl sm:rounded-2xl bg-slate-50/50 border border-slate-100 p-3 sm:p-6 hover:shadow-md transition-shadow">
-                           <div className="flex items-center justify-between mb-1.5 sm:mb-3">
-                              <Cpu size={16} className="text-[#2563EB]" />
-                              <span className="text-xs sm:text-lg font-black text-[#0F172A]">24%</span>
-                           </div>
-                           <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 sm:mb-2 truncate">CPU</p>
-                           <div className="h-1 sm:h-1.5 w-full bg-slate-200/50 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#2563EB] rounded-full transition-all duration-1000" style={{ width: '24%' }} />
-                           </div>
-                        </div>
-                        <div className="rounded-xl sm:rounded-2xl bg-slate-50/50 border border-slate-100 p-3 sm:p-6 hover:shadow-md transition-shadow">
-                           <div className="flex items-center justify-between mb-1.5 sm:mb-3">
-                              <HardDrive size={16} className="text-[#8B5CF6]" />
-                              <span className="text-xs sm:text-lg font-black text-[#0F172A]">68%</span>
-                           </div>
-                           <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 sm:mb-2 truncate">RAM</p>
-                           <div className="h-1 sm:h-1.5 w-full bg-slate-200/50 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#8B5CF6] rounded-full transition-all duration-1000" style={{ width: '68%' }} />
-                           </div>
-                        </div>
-                        <div className="rounded-xl sm:rounded-2xl bg-slate-50/50 border border-slate-100 p-3 sm:p-6 hover:shadow-md transition-shadow">
-                           <div className="flex items-center justify-between mb-1.5 sm:mb-3">
-                              <Activity size={16} className="text-[#00BFA5]" />
-                              <span className="text-xs sm:text-lg font-black text-[#0F172A]">100%</span>
-                           </div>
-                           <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 sm:mb-2 truncate">Build</p>
-                           <div className="h-1 sm:h-1.5 w-full bg-slate-200/50 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#00BFA5] rounded-full transition-all duration-1000" style={{ width: '100%' }} />
-                           </div>
-                        </div>
-                     </div>
-
-
-                     <div className="p-6 bg-[#0F171A] rounded-2xl font-mono text-xs text-blue-400 space-y-1.5 shadow-xl">
-                        <p className="opacity-70">&gt; Determining project type...</p>
-                        <p className="text-white">&gt; Detected Next.js project</p>
-                        <p className="opacity-70">&gt; Building your app...</p>
-                        <p className="opacity-70">&gt; npm run build</p>
-                        <p className="text-[#00BFA5]">&gt; Deployment Live: coffee.code-host.online</p>
-                     </div>
-                  </div>
-               </div>
-            </div>
-          </div>
-        </div>
       </header>
 
-      {/* Metrics & Highlights Bar */}
-      <section className="py-12 px-6 border-y border-slate-100 bg-slate-50/50">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div className="text-center md:text-left">
-            <p className="text-3xl md:text-4xl font-black text-slate-900 mb-1">{serverCount}+</p>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Containers</p>
-          </div>
-          <div className="text-center md:text-left">
-            <p className="text-3xl md:text-4xl font-black text-blue-600 mb-1">&lt;30s</p>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Avg. Deploy Time</p>
-          </div>
-          <div className="text-center md:text-left">
-            <p className="text-3xl md:text-4xl font-black text-slate-900 mb-1">99.98%</p>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Uptime Reliability</p>
-          </div>
-          <div className="text-center md:text-left">
-            <p className="text-3xl md:text-4xl font-black text-emerald-600 mb-1">0 Lines</p>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Server Config Needed</p>
+      {/* Metrics & Highlights Bar - Modern Elevated Glassmorphic Card Strip */}
+      <section className="py-8 sm:py-12 px-4 sm:px-6 max-w-7xl mx-auto -mt-6 sm:-mt-10 relative z-20">
+        <div className="bg-white/90 backdrop-blur-xl rounded-3xl border border-slate-200/90 shadow-xl shadow-slate-900/5 p-6 sm:p-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
+            {/* Metric 1 */}
+            <div className="pt-4 first:pt-0 lg:pt-0 lg:px-6 first:pl-0 flex flex-col justify-between group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                  <Server size={18} />
+                </span>
+                <span className="flex items-center space-x-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Live</span>
+                </span>
+              </div>
+              <div>
+                <p className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">{serverCount}+</p>
+                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mt-1">Active Containers</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Isolated cloud sandboxes running</p>
+              </div>
+            </div>
+
+            {/* Metric 2 */}
+            <div className="pt-4 lg:pt-0 lg:px-6 flex flex-col justify-between group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="w-9 h-9 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                  <Zap size={18} />
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-200">
+                  Turbo
+                </span>
+              </div>
+              <div>
+                <p className="text-3xl sm:text-4xl font-black text-blue-600 tracking-tight">&lt;30s</p>
+                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mt-1">Avg. Deploy Velocity</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Git push to SSL-secured domain</p>
+              </div>
+            </div>
+
+            {/* Metric 3 */}
+            <div className="pt-4 lg:pt-0 lg:px-6 flex flex-col justify-between group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                  <Shield size={18} />
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Guaranteed
+                </span>
+              </div>
+              <div>
+                <p className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">99.98%</p>
+                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mt-1">Uptime Reliability</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Proactive failover &amp; healthchecks</p>
+              </div>
+            </div>
+
+            {/* Metric 4 */}
+            <div className="pt-4 lg:pt-0 lg:px-6 flex flex-col justify-between group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                  <Cpu size={18} />
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                  Zero Config
+                </span>
+              </div>
+              <div>
+                <p className="text-3xl sm:text-4xl font-black text-emerald-600 tracking-tight">0 Lines</p>
+                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mt-1">Server Config Needed</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Auto-detection for 20+ runtimes</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -765,8 +973,34 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SHOWCASE SECTION 1: Text Left, Smooth Visual Right (Git Deployments) */}
-      <section className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100">
+            {/* 8-LAYER DEVELOPER INFRASTRUCTURE SHOWCASE - STICKY STACKING CARDS */}
+      <section id="features" className="py-20 sm:py-28 md:py-32 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-20">
+        <div className="text-center mb-16 sm:mb-24">
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
+            <Sparkles size={13} className="text-blue-600" />
+            <span>Developer Cloud Architecture</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-slate-900 tracking-tight mt-4">
+            Everything you need to ship. <br className="hidden sm:inline" />
+            <span className="text-brand-gradient">Layered to perfection.</span>
+          </h2>
+          <p className="text-slate-500 font-medium text-sm sm:text-base max-w-2xl mx-auto mt-4 px-2">
+            Explore CodeHost's 8 core infrastructure layers. Scroll down to experience the stacked card progression.
+          </p>
+        </div>
+
+        <div className="space-y-12 sm:space-y-16 relative pb-16">
+{/* SHOWCASE SECTION 1: Text Left, Smooth Visual Right (Git Deployments) */}
+          <div className="sticky top-24 sm:top-28 z-10 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-blue-200">
+            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[11px] font-black uppercase tracking-widest border border-blue-100">
+                  Layer 01 &middot; CI/CD Pipeline
+                </span>
+                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Zero Downtime Rollouts</span>
+              </div>
+              <span className="text-xs font-black text-slate-400">1 / 8</span>
+            </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           <div className="lg:col-span-5 space-y-4 sm:space-y-6">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
@@ -863,10 +1097,19 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* SHOWCASE SECTION 2: Smooth Visual Left, Text Right (Live Telemetry & Logs) */}
-      <section className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100">
+          <div className="sticky top-24 sm:top-28 z-20 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-emerald-200">
+            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-black uppercase tracking-widest border border-emerald-100">
+                  Layer 02 &middot; Live Observability
+                </span>
+                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Real-Time WebSocket Stdout</span>
+              </div>
+              <span className="text-xs font-black text-slate-400">2 / 8</span>
+            </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           <div className="lg:col-span-7 order-2 lg:order-1">
             {/* Smooth Rounded Terminal Frame */}
@@ -942,10 +1185,19 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* SHOWCASE SECTION: 1-Click Managed Databases & Add-ons (Text Left, Visual Right) */}
-      <section id="databases" className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-16">
+          <div id="databases" className="sticky top-24 sm:top-28 z-30 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-emerald-200 scroll-mt-24">
+            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-black uppercase tracking-widest border border-emerald-100">
+                  Layer 03 &middot; Instant Databases
+                </span>
+                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">PostgreSQL 16 &amp; Redis 7</span>
+              </div>
+              <span className="text-xs font-black text-slate-400">3 / 8</span>
+            </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           <div className="lg:col-span-5 space-y-4 sm:space-y-6">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[11px] font-black uppercase tracking-widest">
@@ -1097,10 +1349,19 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* SHOWCASE SECTION: Scale-to-Zero & Intelligent Auto-Sleep (Visual Left, Text Right) */}
-      <section id="scaletozero" className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-16">
+          <div id="scaletozero" className="sticky top-24 sm:top-28 z-40 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-cyan-200 scroll-mt-24">
+            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <span className="px-3 py-1 rounded-full bg-cyan-50 text-cyan-600 text-[11px] font-black uppercase tracking-widest border border-cyan-100">
+                  Layer 04 &middot; Scale-to-Zero Engine
+                </span>
+                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">280ms Warm-Up</span>
+              </div>
+              <span className="text-xs font-black text-slate-400">4 / 8</span>
+            </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           <div className="lg:col-span-7 order-2 lg:order-1">
             {/* Smooth Visual Simulator Frame */}
@@ -1213,10 +1474,19 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* SHOWCASE SECTION 3: Text Left, Smooth Visual Right (Hardened Sandboxes) */}
-      <section className="py-28 px-6 max-w-7xl mx-auto border-t border-slate-100">
+          <div className="sticky top-24 sm:top-28 z-50 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-indigo-200">
+            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[11px] font-black uppercase tracking-widest border border-indigo-100">
+                  Layer 05 &middot; Hardened Sandboxes
+                </span>
+                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">cgroups v2 &amp; Dedicated NVMe</span>
+              </div>
+              <span className="text-xs font-black text-slate-400">5 / 8</span>
+            </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           <div className="lg:col-span-5 space-y-6">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-[11px] font-black uppercase tracking-widest">
@@ -1303,10 +1573,19 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* SHOWCASE SECTION: Custom Domains & Automated Zero-Config SSL (Text Left, Visual Right) */}
-      <section id="domains" className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-16">
+          <div id="domains" className="sticky top-24 sm:top-28 z-[60] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-blue-200 scroll-mt-24">
+            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[11px] font-black uppercase tracking-widest border border-blue-100">
+                  Layer 06 &middot; Custom Domains &amp; Free TLS
+                </span>
+                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Let's Encrypt TLS 1.3</span>
+              </div>
+              <span className="text-xs font-black text-slate-400">6 / 8</span>
+            </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           <div className="lg:col-span-5 space-y-4 sm:space-y-6">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
@@ -1412,10 +1691,19 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* SHOWCASE SECTION: "Powered by CodeHost" Viral Growth & White-Labeling (Visual Left, Text Right) */}
-      <section className="py-28 px-6 max-w-7xl mx-auto border-t border-slate-100">
+          <div className="sticky top-24 sm:top-28 z-[70] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-purple-200">
+            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-[11px] font-black uppercase tracking-widest border border-purple-100">
+                  Layer 07 &middot; White-Labeling &amp; Discovery
+                </span>
+                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Organic Referral Loops</span>
+              </div>
+              <span className="text-xs font-black text-slate-400">7 / 8</span>
+            </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           <div className="lg:col-span-7 order-2 lg:order-1">
             {/* Smooth Mockup Frame */}
@@ -1503,10 +1791,19 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* SHOWCASE SECTION 4: Smooth Visual Left, Text Right (Prepaid Credits & Custom Amounts) */}
-      <section className="py-28 px-6 max-w-7xl mx-auto border-t border-slate-100">
+          <div className="sticky top-24 sm:top-28 z-[80] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-purple-200">
+            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-[11px] font-black uppercase tracking-widest border border-purple-100">
+                  Layer 08 &middot; Prepaid Credits Wallet
+                </span>
+                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Transparent Prepaid Billing</span>
+              </div>
+              <span className="text-xs font-black text-slate-400">8 / 8</span>
+            </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           <div className="lg:col-span-7 order-2 lg:order-1">
             {/* Smooth Rounded Wallet Frame */}
@@ -1585,39 +1882,111 @@ export default function Home() {
             </div>
           </div>
         </div>
+      </div>
+
+              </div>
       </section>
 
-      {/* Supported Stacks & Technologies */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="text-center mb-10 sm:mb-16">
-          <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-500 bg-slate-100 px-3.5 py-1.5 rounded-full">
-            Universal Compatibility
-          </span>
-          <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
+{/* Supported Stacks & Technologies */}
+      <section id="stacks" className="py-20 sm:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-20">
+        <div className="text-center mb-10 sm:mb-14">
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-black uppercase tracking-widest border border-slate-200">
+            <Cpu size={13} className="text-blue-600" />
+            <span>Universal Compatibility</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
             Deploy your favorite stack in seconds
           </h2>
-          <p className="text-slate-500 font-medium text-sm sm:text-base max-w-xl mx-auto mt-3 px-2">
-            Automatic framework detection with zero Dockerfile required. Or bring your own Dockerfile for total custom control.
+          <p className="text-slate-500 font-medium text-sm sm:text-base max-w-2xl mx-auto mt-3 px-2">
+            Native multi-runtime builder detects manifests, installs dependencies, and compiles production sandboxes with zero Dockerfile required.
           </p>
+
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-2 mt-8 overflow-x-auto no-scrollbar py-2 max-w-full justify-start sm:justify-center px-1">
+            {[
+              { id: 'all', label: `All Stacks (${TECH_STACKS.length})` },
+              { id: 'frontend', label: 'Frontend & Fullstack' },
+              { id: 'backend', label: 'Backend & APIs' },
+              { id: 'runtimes', label: 'Languages & Runtimes' },
+              { id: 'databases', label: 'Databases & Containers' },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setStackCategory(cat.id as any)}
+                className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer whitespace-nowrap ${
+                  stackCategory === cat.id
+                    ? 'bg-[#0F172A] text-white shadow-lg shadow-slate-900/20 scale-105'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-4">
-          {[
-            { name: "Next.js", desc: "SSR, SSG, Turbopack" },
-            { name: "Node.js", desc: "Express, Nest, Fastify" },
-            { name: "Python", desc: "FastAPI, Django, Flask" },
-            { name: "Go", desc: "Gin, Fiber, Echo" },
-            { name: "Rust", desc: "Actix, Axum, Warp" },
-            { name: "PHP", desc: "Laravel, WordPress" },
-            { name: "Bun", desc: "Ultra-fast JS runtime" },
-            { name: "Docker", desc: "Custom Dockerfile" },
-          ].map((stack, i) => (
-            <div key={i} className="p-3.5 sm:p-5 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all text-center">
-              <Code2 size={22} className="mx-auto text-blue-600 mb-2" />
-              <p className="text-xs sm:text-sm font-black text-slate-900">{stack.name}</p>
-              <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium mt-0.5 sm:mt-1">{stack.desc}</p>
+        {/* 22-Stack Showcase Grid with authentic SVG icons & animations */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+          {filteredStacks.map((stack, i) => {
+            const IconComp = stack.icon;
+            return (
+              <div
+                key={i}
+                className="group relative p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-default"
+              >
+                {/* Subtle ambient brand color on hover */}
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none rounded-3xl"
+                  style={{ backgroundColor: stack.accent }}
+                />
+
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2.5 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 shadow-inner">
+                      <IconComp size={28} className="w-full h-full object-contain" />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
+                      {stack.badge}
+                    </span>
+                  </div>
+
+                  <h3 className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                    {stack.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-medium mt-0.5 line-clamp-1">
+                    {stack.tag}
+                  </p>
+                </div>
+
+                <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono">
+                  <span className="text-slate-400 font-sans font-medium text-[9px] uppercase tracking-wider">Detects</span>
+                  <span className="font-bold text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60 group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-200 transition-colors">
+                    {stack.detect}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bring Your Own Container Banner */}
+        <div className="mt-8 p-6 rounded-3xl bg-slate-900 text-white flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-800 shadow-xl">
+          <div className="flex items-center space-x-4 text-center sm:text-left">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+              <DockerIcon size={28} />
             </div>
-          ))}
+            <div>
+              <h4 className="text-sm sm:text-base font-black text-white">Don't see your favorite framework or runtime?</h4>
+              <p className="text-xs text-slate-400 mt-0.5">Bring any standard Dockerfile or container image. CodeHost executes custom build arguments with persistent volume support.</p>
+            </div>
+          </div>
+          <Link
+            href="/docs"
+            className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center space-x-2 shrink-0 shadow-lg shadow-blue-600/30 active:scale-95 cursor-pointer"
+          >
+            <span>Read Docker Docs</span>
+            <ArrowRight size={14} />
+          </Link>
         </div>
       </section>
 
@@ -2051,58 +2420,201 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-20 px-6 bg-white border-t border-slate-100 text-slate-400 font-medium">
-         <div className="footer-content max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
-            <div>
-               <LogoWithText className="mb-6" />
-               <p className="text-sm max-w-sm">The most user-friendly cloud hosting platform on the planet. Built for the next generation of developers.</p>
+      <footer className="py-20 px-4 sm:px-8 bg-white border-t border-slate-200/80 text-slate-500 font-medium">
+        <div className="max-w-7xl mx-auto">
+          {/* 4 Clean Columns matching CSky reference */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12 pb-16 border-b border-slate-100">
+            {/* Column 1: PRODUCTS & SOLUTIONS */}
+            <div className="space-y-4">
+              <h4 className="font-black text-slate-900 text-[11px] uppercase tracking-widest">
+                Products &amp; Platform
+              </h4>
+              <ul className="space-y-2.5 text-xs sm:text-sm">
+                <li>
+                  <Link href="#templates" className="hover:text-blue-600 transition-colors flex items-center space-x-1.5">
+                    <span>1-Click Starter Marketplace</span>
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-amber-100 text-amber-700 rounded-full">Hot</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#features" className="hover:text-blue-600 transition-colors">
+                    Automated CI/CD Pipelines
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#databases" className="hover:text-blue-600 transition-colors">
+                    Managed PostgreSQL &amp; Redis
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#scaletozero" className="hover:text-blue-600 transition-colors">
+                    Scale-to-Zero Auto-Sleep
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#domains" className="hover:text-blue-600 transition-colors">
+                    Custom Domains &amp; Free TLS
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs#mcp" className="hover:text-blue-600 transition-colors flex items-center space-x-1.5">
+                    <span>Model Context Protocol (MCP)</span>
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-blue-100 text-blue-700 rounded-full">New</span>
+                  </Link>
+                </li>
+              </ul>
             </div>
 
-            <div className="flex space-x-10 text-sm">
-               <div className="space-y-4">
-                  <h5 className="font-black text-slate-900 text-[10px] uppercase tracking-widest">Platform</h5>
-                  <div className="flex flex-col space-y-2">
-                     <Link href="#" className="hover:text-blue-600">Deploy</Link>
-                     <Link href="#" className="hover:text-blue-600">Builder</Link>
-                     <Link href="#" className="hover:text-blue-600">Runner</Link>
-                  </div>
-               </div>
-               <div className="space-y-4">
-                  <h5 className="font-black text-slate-900 text-[10px] uppercase tracking-widest">Company</h5>
-                  <div className="flex flex-col space-y-2">
-                     <Link href="#" className="hover:text-blue-600">About</Link>
-                     <Link href="#" className="hover:text-blue-600">Twitter</Link>
-                     <Link href="#" className="hover:text-blue-600">Contact</Link>
-                  </div>
-               </div>
+            {/* Column 2: DEVELOPERS & RUNTIMES */}
+            <div className="space-y-4">
+              <h4 className="font-black text-slate-900 text-[11px] uppercase tracking-widest">
+                Developers &amp; Runtimes
+              </h4>
+              <ul className="space-y-2.5 text-xs sm:text-sm">
+                <li>
+                  <Link href="#stacks" className="hover:text-blue-600 transition-colors">
+                    Universal Framework Detection
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#stacks" className="hover:text-blue-600 transition-colors">
+                    Node, Python, Go, Rust &amp; Bun
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs" className="hover:text-blue-600 transition-colors">
+                    Dockerfile Custom Sandboxes
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#features" className="hover:text-blue-600 transition-colors">
+                    Live WebSocket Stdout Logs
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/dashboard/settings" className="hover:text-blue-600 transition-colors">
+                    API Keys &amp; Agent Tokens
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs" className="hover:text-blue-600 transition-colors flex items-center space-x-1 text-blue-600 font-semibold">
+                    <span>REST API &amp; CLI Reference</span>
+                    <ArrowUpRight size={13} />
+                  </Link>
+                </li>
+              </ul>
             </div>
 
-            <div className="flex items-center space-x-6">
-               <Link href="https://discord.gg/gsh2qpEXT4" target="_blank">
-                  <MessageSquare className="hover:text-[#5865F2] transition-colors cursor-pointer" />
-               </Link>
-               <Twitter className="hover:text-blue-400 transition-colors cursor-pointer" />
-               <Github className="hover:text-slate-900 transition-colors cursor-pointer" />
-               <Linkedin className="hover:text-blue-700 transition-colors cursor-pointer" />
+            {/* Column 3: POLICIES & LICENSING */}
+            <div className="space-y-4">
+              <h4 className="font-black text-slate-900 text-[11px] uppercase tracking-widest">
+                Policies &amp; Governance
+              </h4>
+              <ul className="space-y-2.5 text-xs sm:text-sm">
+                <li>
+                  <Link href="/terms" className="hover:text-blue-600 transition-colors">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="hover:text-blue-600 transition-colors">
+                    Privacy &amp; Cookie Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="hover:text-blue-600 transition-colors">
+                    Student Fair Use Rules
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#pricing" className="hover:text-blue-600 transition-colors">
+                    Transparent Prepaid Pricing
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs" className="hover:text-blue-600 transition-colors">
+                    Hardened OCI Isolation &amp; Security
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/status" className="hover:text-emerald-600 transition-colors flex items-center space-x-1.5 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>System Status: 99.98%</span>
+                  </Link>
+                </li>
+              </ul>
             </div>
-         </div>
-         <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold text-slate-300">
-            <div className="flex flex-col md:flex-row items-center gap-4">
-               <p>© 2026 Arsh Pathan. All rights reserved.</p>
-               <div className="hidden md:block w-px h-4 bg-slate-200"></div>
-               <div className="flex items-center space-x-1.5 text-slate-400">
-                  <span>Core hosted powered by</span>
-                  <img src="/csky-logo.png" alt="CSky Developments" className="h-4 w-auto inline-block object-contain" />
-                  <span className="font-bold text-slate-500">CSky Developments</span>
-               </div>
+
+            {/* Column 4: ORDER & CONNECT */}
+            <div className="space-y-4">
+              <h4 className="font-black text-slate-900 text-[11px] uppercase tracking-widest">
+                Order &amp; Connect
+              </h4>
+              <ul className="space-y-2.5 text-xs sm:text-sm">
+                <li>
+                  <Link href="/signup" className="hover:text-blue-600 transition-colors flex items-center space-x-1 text-blue-600 font-bold">
+                    <span>Start Hosting Free (₹0)</span>
+                    <ArrowUpRight size={13} />
+                  </Link>
+                </li>
+                <li>
+                  <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="hover:text-[#5865F2] transition-colors flex items-center space-x-1 text-[#5865F2] font-semibold">
+                    <span>Discord Community &amp; Tickets</span>
+                    <ArrowUpRight size={13} />
+                  </Link>
+                </li>
+                <li>
+                  <Link href="https://github.com/ArshPathan/CodeHost" target="_blank" className="hover:text-slate-900 transition-colors flex items-center space-x-1">
+                    <span>GitHub Organization</span>
+                    <ArrowUpRight size={13} />
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/pricing" className="hover:text-blue-600 transition-colors flex items-center space-x-1.5">
+                    <span>Student Hackathon Grants</span>
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-emerald-100 text-emerald-700 rounded-full">Apply</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="mailto:support@code-host.online" className="hover:text-blue-600 transition-colors flex items-center space-x-1">
+                    <span>Priority Support Emergency</span>
+                    <ArrowUpRight size={13} />
+                  </Link>
+                </li>
+                <li>
+                  <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="hover:text-blue-600 transition-colors flex items-center space-x-1 text-slate-400">
+                    <span>Powered by CSky Developments</span>
+                    <ArrowUpRight size={13} />
+                  </Link>
+                </li>
+              </ul>
             </div>
-            <div className="flex space-x-6">
-               <Link href="/terms" className="hover:text-slate-500 transition-colors">Terms</Link>
-               <Link href="/privacy" className="hover:text-slate-500 transition-colors">Privacy</Link>
-               <Link href="/docs" className="hover:text-slate-500 transition-colors">Docs</Link>
-               <Link href="/status" className="hover:text-blue-600 transition-colors font-bold">Status</Link>
+          </div>
+
+          {/* Bottom Bar matching CSky reference */}
+          <div className="mt-10 flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-slate-400">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="scale-90 origin-left">
+                <LogoWithText />
+              </div>
+              <span className="text-slate-300 hidden md:inline">|</span>
+              <Link href="#features" className="hover:text-slate-700 transition-colors">Features</Link>
+              <Link href="#templates" className="hover:text-slate-700 transition-colors">Templates</Link>
+              <Link href="#stacks" className="hover:text-slate-700 transition-colors">Compatibility</Link>
+              <Link href="#pricing" className="hover:text-slate-700 transition-colors">Pricing</Link>
+              <Link href="/docs" className="hover:text-slate-700 transition-colors">Docs</Link>
+              <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="hover:text-[#5865F2] transition-colors">Discord</Link>
+              <Link href="/terms" className="hover:text-slate-700 transition-colors">Terms</Link>
+              <Link href="/privacy" className="hover:text-slate-700 transition-colors">Privacy</Link>
             </div>
-         </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-right">
+              <p>&copy; {new Date().getFullYear()} CodeHost by Arsh Pathan. All rights reserved.</p>
+              <span className="hidden sm:inline text-slate-300">&middot;</span>
+              <p className="text-slate-400 text-[11px]">Core infrastructure powered by <strong className="text-slate-600 font-semibold">CSky Developments</strong>.</p>
+            </div>
+          </div>
+        </div>
       </footer>
 
       {/* Floating Island Navigation for Mobile */}

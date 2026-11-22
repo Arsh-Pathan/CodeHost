@@ -16,7 +16,8 @@ import {
   LifeBuoy,
   Gift,
   Coins,
-  Plus
+  Plus,
+  ExternalLink
 } from 'lucide-react';
 import UserAvatar from './UserAvatar';
 import CreditTopUpModal from './CreditTopUpModal';
@@ -51,6 +52,22 @@ export default function PanelLayout({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [balance, setBalance] = useState<number>(walletBalance ?? 0);
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    if (isProfileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isProfileMenuOpen]);
 
   useEffect(() => {
     if (walletBalance !== undefined) {
@@ -186,25 +203,95 @@ export default function PanelLayout({
               </div>
             )}
 
-            <div className={`p-3 sm:p-4 bg-slate-50/70 rounded-2xl border border-slate-100 flex items-center space-x-3 ${!isSidebarOpen && 'md:hidden'}`}>
-              <UserAvatar user={user} size="md" />
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-black text-[#0F172A] truncate">{user?.name || user?.username || 'Developer'}</span>
-                <span className="text-[10px] font-bold text-slate-400 truncate tracking-tight">{user?.email}</span>
-              </div>
-            </div>
-            <div className="flex flex-col space-y-1">
-               <button className="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-[#0F172A] transition-all text-xs font-bold cursor-pointer">
-                  <LifeBuoy size={16} className="shrink-0" />
-                  <span className={`${!isSidebarOpen && 'md:hidden'}`}>Support</span>
-               </button>
-               <button 
-                onClick={handleLogout}
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-400 hover:text-[#E53935] hover:bg-red-50 transition-all text-xs font-bold cursor-pointer"
+            {/* Clickable Profile Card & Popover Menu */}
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className={`w-full p-2.5 sm:p-3 bg-slate-50/80 hover:bg-slate-100 rounded-2xl border border-slate-200/80 flex items-center justify-between text-left transition-all cursor-pointer group active:scale-98 ${
+                  isProfileMenuOpen ? 'ring-2 ring-blue-500/30 border-blue-500/50 bg-blue-50/40' : ''
+                }`}
               >
-                <LogOut size={16} className="shrink-0" />
-                <span className={`${!isSidebarOpen && 'md:hidden'}`}>Logout</span>
+                <div className="flex items-center space-x-3 min-w-0">
+                  <UserAvatar user={user} size="md" />
+                  <div className={`flex flex-col min-w-0 ${!isSidebarOpen && 'md:hidden'}`}>
+                    <span className="text-xs font-black text-[#0F172A] truncate group-hover:text-blue-600 transition-colors">
+                      {user?.name || user?.username || 'Developer'}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 truncate tracking-tight">
+                      {user?.email}
+                    </span>
+                  </div>
+                </div>
+                <div className={`text-slate-400 group-hover:text-slate-600 transition-colors ${!isSidebarOpen && 'md:hidden'}`}>
+                  <ChevronRight size={14} className={`transition-transform duration-200 ${isProfileMenuOpen ? '-rotate-90' : 'rotate-90'}`} />
+                </div>
               </button>
+
+              {/* Profile Popup Menu */}
+              {isProfileMenuOpen && (
+                <div className="absolute bottom-full left-0 mb-2 w-72 bg-white rounded-3xl border border-slate-200 shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <div className="flex items-center space-x-3 pb-3 mb-3 border-b border-slate-100">
+                    <UserAvatar user={user} size="md" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-black text-slate-900 truncate">
+                        {user?.name || user?.username || 'Developer'}
+                      </span>
+                      <span className="text-[10px] text-slate-400 truncate font-medium">
+                        {user?.email}
+                      </span>
+                      <span className="inline-block mt-1 text-[9px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit">
+                        {user?.tier ? `${user.tier.toUpperCase()} PLAN` : 'FREE PLAN'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Link
+                      href="/dashboard/profile"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors group cursor-pointer"
+                    >
+                      <Settings size={15} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
+                      <span>Profile &amp; Settings</span>
+                    </Link>
+
+                    <Link
+                      href="/docs"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors group cursor-pointer"
+                    >
+                      <Compass size={15} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
+                      <span>Docs &amp; MCP Agent</span>
+                    </Link>
+
+                    <Link
+                      href="https://discord.gg/gsh2qpEXT4"
+                      target="_blank"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#5865F2] transition-colors group cursor-pointer"
+                    >
+                      <LifeBuoy size={15} className="text-slate-400 group-hover:text-[#5865F2] transition-colors" />
+                      <span>Support &amp; Community</span>
+                      <ExternalLink size={11} className="ml-auto text-slate-300" />
+                    </Link>
+
+                    <div className="pt-2 mt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      >
+                        <LogOut size={15} className="text-red-500" />
+                        <span>Log Out</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div className={`mt-4 pt-3 border-t border-slate-100 flex flex-col items-center justify-center space-y-1.5 opacity-60 hover:opacity-100 transition-opacity ${!isSidebarOpen && 'md:hidden'}`}>
