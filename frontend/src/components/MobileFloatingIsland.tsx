@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Home,
-  Package,
+  Code2,
   Sparkles,
   CreditCard,
   BookOpen,
@@ -17,7 +17,7 @@ interface MobileFloatingIslandProps {
 }
 
 export function MobileFloatingIsland({ isLoggedIn = false }: MobileFloatingIslandProps) {
-  const [activeTab, setActiveTab] = useState<'home' | 'templates' | 'features' | 'pricing'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'stacks' | 'features' | 'pricing'>('home');
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -41,7 +41,7 @@ export function MobileFloatingIsland({ isLoggedIn = false }: MobileFloatingIslan
           setLastScrollY(currentScrollY);
 
           // Active section highlight
-          const templatesEl = document.getElementById('templates');
+          const stacksEl = document.getElementById('stacks');
           const featuresEl = document.getElementById('features');
           const pricingEl = document.getElementById('pricing');
 
@@ -51,8 +51,8 @@ export function MobileFloatingIsland({ isLoggedIn = false }: MobileFloatingIslan
             setActiveTab('pricing');
           } else if (featuresEl && scrollPosition >= featuresEl.offsetTop) {
             setActiveTab('features');
-          } else if (templatesEl && scrollPosition >= templatesEl.offsetTop) {
-            setActiveTab('templates');
+          } else if (stacksEl && scrollPosition >= stacksEl.offsetTop) {
+            setActiveTab('stacks');
           } else {
             setActiveTab('home');
           }
@@ -67,7 +67,7 @@ export function MobileFloatingIsland({ isLoggedIn = false }: MobileFloatingIslan
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  const scrollToSection = (id: string, tab: 'home' | 'templates' | 'features' | 'pricing') => {
+  const scrollToSection = (id: string, tab: 'home' | 'stacks' | 'features' | 'pricing') => {
     setActiveTab(tab);
     if (tab === 'home') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -105,18 +105,32 @@ export function MobileFloatingIsland({ isLoggedIn = false }: MobileFloatingIslan
           <Home size={17} />
         </button>
 
-        {/* Templates Tab */}
+        {/* Features Tab */}
         <button
-          onClick={() => scrollToSection('templates', 'templates')}
+          onClick={() => scrollToSection('features', 'features')}
           className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-            activeTab === 'templates'
+            activeTab === 'features'
               ? 'bg-[#0F172A] text-white shadow-xs scale-102'
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
           }`}
-          aria-label="Templates"
-          title="Templates"
+          aria-label="Features"
+          title="Features"
         >
-          <Package size={17} />
+          <Sparkles size={17} />
+        </button>
+
+        {/* Compatibility / Stacks Tab */}
+        <button
+          onClick={() => scrollToSection('stacks', 'stacks')}
+          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            activeTab === 'stacks'
+              ? 'bg-[#0F172A] text-white shadow-xs scale-102'
+              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+          aria-label="Compatibility"
+          title="Compatibility"
+        >
+          <Code2 size={17} />
         </button>
 
         {/* Features Tab */}

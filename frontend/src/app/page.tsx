@@ -644,7 +644,7 @@ export default function Home() {
    }, []);
 
    return (
-     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
+     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-clip">
        <LoadingScreen />
 
        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -666,10 +666,6 @@ export default function Home() {
         </div>
         <div className="hidden lg:flex items-center space-x-5 xl:space-x-7">
           <Link href="#features" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Features</Link>
-          <Link href="#templates" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors flex items-center space-x-1">
-            <span>Templates</span>
-            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full">Hot</span>
-          </Link>
           <Link href="#databases" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Databases</Link>
           <Link href="#stacks" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Compatibility</Link>
           <Link href="/docs#mcp" className="text-xs xl:text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors flex items-center space-x-1">
@@ -989,9 +985,9 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="space-y-12 sm:space-y-16 relative pb-16">
+        <div className="relative pb-24">
 {/* SHOWCASE SECTION 1: Text Left, Smooth Visual Right (Git Deployments) */}
-          <div className="sticky top-24 sm:top-28 z-10 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-blue-200">
+          <div className="sticky top-20 sm:top-24 z-10 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.10)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-blue-200">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[11px] font-black uppercase tracking-widest border border-blue-100">
@@ -1100,7 +1096,7 @@ export default function Home() {
       </div>
 
       {/* SHOWCASE SECTION 2: Smooth Visual Left, Text Right (Live Telemetry & Logs) */}
-          <div className="sticky top-24 sm:top-28 z-20 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-emerald-200">
+          <div className="sticky top-24 sm:top-28 z-20 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.12)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-emerald-200">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-black uppercase tracking-widest border border-emerald-100">
@@ -1188,7 +1184,7 @@ export default function Home() {
       </div>
 
       {/* SHOWCASE SECTION: 1-Click Managed Databases & Add-ons (Text Left, Visual Right) */}
-          <div id="databases" className="sticky top-24 sm:top-28 z-30 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-emerald-200 scroll-mt-24">
+          <div id="databases" className="sticky top-28 sm:top-32 z-30 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.14)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-emerald-200 scroll-mt-28">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-black uppercase tracking-widest border border-emerald-100">
@@ -1352,7 +1348,7 @@ export default function Home() {
       </div>
 
       {/* SHOWCASE SECTION: Scale-to-Zero & Intelligent Auto-Sleep (Visual Left, Text Right) */}
-          <div id="scaletozero" className="sticky top-24 sm:top-28 z-40 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-cyan-200 scroll-mt-24">
+          <div id="scaletozero" className="sticky top-32 sm:top-36 z-40 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.16)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-cyan-200 scroll-mt-32">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <span className="px-3 py-1 rounded-full bg-cyan-50 text-cyan-600 text-[11px] font-black uppercase tracking-widest border border-cyan-100">
@@ -1477,7 +1473,7 @@ export default function Home() {
       </div>
 
       {/* SHOWCASE SECTION 3: Text Left, Smooth Visual Right (Hardened Sandboxes) */}
-          <div className="sticky top-24 sm:top-28 z-50 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-indigo-200">
+          <div className="sticky top-36 sm:top-40 z-50 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.18)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-indigo-200">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[11px] font-black uppercase tracking-widest border border-indigo-100">
@@ -1576,7 +1572,7 @@ export default function Home() {
       </div>
 
       {/* SHOWCASE SECTION: Custom Domains & Automated Zero-Config SSL (Text Left, Visual Right) */}
-          <div id="domains" className="sticky top-24 sm:top-28 z-[60] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-blue-200 scroll-mt-24">
+          <div id="domains" className="sticky top-40 sm:top-44 z-[60] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.20)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-blue-200 scroll-mt-40">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[11px] font-black uppercase tracking-widest border border-blue-100">
@@ -1694,7 +1690,7 @@ export default function Home() {
       </div>
 
       {/* SHOWCASE SECTION: "Powered by CodeHost" Viral Growth & White-Labeling (Visual Left, Text Right) */}
-          <div className="sticky top-24 sm:top-28 z-[70] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-purple-200">
+          <div className="sticky top-44 sm:top-48 z-[70] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.22)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-purple-200">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-[11px] font-black uppercase tracking-widest border border-purple-100">
@@ -1794,7 +1790,7 @@ export default function Home() {
       </div>
 
       {/* SHOWCASE SECTION 4: Smooth Visual Left, Text Right (Prepaid Credits & Custom Amounts) */}
-          <div className="sticky top-24 sm:top-28 z-[80] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-2xl p-6 sm:p-10 md:p-12 transition-all duration-300 hover:border-purple-200">
+          <div className="sticky top-48 sm:top-52 z-[80] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.24)] p-6 sm:p-10 md:p-12 mb-12 sm:mb-16 transition-all duration-300 hover:border-purple-200">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-[11px] font-black uppercase tracking-widest border border-purple-100">
@@ -1887,9 +1883,9 @@ export default function Home() {
               </div>
       </section>
 
-{/* Supported Stacks & Technologies */}
-      <section id="stacks" className="py-20 sm:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-20">
-        <div className="text-center mb-10 sm:mb-14">
+{/* Supported Stacks & Technologies - Infinite 2-Row Dual Marquee */}
+      <section id="stacks" className="py-20 sm:py-28 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-20 overflow-hidden">
+        <div className="text-center mb-10 sm:mb-14 px-4 sm:px-6">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-black uppercase tracking-widest border border-slate-200">
             <Cpu size={13} className="text-blue-600" />
             <span>Universal Compatibility</span>
@@ -1901,74 +1897,98 @@ export default function Home() {
             Native multi-runtime builder detects manifests, installs dependencies, and compiles production sandboxes with zero Dockerfile required.
           </p>
 
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 mt-8 overflow-x-auto no-scrollbar py-2 max-w-full justify-start sm:justify-center px-1">
-            {[
-              { id: 'all', label: `All Stacks (${TECH_STACKS.length})` },
-              { id: 'frontend', label: 'Frontend & Fullstack' },
-              { id: 'backend', label: 'Backend & APIs' },
-              { id: 'runtimes', label: 'Languages & Runtimes' },
-              { id: 'databases', label: 'Databases & Containers' },
-            ].map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setStackCategory(cat.id as any)}
-                className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer whitespace-nowrap ${
-                  stackCategory === cat.id
-                    ? 'bg-[#0F172A] text-white shadow-lg shadow-slate-900/20 scale-105'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+          <div className="inline-flex items-center space-x-2 text-xs font-bold text-slate-400 mt-4 bg-slate-50 px-3.5 py-1 rounded-full border border-slate-100">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            <span>Continuous live auto-scroll &bull; Hover card to pause</span>
           </div>
         </div>
 
-        {/* 22-Stack Showcase Grid with authentic SVG icons & animations */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {filteredStacks.map((stack, i) => {
-            const IconComp = stack.icon;
-            return (
-              <div
-                key={i}
-                className="group relative p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-default"
-              >
-                {/* Subtle ambient brand color on hover */}
+        {/* 2-ROW INFINITE DUAL MARQUEE */}
+        <div className="space-y-4 sm:space-y-6 relative [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)] overflow-hidden py-2">
+          {/* ROW 1: Scrolls from Right to Left */}
+          <div className="animate-marquee-left flex items-center space-x-4">
+            {[...TECH_STACKS.slice(0, 11), ...TECH_STACKS.slice(0, 11), ...TECH_STACKS.slice(0, 11)].map((stack, i) => {
+              const IconComp = stack.icon;
+              return (
                 <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none rounded-3xl"
-                  style={{ backgroundColor: stack.accent }}
-                />
-
-                <div>
+                  key={`row1-${stack.name}-${i}`}
+                  className="w-[230px] sm:w-[260px] shrink-0 p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group cursor-pointer"
+                >
                   <div className="flex items-center justify-between mb-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center p-2.5 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 shadow-inner">
-                      <IconComp size={28} className="w-full h-full object-contain" />
+                    <div
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center p-2.5 border border-slate-100 group-hover:scale-110 transition-transform shadow-xs"
+                      style={{ backgroundColor: `${stack.accent}0D` }}
+                    >
+                      <IconComp size={24} className="w-full h-full object-contain" />
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60 font-mono">
                       {stack.badge}
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors">
-                    {stack.name}
-                  </h3>
-                  <p className="text-[11px] text-slate-400 font-medium mt-0.5 line-clamp-1">
-                    {stack.tag}
-                  </p>
-                </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                      {stack.name}
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5 truncate">
+                      {stack.tag}
+                    </p>
+                  </div>
 
-                <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono">
-                  <span className="text-slate-400 font-sans font-medium text-[9px] uppercase tracking-wider">Detects</span>
-                  <span className="font-bold text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60 group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-200 transition-colors">
-                    {stack.detect}
-                  </span>
+                  <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono">
+                    <span className="text-slate-400 font-sans font-medium text-[9px] uppercase tracking-wider">Detects</span>
+                    <span className="font-bold text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60 group-hover:bg-blue-50 group-hover:text-blue-700 transition-colors">
+                      {stack.detect}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {/* ROW 2: Scrolls from Left to Right */}
+          <div className="animate-marquee-right flex items-center space-x-4">
+            {[...TECH_STACKS.slice(11), ...TECH_STACKS.slice(11), ...TECH_STACKS.slice(11)].map((stack, i) => {
+              const IconComp = stack.icon;
+              return (
+                <div
+                  key={`row2-${stack.name}-${i}`}
+                  className="w-[230px] sm:w-[260px] shrink-0 p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center p-2.5 border border-slate-100 group-hover:scale-110 transition-transform shadow-xs"
+                      style={{ backgroundColor: `${stack.accent}0D` }}
+                    >
+                      <IconComp size={24} className="w-full h-full object-contain" />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200/60 font-mono">
+                      {stack.badge}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                      {stack.name}
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5 truncate">
+                      {stack.tag}
+                    </p>
+                  </div>
+
+                  <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-mono">
+                    <span className="text-slate-400 font-sans font-medium text-[9px] uppercase tracking-wider">Detects</span>
+                    <span className="font-bold text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/60 group-hover:bg-blue-50 group-hover:text-blue-700 transition-colors">
+                      {stack.detect}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
+        <div className="px-4 sm:px-6">
         {/* Bring Your Own Container Banner */}
         <div className="mt-8 p-6 rounded-3xl bg-slate-900 text-white flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-800 shadow-xl">
           <div className="flex items-center space-x-4 text-center sm:text-left">
@@ -1988,83 +2008,262 @@ export default function Home() {
             <ArrowRight size={14} />
           </Link>
         </div>
+        </div>
       </section>
 
-      {/* Comparison Table */}
-      <section className="py-16 sm:py-24 md:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="text-center mb-8 sm:mb-16">
-          <span className="text-[11px] font-black uppercase tracking-[0.25em] text-blue-600 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-100">
-            Why CodeHost
+      {/* Comparison Matrix - High-Impact Modern Redesign */}
+      <section className="py-20 sm:py-28 md:py-32 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100">
+        <div className="text-center mb-12 sm:mb-16">
+          <span className="text-[11px] font-black uppercase tracking-[0.25em] text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
+            Benchmark Matrix
           </span>
-          <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
             CodeHost vs The Alternatives
           </h2>
-          <p className="text-slate-500 font-medium text-sm sm:text-base max-w-xl mx-auto mt-3 px-2">
-            See how CodeHost eliminates the complexity and unpredictable costs of traditional cloud providers.
+          <p className="text-slate-500 font-medium text-sm sm:text-base max-w-2xl mx-auto mt-3 px-2">
+            See how CodeHost eliminates DevOps complexity, unpredictable billing traps, and server maintenance overhead compared to legacy cloud platforms.
           </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-6">
+            <span className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 rounded-full">
+              <span className="text-blue-600 font-black">&bull;</span>
+              <span>&lt; 30s Deploy Velocity</span>
+            </span>
+            <span className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 rounded-full">
+              <span className="text-emerald-600 font-black">&bull;</span>
+              <span>Prepaid Wallet &bull; Zero Surprise Bills</span>
+            </span>
+            <span className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 rounded-full">
+              <span className="text-purple-600 font-black">&bull;</span>
+              <span>100% Free Tier Forever</span>
+            </span>
+          </div>
         </div>
 
-        {/* Mobile Swipe Hint */}
-        <div className="flex items-center justify-center space-x-1.5 text-xs font-bold text-blue-600 md:hidden mb-3 bg-blue-50/80 py-1.5 px-3 rounded-full w-fit mx-auto border border-blue-100">
-          <span>← Swipe horizontally to compare →</span>
+        {/* Mobile Swipe Notice */}
+        <div className="flex items-center justify-center space-x-1.5 text-xs font-bold text-blue-600 md:hidden mb-4 bg-blue-50/80 py-1.5 px-3 rounded-full w-fit mx-auto border border-blue-100">
+          <span>&larr; Swipe horizontally to compare &rarr;</span>
         </div>
 
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm overflow-x-auto scrollbar-thin">
-          <table className="w-full text-left border-collapse min-w-[620px]">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50 text-xs font-black uppercase tracking-widest text-slate-500">
-                <th className="p-4 sm:p-5 pl-5 sm:pl-8">Feature</th>
-                <th className="p-4 sm:p-5 text-blue-600 bg-blue-50/50">CodeHost</th>
-                <th className="p-4 sm:p-5">Traditional VPS</th>
-                <th className="p-4 sm:p-5">Heroku</th>
-                <th className="p-4 sm:p-5 pr-5 sm:pr-8">AWS / GCP</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm font-medium text-slate-600 divide-y divide-slate-100">
-              <tr>
-                <td className="p-5 pl-8 font-bold text-slate-900">Setup Time</td>
-                <td className="p-5 font-bold text-blue-600 bg-blue-50/30">&lt; 30 Seconds</td>
-                <td className="p-5">1 - 3 Hours</td>
-                <td className="p-5">2 - 5 Minutes</td>
-                <td className="p-5 pr-8">Hours / Days</td>
-              </tr>
-              <tr>
-                <td className="p-5 pl-8 font-bold text-slate-900">Terminal / SSH Required</td>
-                <td className="p-5 font-bold text-emerald-600 bg-blue-50/30">Never</td>
-                <td className="p-5 text-red-500">Always</td>
-                <td className="p-5">CLI Required</td>
-                <td className="p-5 pr-8 text-red-500">Complex CLI / IAM</td>
-              </tr>
-              <tr>
-                <td className="p-5 pl-8 font-bold text-slate-900">Surprise Bill Risk</td>
-                <td className="p-5 font-bold text-emerald-600 bg-blue-50/30">Zero (Prepaid Credits)</td>
-                <td className="p-5">Fixed + Overage</td>
-                <td className="p-5">Moderate</td>
-                <td className="p-5 pr-8 text-red-500">High (Bandwidth/API traps)</td>
-              </tr>
-              <tr>
-                <td className="p-5 pl-8 font-bold text-slate-900">Buy Any Custom Credit Amount</td>
-                <td className="p-5 font-bold text-emerald-600 bg-blue-50/30">Yes (from ₹16)</td>
-                <td className="p-5 text-slate-400">N/A</td>
-                <td className="p-5 text-slate-400">Fixed tiers only</td>
-                <td className="p-5 pr-8 text-slate-400">Credit card auto-charge</td>
-              </tr>
-              <tr>
-                <td className="p-5 pl-8 font-bold text-slate-900">Free SSL Subdomain</td>
-                <td className="p-5 font-bold text-emerald-600 bg-blue-50/30">1-Click Auto</td>
-                <td className="p-5">Manual Certbot setup</td>
-                <td className="p-5">Included</td>
-                <td className="p-5 pr-8">ACM + CloudFront setup</td>
-              </tr>
-              <tr>
-                <td className="p-5 pl-8 font-bold text-slate-900">Free Tier Forever</td>
-                <td className="p-5 font-bold text-emerald-600 bg-blue-50/30">Yes (1 Project, ₹0)</td>
-                <td className="p-5 text-red-500">No</td>
-                <td className="p-5 text-red-500">No (Removed)</td>
-                <td className="p-5 pr-8">12 Months Only</td>
-              </tr>
-            </tbody>
-          </table>
+        {/* Elevated Comparison Matrix Container */}
+        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full text-left border-collapse min-w-[760px]">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-black uppercase tracking-wider text-slate-500">
+                  <th className="p-5 pl-6 sm:pl-8 w-1/4">Feature &bull; Capability</th>
+                  <th className="p-5 w-1/4 text-blue-600 bg-blue-50/80 border-x-2 border-t-2 border-blue-500/80 rounded-t-2xl relative shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-black text-blue-600">CodeHost</span>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-600 text-white tracking-wider">
+                        Recommended
+                      </span>
+                    </div>
+                  </th>
+                  <th className="p-5 w-1/6">Traditional VPS</th>
+                  <th className="p-5 w-1/6">Heroku / Render</th>
+                  <th className="p-5 pr-6 sm:pr-8 w-1/6">AWS / GCP</th>
+                </tr>
+              </thead>
+              <tbody className="text-xs sm:text-sm font-medium text-slate-600 divide-y divide-slate-100">
+                {/* Row 1 */}
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
+                    <div>Setup &amp; First Deploy</div>
+                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">Time from local code to live URL</div>
+                  </td>
+                  <td className="p-5 font-bold text-blue-700 bg-blue-50/50 border-x-2 border-blue-500/80">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="text-sm font-black text-blue-700">&lt; 30 Seconds</span>
+                    </div>
+                    <div className="text-[11px] font-medium text-blue-600/80 mt-0.5">1-Click Git push or ZIP upload</div>
+                  </td>
+                  <td className="p-5">
+                    <span className="font-semibold text-slate-700">1 - 3 Hours</span>
+                    <div className="text-[10px] text-slate-400">Manual SSH, Nginx, Linux setup</div>
+                  </td>
+                  <td className="p-5">
+                    <span className="font-semibold text-slate-700">2 - 5 Minutes</span>
+                    <div className="text-[10px] text-slate-400">CLI toolbelt &amp; Procfile needed</div>
+                  </td>
+                  <td className="p-5 pr-6 sm:pr-8">
+                    <span className="font-semibold text-rose-500">Hours / Days</span>
+                    <div className="text-[10px] text-slate-400">IAM policies, VPCs, Security groups</div>
+                  </td>
+                </tr>
+
+                {/* Row 2 */}
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
+                    <div>Terminal / SSH Required</div>
+                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">DevOps command-line knowledge</div>
+                  </td>
+                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-blue-500/80">
+                    <div className="flex items-center space-x-1.5">
+                      <CheckCircle2 size={16} className="text-emerald-600" />
+                      <span className="font-black text-emerald-700">Never Required</span>
+                    </div>
+                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">Intuitive web console &amp; live logs</div>
+                  </td>
+                  <td className="p-5 text-rose-500 font-bold">
+                    <span>Always Mandatory</span>
+                    <div className="text-[10px] font-normal text-slate-400">Must configure bash, firewalls, certbot</div>
+                  </td>
+                  <td className="p-5">
+                    <span className="font-semibold text-slate-700">CLI Required</span>
+                    <div className="text-[10px] text-slate-400">Terminal tooling required for deploys</div>
+                  </td>
+                  <td className="p-5 pr-6 sm:pr-8 text-rose-500 font-bold">
+                    <span>Complex CLI / IAM</span>
+                    <div className="text-[10px] font-normal text-slate-400">AWS CLI, keys, and bastion tunnels</div>
+                  </td>
+                </tr>
+
+                {/* Row 3 */}
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
+                    <div>Surprise Bill Protection</div>
+                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">Billing risk &amp; credit card traps</div>
+                  </td>
+                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-blue-500/80">
+                    <div className="flex items-center space-x-1.5">
+                      <CheckCircle2 size={16} className="text-emerald-600" />
+                      <span className="font-black text-emerald-700">Zero Risk (Prepaid Credits)</span>
+                    </div>
+                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">Containers pause safely if credits run low</div>
+                  </td>
+                  <td className="p-5">
+                    <span className="font-semibold text-slate-700">Fixed + Overage</span>
+                    <div className="text-[10px] text-slate-400">Bandwidth overage penalties</div>
+                  </td>
+                  <td className="p-5">
+                    <span className="font-semibold text-slate-700">Expensive Monthly</span>
+                    <div className="text-[10px] text-slate-400">$7 - $25/mo per container</div>
+                  </td>
+                  <td className="p-5 pr-6 sm:pr-8 text-rose-500 font-bold">
+                    <span>Extreme Risk</span>
+                    <div className="text-[10px] font-normal text-slate-400">Runaway bandwidth, NAT gateway &amp; API traps</div>
+                  </td>
+                </tr>
+
+                {/* Row 4 */}
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
+                    <div>Custom Credit Micro-Topups</div>
+                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">Buy exact compute amounts</div>
+                  </td>
+                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-blue-500/80">
+                    <div className="flex items-center space-x-1.5">
+                      <CheckCircle2 size={16} className="text-emerald-600" />
+                      <span className="font-black text-emerald-700">Yes (from ₹16)</span>
+                    </div>
+                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">Pay only for exact CPU/RAM used</div>
+                  </td>
+                  <td className="p-5 text-slate-400">
+                    <span>N/A</span>
+                    <div className="text-[10px] text-slate-400">Must pay fixed monthly minimum</div>
+                  </td>
+                  <td className="p-5 text-slate-400">
+                    <span>Fixed Tiers Only</span>
+                    <div className="text-[10px] text-slate-400">No flexible custom micro-amounts</div>
+                  </td>
+                  <td className="p-5 pr-6 sm:pr-8 text-slate-400">
+                    <span>Postpaid Auto-Charge</span>
+                    <div className="text-[10px] text-slate-400">Direct debit on credit card</div>
+                  </td>
+                </tr>
+
+                {/* Row 5 */}
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
+                    <div>Automated SSL &amp; Subdomains</div>
+                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">HTTPS certificate configuration</div>
+                  </td>
+                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-blue-500/80">
+                    <div className="flex items-center space-x-1.5">
+                      <CheckCircle2 size={16} className="text-emerald-600" />
+                      <span className="font-black text-emerald-700">1-Click Instant Auto</span>
+                    </div>
+                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">Free *.code-host.online + custom domains</div>
+                  </td>
+                  <td className="p-5">
+                    <span className="font-semibold text-slate-700">Manual Setup</span>
+                    <div className="text-[10px] text-slate-400">Certbot + DNS A-records + cron renewal</div>
+                  </td>
+                  <td className="p-5">
+                    <span className="font-semibold text-slate-700">Included</span>
+                    <div className="text-[10px] text-slate-400">Automated standard TLS</div>
+                  </td>
+                  <td className="p-5 pr-6 sm:pr-8">
+                    <span className="font-semibold text-slate-700">Complex Routing</span>
+                    <div className="text-[10px] text-slate-400">ACM + Route53 + CloudFront setup</div>
+                  </td>
+                </tr>
+
+                {/* Row 6 */}
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
+                    <div>Scale-to-Zero Auto-Sleep</div>
+                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">Save credits during inactivity</div>
+                  </td>
+                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-blue-500/80">
+                    <div className="flex items-center space-x-1.5">
+                      <CheckCircle2 size={16} className="text-emerald-600" />
+                      <span className="font-black text-emerald-700">Yes (Wakes up in 280ms)</span>
+                    </div>
+                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">Zero credit burn while sleeping</div>
+                  </td>
+                  <td className="p-5 text-rose-500">
+                    <span className="font-semibold">No Auto-Sleep</span>
+                    <div className="text-[10px] text-slate-400">Billed 24/7 even when idle</div>
+                  </td>
+                  <td className="p-5">
+                    <span className="font-semibold text-slate-700">Slow Cold Boot</span>
+                    <div className="text-[10px] text-slate-400">Takes 20 - 45s to wake up</div>
+                  </td>
+                  <td className="p-5 pr-6 sm:pr-8">
+                    <span className="font-semibold text-slate-700">Serverless Only</span>
+                    <div className="text-[10px] text-slate-400">Must rewrite app for AWS Lambda</div>
+                  </td>
+                </tr>
+
+                {/* Row 7 */}
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
+                    <div>Free Tier for Developers</div>
+                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">Permanent free sandbox hosting</div>
+                  </td>
+                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-b-2 border-blue-500/80 rounded-b-2xl">
+                    <div className="flex items-center space-x-1.5">
+                      <CheckCircle2 size={16} className="text-emerald-600" />
+                      <span className="font-black text-emerald-700">Forever Free (₹0)</span>
+                    </div>
+                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">1 free live project forever</div>
+                    <Link
+                      href="/signup"
+                      className="mt-3 inline-flex items-center space-x-1 text-[11px] font-black uppercase tracking-wider bg-blue-600 text-white px-3 py-1.5 rounded-xl hover:bg-blue-700 transition shadow-xs"
+                    >
+                      <span>Deploy Free</span>
+                      <ArrowRight size={12} />
+                    </Link>
+                  </td>
+                  <td className="p-5 text-rose-500 font-bold">
+                    <span>No Free Tier</span>
+                    <div className="text-[10px] font-normal text-slate-400">Must input card &amp; pay immediately</div>
+                  </td>
+                  <td className="p-5 text-rose-500 font-bold">
+                    <span>Removed</span>
+                    <div className="text-[10px] font-normal text-slate-400">Discontinued free dyno plans</div>
+                  </td>
+                  <td className="p-5 pr-6 sm:pr-8">
+                    <span className="font-semibold text-slate-700">12 Months Only</span>
+                    <div className="text-[10px] text-slate-400">Trial expires, then billed automatically</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
