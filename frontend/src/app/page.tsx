@@ -660,69 +660,7 @@ export default function Home() {
        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05]"
             style={{ backgroundImage: 'radial-gradient(#2563EB 2px, transparent 2px)', backgroundSize: '60px 60px' }} />
 
-      <div className="fixed top-0 w-full z-50">
-        {/* Top Subtle Announcement Banner (Matching CSky reference) */}
-        <div className="bg-[#0F172A] text-white text-[11px] font-medium py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-slate-800">
-          <span className="bg-blue-600 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-full tracking-wider flex items-center space-x-1">
-            <span>🚀</span>
-            <span>CLOUD 2.0</span>
-          </span>
-          <span className="hidden sm:inline text-slate-300">Native MCP AI Agent Cloud Deployment is now live for Cursor &amp; Claude!</span>
-          <span className="sm:hidden text-slate-300">MCP AI Agent Hosting is live!</span>
-          <Link href="/docs#mcp" className="text-blue-400 hover:text-blue-300 font-bold underline inline-flex items-center space-x-0.5 ml-1">
-            <span>Read Announcement</span>
-            <ArrowRight size={11} />
-          </Link>
-        </div>
 
-        {/* Main Navbar */}
-        <nav className="w-full bg-white/85 backdrop-blur-2xl px-4 sm:px-8 py-3.5 flex items-center justify-between border-b border-slate-100/80 transition-all">
-          <div className="scale-90 sm:scale-100 origin-left">
-            <LogoWithText />
-          </div>
-
-          {/* Clean Uncluttered Center Links */}
-          <div className="hidden lg:flex items-center space-x-7 xl:space-x-9">
-            <Link href="#features" className="text-xs xl:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Features</Link>
-            <Link href="#pricing" className="text-xs xl:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Pricing</Link>
-            <Link href="/docs" className="text-xs xl:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Docs</Link>
-            <Link href="/terms" className="text-xs xl:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Terms</Link>
-          </div>
-
-          {/* Right Actions matching CSky pill style */}
-          <div className="flex items-center space-x-2.5 sm:space-x-3">
-            <Link
-              href="https://discord.gg/gsh2qpEXT4"
-              target="_blank"
-              className="hidden sm:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-[#5865F2]/10 text-[#5865F2] hover:bg-[#5865F2]/20 text-xs font-bold transition-colors"
-            >
-              <MessageSquare size={13} />
-              <span>Discord</span>
-            </Link>
-
-            {isLoggedIn ? (
-              <Link
-                href="/dashboard"
-                className="px-5 py-2 bg-[#0F172A] text-white text-xs font-bold rounded-full hover:bg-slate-800 transition-all shadow-sm active:scale-95 flex items-center space-x-1.5 cursor-pointer"
-              >
-                <span>Dashboard</span>
-                <ArrowRight size={13} />
-              </Link>
-            ) : (
-              <>
-                <Link href="/login" className="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 transition-colors">Login</Link>
-                <Link
-                  href="/signup"
-                  className="px-5 py-2 bg-[#0F172A] text-white text-xs font-bold rounded-full hover:bg-slate-800 transition-all shadow-sm active:scale-95 flex items-center space-x-1.5 cursor-pointer"
-                >
-                  <span>Get Started</span>
-                  <ArrowRight size={13} />
-                </Link>
-              </>
-            )}
-          </div>
-        </nav>
-      </div>
 
       {/* Hero Section */}
       <header id="hero" ref={heroRef} className="relative pt-28 sm:pt-36 md:pt-56 pb-12 sm:pb-20 px-4 sm:px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
@@ -998,364 +936,235 @@ export default function Home() {
         </div>
       </section>
 
-            {/* 4-LAYER ESSENTIAL CLOUD INFRASTRUCTURE - STACKED CARDS SHOWCASE */}
-      <section id="features" className="py-20 sm:py-28 md:py-32 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-20">
-        <div className="text-center mb-16 sm:mb-20">
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
-            <Sparkles size={13} className="text-blue-600" />
-            <span>Core Cloud Architecture</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-slate-900 tracking-tight mt-4">
-            Everything you need to ship. <br className="hidden sm:inline" />
-            <span className="text-brand-gradient">Layered to perfection.</span>
+      {/* Core Platform Bento Grid */}
+      <section id="features" className="py-20 sm:py-28 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-24">
+        <div className="text-center mb-12 sm:mb-16">
+          <span className="inline-block px-3.5 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
+            Core Platform
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#0F172A] tracking-tight mt-4">
+            Everything you need to <span className="text-brand-gradient">ship.</span>
           </h2>
-          <p className="text-slate-500 font-medium text-sm sm:text-base max-w-2xl mx-auto mt-4 px-2">
-            Explore CodeHost's 4 foundational developer cloud layers. Scroll down to experience the stacked card progression.
+          <p className="text-slate-500 font-medium text-sm sm:text-base max-w-xl mx-auto mt-3">
+            Four essential cloud building blocks — zero DevOps boilerplate.
           </p>
         </div>
 
-        <div className="relative pb-24">
-          {/* LAYER 01: CI/CD Pipeline */}
-          <div className="sticky top-20 sm:top-24 z-10 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.10)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-blue-200">
-            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
-              <div className="flex items-center space-x-2.5">
-                <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[11px] font-black uppercase tracking-widest border border-blue-100">
-                  Layer 01 &middot; CI/CD Pipeline
-                </span>
-                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Zero Downtime Rollouts</span>
-              </div>
-              <span className="text-xs font-black text-slate-400">1 / 4</span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+          {/* Card 1: Automated CI/CD Pipeline */}
+          <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 flex flex-col justify-between shadow-xs hover:border-slate-300 transition-colors">
+            <div>
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-600">
+                01 &middot; CI/CD Pipeline
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-[#0F172A] tracking-tight mt-2">
+                Push to GitHub. Live in seconds.
+              </h3>
+              <p className="text-sm text-slate-500 font-medium mt-2 leading-relaxed">
+                Every push to <code className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">main</code> builds in an isolated sandbox and swaps traffic with zero downtime.
+              </p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-              <div className="lg:col-span-5 space-y-4 sm:space-y-6">
-                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
+
+            <div className="mt-6 bg-slate-50/90 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-200/70">
+                <div className="inline-flex items-center space-x-2 font-mono text-xs font-semibold text-slate-700">
                   <GitBranch size={13} className="text-blue-600" />
-                  <span>Automated CI/CD Pipeline</span>
+                  <span>main &middot; 4a9c2f1</span>
                 </div>
-                <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-                  Push to GitHub. We handle the rest.
-                </h3>
-                <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
-                  Say goodbye to messy manual FTP uploads or manually executing SSH scripts. Simply push code to your repository and CodeHost runs dependency installs, generates optimized production builds, and rolls out updates with zero downtime.
-                </p>
-                <div className="space-y-2.5 sm:space-y-3 pt-2">
-                  {[
-                    "Automatic builds triggered instantly on push to main",
-                    "Isolated build sandboxes prevent dependency conflicts",
-                    "Instant automatic rollback if a runtime healthcheck fails"
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex items-start space-x-3">
-                      <div className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check size={12} className="stroke-[3]" />
-                      </div>
-                      <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
-                    </div>
-                  ))}
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-[10px] font-bold">
+                  HTTP 200 OK
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs font-mono">
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center space-x-2.5 text-slate-700">
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                      <Check size={12} className="stroke-[2.5]" />
+                    </span>
+                    <span className="font-medium">Clone &amp; detect runtime</span>
+                  </div>
+                  <span className="text-slate-400 text-[11px]">0.4s</span>
+                </div>
+
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center space-x-2.5 text-slate-700">
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                      <Check size={12} className="stroke-[2.5]" />
+                    </span>
+                    <span className="font-medium">Install &amp; build production bundle</span>
+                  </div>
+                  <span className="text-slate-400 text-[11px]">8.1s</span>
+                </div>
+
+                <div className="flex items-center justify-between py-1">
+                  <div className="flex items-center space-x-2.5 text-slate-900">
+                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                    </span>
+                    <span className="font-semibold">Zero-downtime SSL edge swap</span>
+                  </div>
+                  <span className="text-blue-600 font-bold text-[11px]">Active</span>
                 </div>
               </div>
 
-              <div className="lg:col-span-7">
-                <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-200/80 shadow-2xl overflow-hidden bg-slate-900 p-4 sm:p-6 md:p-8 text-white transition-all hover:shadow-blue-500/10">
-                  <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                      <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                    </div>
-                    <div className="px-3.5 py-1 rounded-full bg-slate-800 text-[10px] font-mono font-bold text-slate-400 flex items-center space-x-2">
-                      <Github size={12} />
-                      <span>github.com/developer/webapp:main</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2.5 py-1 rounded-md">Live</span>
-                  </div>
+              <div className="pt-3 border-t border-slate-200/70 flex items-center justify-between text-xs font-mono text-slate-600">
+                <span className="inline-flex items-center space-x-1.5 truncate">
+                  <Globe size={13} className="text-emerald-600 shrink-0" />
+                  <span className="truncate">https://webapp.code-host.online</span>
+                </span>
+                <span className="text-[10px] font-sans font-bold text-slate-400 uppercase tracking-wider shrink-0">Auto TLS</span>
+              </div>
+            </div>
+          </div>
 
-                  <div className="space-y-3.5 font-mono text-xs">
-                    <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">&check;</span>
-                        <span className="text-slate-200 font-semibold">Clone repo &amp; inspect manifest</span>
-                      </div>
-                      <span className="text-slate-500 text-[10px]">0.4s</span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">&check;</span>
-                        <span className="text-slate-200 font-semibold">Install production packages</span>
-                      </div>
-                      <span className="text-slate-500 text-[10px]">3.6s</span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">&check;</span>
-                        <span className="text-slate-200 font-semibold">Turbo build &amp; asset optimization</span>
-                      </div>
-                      <span className="text-slate-500 text-[10px]">8.1s</span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping" />
-                        <span className="text-blue-300 font-semibold">Routing traffic via SSL Reverse Proxy</span>
-                      </div>
-                      <span className="text-blue-400 text-[10px] uppercase font-bold">Active</span>
-                    </div>
-                  </div>
+          {/* Card 2: Real-Time Observability (Dark Contrast) */}
+          <div className="lg:col-span-5 bg-[#0B1120] text-white rounded-3xl border border-slate-800 p-6 sm:p-8 flex flex-col justify-between shadow-lg">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400">
+                  02 &middot; Observability
+                </span>
+                <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold uppercase">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Streaming</span>
+                </span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-2">
+                Real-time logs, zero SSH.
+              </h3>
+              <p className="text-sm text-slate-400 font-medium mt-2 leading-relaxed">
+                Stream clean container stdout and live HTTP requests right in your browser without configuring SSH keys.
+              </p>
+            </div>
 
-                  <div className="mt-6 pt-6 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono">
-                    <span className="flex items-center space-x-2 text-slate-300">
-                      <Globe size={13} className="text-emerald-400" />
-                      <span>https://webapp.code-host.online</span>
-                    </span>
-                    <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">HTTP 200 OK</span>
-                  </div>
+            <div className="mt-6 space-y-3">
+              <div className="bg-[#060911] border border-slate-800/90 rounded-2xl p-4 font-mono text-[11px] space-y-2 overflow-x-auto">
+                <div className="text-cyan-400">&gt; Ready in 412ms on :3000</div>
+                <div className="text-emerald-400">GET / [200] (8.3 KB)</div>
+                <div className="text-emerald-400">GET /api/health [200] (128 B)</div>
+                <div className="text-blue-400">POST /api/deploy [201] (1.2 KB)</div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">CPU</span>
+                  <span className="text-xs font-black font-mono text-white">4%</span>
+                </div>
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">RAM</span>
+                  <span className="text-xs font-black font-mono text-blue-400">64MB</span>
+                </div>
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Ping</span>
+                  <span className="text-xs font-black font-mono text-emerald-400">3ms</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* LAYER 02: Live Observability */}
-          <div className="sticky top-24 sm:top-28 z-20 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.12)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-emerald-200">
-            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
-              <div className="flex items-center space-x-2.5">
-                <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-black uppercase tracking-widest border border-emerald-100">
-                  Layer 02 &middot; Live Observability
-                </span>
-                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Real-Time WebSocket Stdout</span>
-              </div>
-              <span className="text-xs font-black text-slate-400">2 / 4</span>
+          {/* Card 3: Instant Managed Databases */}
+          <div id="databases" className="lg:col-span-5 bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 flex flex-col justify-between shadow-xs hover:border-slate-300 transition-colors scroll-mt-24">
+            <div>
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-600">
+                03 &middot; Databases
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-[#0F172A] tracking-tight mt-2">
+                Postgres &amp; Redis in one click.
+              </h3>
+              <p className="text-sm text-slate-500 font-medium mt-2 leading-relaxed">
+                Provision dedicated instances with persistent NVMe storage and ready-to-paste connection URLs.
+              </p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-              <div className="lg:col-span-7 order-2 lg:order-1">
-                <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0B0F19] p-4 sm:p-6 md:p-8 font-mono text-xs transition-all hover:shadow-emerald-500/10">
-                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800/80">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                      <span className="ml-2 text-slate-400 text-[10px]">Live Container Console (WebSocket)</span>
-                    </div>
-                    <span className="flex items-center space-x-1.5 text-[9px] text-emerald-400 font-bold uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>Streaming</span>
+
+            <div className="mt-6 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-2">
+                  <div className="flex items-center justify-between">
+                    <PostgresIcon size={22} />
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-[9px] font-bold uppercase">
+                      Online
                     </span>
                   </div>
+                  <span className="text-xs font-black text-slate-900">PostgreSQL 16</span>
+                </div>
 
-                  <div className="space-y-2 text-slate-300 leading-relaxed font-mono text-[11px] sm:text-xs overflow-x-auto">
-                    <p className="text-slate-400">[12:00:01] <span className="text-blue-400">[INIT]</span> Initializing isolated Docker container sandbox...</p>
-                    <p className="text-slate-400">[12:00:02] <span className="text-emerald-400">[PORT]</span> Container bound to internal port 3000</p>
-                    <p className="text-slate-400">[12:00:03] <span className="text-cyan-400">[READY]</span> Next.js 16 production server initialized</p>
-                    <p className="text-slate-400">[12:00:04] <span className="text-purple-400">[CERT]</span> Let's Encrypt TLS certificate active</p>
-                    <p className="text-slate-400">[12:00:05] <span className="text-emerald-400">[HEALTH]</span> Health check passed (200 OK, latency: 1.8ms)</p>
-                    <p className="text-emerald-400">[12:00:06] [SERVE] Serving traffic at coffee-shop.code-host.online</p>
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-2">
+                  <div className="flex items-center justify-between">
+                    <RedisIcon size={22} />
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono text-[9px] font-bold uppercase">
+                      Online
+                    </span>
                   </div>
-
-                  <div className="mt-6 pt-4 border-t border-slate-800/80 grid grid-cols-3 gap-3 text-center">
-                    <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">CPU</span>
-                      <span className="text-sm font-black text-white">14%</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">RAM</span>
-                      <span className="text-sm font-black text-purple-400">86MB / 512MB</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Ping</span>
-                      <span className="text-sm font-black text-emerald-400">3 ms</span>
-                    </div>
-                  </div>
+                  <span className="text-xs font-black text-slate-900">Redis 7</span>
                 </div>
               </div>
 
-              <div className="lg:col-span-5 space-y-4 sm:space-y-6 order-1 lg:order-2">
-                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[11px] font-black uppercase tracking-widest">
-                  <Activity size={13} className="text-emerald-600" />
-                  <span>Real-Time Observability</span>
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>DATABASE_URL</span>
+                  <span className="text-emerald-600">TLS 1.3 &middot; Daily Backups</span>
                 </div>
-                <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-                  Inspect live stdout &amp; stderr without touching SSH.
-                </h3>
-                <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
-                  Traditional VPS setups force you to configure SSH keys, open security groups, and remember complicated commands. CodeHost streams real-time stdout logs right into your browser with zero latency.
-                </p>
-                <div className="space-y-2.5 sm:space-y-3 pt-2">
-                  {[
-                    "Instant log search, level filtering, and crash highlights",
-                    "One-click Restart, Pause, and Rebuild buttons",
-                    "Automated memory leak and crash loop detection alerts"
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex items-start space-x-3">
-                      <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check size={12} className="stroke-[3]" />
-                      </div>
-                      <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
-                    </div>
-                  ))}
+                <div className="font-mono text-[11px] text-slate-700 truncate">
+                  postgres://prod:••••@db.code-host.online:5432
                 </div>
               </div>
             </div>
           </div>
 
-          {/* LAYER 03: Instant Managed Databases */}
-          <div id="databases" className="sticky top-28 sm:top-32 z-30 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.14)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-emerald-200 scroll-mt-28">
-            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
+          {/* Card 4: Native MCP AI Agent Engine */}
+          <div id="mcp" className="lg:col-span-7 bg-gradient-to-br from-blue-50/60 via-white to-indigo-50/40 rounded-3xl border border-blue-200/90 p-6 sm:p-8 flex flex-col justify-between shadow-xs scroll-mt-24">
+            <div>
               <div className="flex items-center space-x-2.5">
-                <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-black uppercase tracking-widest border border-emerald-100">
-                  Layer 03 &middot; Instant Databases
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-600">
+                  04 &middot; MCP AI Agents
                 </span>
-                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">PostgreSQL 16 &amp; Redis 7</span>
-              </div>
-              <span className="text-xs font-black text-slate-400">3 / 4</span>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-              <div className="lg:col-span-5 space-y-4 sm:space-y-6">
-                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[11px] font-black uppercase tracking-widest">
-                  <Database size={13} className="text-emerald-600" />
-                  <span>Instant Managed Databases</span>
-                </div>
-                <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-                  PostgreSQL &amp; Redis. One-click provisioned.
-                </h3>
-                <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
-                  No need to configure complex database clusters, firewall ports, or manage database user grants. Launch dedicated PostgreSQL or Redis instances with automated daily backups, persistent NVMe storage, and direct connection string exports.
-                </p>
-                <div className="space-y-2.5 sm:space-y-3 pt-2">
-                  {[
-                    "1-Click connection strings ready for instant .env injection",
-                    "Automated daily point-in-time snapshots with instant restore",
-                    "Connection pooling and automated failover monitoring"
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex items-start space-x-3">
-                      <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check size={12} className="stroke-[3]" />
-                      </div>
-                      <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="lg:col-span-7">
-                <div className="relative rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0A0E17] p-6 md:p-8 text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-emerald-500/10">
-                  <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                      <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-mono font-bold">PostgreSQL 16</span>
-                      <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-[10px] font-mono font-bold">Redis 7 Cache</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2.5 py-1 rounded-md">SSL Encrypted</span>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
-                      <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block mb-1">Production Connection URI</span>
-                      <div className="flex items-center justify-between text-xs font-mono text-emerald-400">
-                        <span className="truncate">postgres://prod_user:••••••••@db.code-host.online:5432/main</span>
-                        <span className="ml-2 px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">Copy</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800/80 text-center">
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Total Tables</span>
-                        <span className="text-xl font-black text-white">24</span>
-                      </div>
-                      <div className="p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800/80 text-center">
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Storage Used</span>
-                        <span className="text-xl font-black text-blue-400">18.4 MB</span>
-                      </div>
-                      <div className="p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800/80 text-center">
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Daily Backups</span>
-                        <span className="text-xl font-black text-emerald-400">Active</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* LAYER 04: Native MCP AI Agent Deployment */}
-          <div id="mcp" className="sticky top-32 sm:top-36 z-40 bg-white rounded-3xl sm:rounded-[2.5rem] border-2 border-blue-500/40 shadow-[0_-12px_40px_rgba(37,99,235,0.15)] p-6 sm:p-10 md:p-12 mb-12 sm:mb-16 transition-all duration-300 hover:border-blue-500">
-            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
-              <div className="flex items-center space-x-2.5">
-                <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest shadow-xs">
-                  Layer 04 &middot; MCP AI Agent Engine
+                <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider">
+                  New
                 </span>
-                <span className="text-xs font-mono text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">New Release</span>
               </div>
-              <span className="text-xs font-black text-slate-400">4 / 4</span>
+              <h3 className="text-xl sm:text-2xl font-black text-[#0F172A] tracking-tight mt-2">
+                Host MCP servers for Claude &amp; Cursor.
+              </h3>
+              <p className="text-sm text-slate-500 font-medium mt-2 leading-relaxed">
+                Turn Python or TypeScript scripts into hosted Model Context Protocol endpoints with instant SSE transport and bearer authentication.
+              </p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-              <div className="lg:col-span-5 space-y-4 sm:space-y-6">
-                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-purple-50 border border-purple-100 text-purple-700 text-[11px] font-black uppercase tracking-widest">
-                  <Sparkles size={13} className="text-purple-600" />
-                  <span>Model Context Protocol Host</span>
-                </div>
-                <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-                  Deploy &amp; Host MCP Servers for Claude &amp; Cursor.
-                </h3>
-                <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
-                  Turn your APIs and Python/TypeScript scripts into autonomous Model Context Protocol agents. Connect Claude Desktop, Cursor, and Windsurf directly to your CodeHost cloud containers with instant SSL SSE and stdio transport.
-                </p>
-                <div className="space-y-2.5 sm:space-y-3 pt-2">
-                  {[
-                    "1-Click MCP SSE endpoint generation (https://*.code-host.online/sse)",
-                    "Direct 1-click config snippet for Claude Desktop & Cursor",
-                    "Secure bearer authentication protects AI tool invocations"
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex items-start space-x-3">
-                      <div className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check size={12} className="stroke-[3]" />
-                      </div>
-                      <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
-              <div className="lg:col-span-7">
-                <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0A0F1D] p-4 sm:p-6 md:p-8 text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-blue-500/20">
-                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                      <span className="ml-2 font-mono text-slate-400 text-[10px]">claude_desktop_config.json</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-500/20">
-                      Claude &bull; Cursor &bull; Windsurf
+            <div className="mt-6 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {['Claude Desktop', 'Cursor', 'Windsurf'].map((client) => (
+                    <span
+                      key={client}
+                      className="px-2.5 py-1 rounded-lg bg-white border border-blue-100 text-[11px] font-bold text-slate-700 shadow-2xs"
+                    >
+                      {client}
                     </span>
-                  </div>
+                  ))}
+                </div>
+                <span className="px-2.5 py-1 rounded-lg bg-blue-600/10 border border-blue-200 font-mono text-[11px] font-semibold text-blue-700">
+                  https://agent.code-host.online/sse
+                </span>
+              </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 font-mono text-xs text-slate-200 overflow-x-auto leading-relaxed shadow-inner">
-                    <pre className="text-slate-300">
-{`{
+              <div className="bg-[#0B1120] rounded-2xl p-4 border border-slate-800/90 font-mono text-[11px] text-slate-300 overflow-x-auto leading-relaxed">
+                <pre>{`{
   "mcpServers": {
     "codehost-agent": {
-      "url": "https://my-mcp.code-host.online/sse",
-      "transport": "sse",
-      "headers": {
-        "Authorization": "Bearer ch_live_sec_89f02a..."
-      }
+      "url": "https://agent.code-host.online/sse",
+      "headers": { "Authorization": "Bearer ch_live_..." }
     }
   }
-}`}
-                    </pre>
-                  </div>
+}`}</pre>
+              </div>
 
-                  <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                    <span className="flex items-center space-x-1.5 text-emerald-400 font-medium">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>Ready for AI Agent Tool Calling</span>
-                    </span>
-                    <Link href="/docs#mcp" className="text-blue-400 hover:text-blue-300 font-bold underline">
-                      View MCP Docs &rarr;
-                    </Link>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between text-xs pt-0.5">
+                <span className="text-slate-500 font-medium">Instant HTTPS SSE &amp; bearer auth</span>
+                <Link href="/docs#mcp" className="text-blue-600 hover:text-blue-700 font-bold inline-flex items-center space-x-1">
+                  <span>View MCP Docs</span>
+                  <ArrowRight size={13} />
+                </Link>
               </div>
             </div>
           </div>
@@ -1668,7 +1477,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="features-section py-28 px-6 max-w-7xl mx-auto scroll-mt-20 border-t border-slate-100">
+      <section id="capabilities" className="features-section py-28 px-6 max-w-7xl mx-auto scroll-mt-20 border-t border-slate-100">
          <div className="features-heading text-center mb-20">
             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-brand-gradient mb-4">Infrastructure Redefined</h2>
             <h3 className="text-4xl md:text-5xl font-black tracking-tight text-[#0F172A] max-w-3xl mx-auto leading-tight">

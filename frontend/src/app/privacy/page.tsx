@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { LogoWithText } from '@/components/Logo';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
@@ -13,22 +12,6 @@ export const metadata = {
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
-      {/* Nav */}
-      <nav className="fixed top-0 w-full z-50 bg-white/60 backdrop-blur-2xl px-8 py-5 flex items-center justify-between">
-        <LogoWithText />
-        <div className="hidden md:flex items-center space-x-8">
-          <Link href="/#features" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Features</Link>
-          <Link href="/#pricing" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Pricing</Link>
-          <Link href="/docs" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Docs</Link>
-        </div>
-        <div className="flex items-center space-x-3">
-          <Link href="/login" className="text-sm font-medium text-slate-500 hover:text-slate-900 px-4 py-2 transition-colors">Login</Link>
-          <Link href="/signup" className="px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-all">
-            Get Started
-          </Link>
-        </div>
-      </nav>
-
       {/* Content */}
       <main className="pt-40 pb-24 px-6 max-w-3xl mx-auto">
         <Link href="/" className="inline-flex items-center space-x-2 text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors mb-12">

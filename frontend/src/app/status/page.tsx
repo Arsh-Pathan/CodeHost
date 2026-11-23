@@ -356,34 +356,6 @@ export default function StatusPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
-      {/* ─── EXACT SITE HEADER (MATCHES ALL PAGES) ─── */}
-      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-2xl px-4 sm:px-8 py-3 sm:py-5 flex items-center justify-between border-b border-slate-100/60 transition-all">
-        <div className="scale-90 sm:scale-100 origin-left">
-          <LogoWithText />
-        </div>
-        <div className="hidden md:flex items-center space-x-8">
-          <Link href="/#features" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Features</Link>
-          <Link href="/#pricing" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Pricing</Link>
-          <Link href="/docs" className="text-sm font-medium text-slate-400 hover:text-slate-900 transition-colors">Docs</Link>
-          <Link href="/status" className="text-sm font-medium text-blue-600 font-bold transition-colors">Status</Link>
-          <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="text-sm font-medium text-[#5865F2] hover:text-[#4752C4] transition-colors">Discord</Link>
-        </div>
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          {isLoggedIn ? (
-            <Link href="/dashboard" className="px-4 sm:px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm active:scale-95">
-               Dashboard
-            </Link>
-          ) : (
-            <>
-              <Link href="/login" className="text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 px-2.5 sm:px-4 py-2 transition-colors">Login</Link>
-              <Link href="/signup" className="px-3.5 sm:px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm active:scale-95">
-                 Get Started
-              </Link>
-            </>
-          )}
-        </div>
-      </nav>
-
       {/* ─── STATUS DASHBOARD CONTENT ─── */}
       <main className="pt-28 sm:pt-36 pb-20 px-4 sm:px-6 max-w-5xl mx-auto">
         {/* Top Control Bar with Live Refresh */}

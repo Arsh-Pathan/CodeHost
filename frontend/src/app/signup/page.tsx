@@ -106,7 +106,7 @@ function SignupForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 pt-24 pb-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-lg space-y-7 bg-white p-8 rounded-2xl shadow-xs border border-slate-200">
         <div>
           <div className="flex justify-center mb-5">

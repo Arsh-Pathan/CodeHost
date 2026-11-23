@@ -1,6 +1,4 @@
 import Link from 'next/link';
-import { LogoWithText } from '@/components/Logo';
-import { DocsNavbar } from '@/components/DocsNavbar';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -76,9 +74,6 @@ function StepCard({ number, title, children }: { number: string; title: string; 
 export default function DocsPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
-      {/* Nav */}
-      <DocsNavbar />
-
       <div className="pt-32 pb-24 px-6 max-w-7xl mx-auto flex gap-16">
         {/* Sidebar */}
         <aside className="hidden lg:block w-56 flex-shrink-0 sticky top-32 self-start space-y-6">

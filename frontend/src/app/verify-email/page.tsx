@@ -47,7 +47,7 @@ function VerifyEmailContent() {
   }, [token]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 pt-20">
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-sm border border-slate-100 text-center space-y-6">
         {status === "loading" && (
           <>

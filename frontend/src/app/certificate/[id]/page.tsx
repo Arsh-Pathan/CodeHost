@@ -177,7 +177,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
   )}&color=0F172A&bgcolor=F1F5F9`;
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-[#0F172A] py-8 px-4 sm:px-6 lg:px-8 selection:bg-blue-100">
+    <div className="min-h-screen bg-[#F1F5F9] text-[#0F172A] pt-24 pb-8 print:py-0 px-4 sm:px-6 lg:px-8 selection:bg-blue-100">
       <style jsx global>{`
         @media print {
           @page {

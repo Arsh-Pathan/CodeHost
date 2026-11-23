@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LogoWithText } from '@/components/Logo';
 import { 
   ArrowLeft, 
   Home, 
@@ -76,44 +75,8 @@ Timestamp: ${new Date().toISOString()}`;
       <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[450px] bg-gradient-to-b from-blue-500/10 via-indigo-500/5 to-transparent blur-3xl pointer-events-none rounded-full" />
       <div className="absolute top-1/2 -right-40 w-[500px] h-[500px] bg-blue-400/5 blur-3xl pointer-events-none rounded-full" />
 
-      {/* Header */}
-      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="hover:opacity-90 transition-opacity flex items-center space-x-2">
-            <LogoWithText />
-          </Link>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/70 text-emerald-700 text-[11px] font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Edge Mesh: 99.98%</span>
-            </div>
-
-            <Link
-              href="/dashboard"
-              className="text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition"
-            >
-              Console
-            </Link>
-            <Link
-              href="/docs"
-              className="text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition"
-            >
-              Docs
-            </Link>
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-bold rounded-full transition shadow-xs flex items-center space-x-1.5"
-            >
-              <span>Dashboard</span>
-              <ArrowRight size={13} />
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* Main Hero & Diagnostics */}
-      <main className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 md:px-8 relative z-10">
+      <main className="flex-1 flex items-center justify-center pt-28 pb-12 px-4 sm:px-6 md:px-8 relative z-10">
         <div className="max-w-3xl w-full text-center space-y-8">
           
           {/* Status Badge */}
