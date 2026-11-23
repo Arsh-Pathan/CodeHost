@@ -32,7 +32,8 @@ import {
   Check,
   Award,
   Zap,
-  Sparkles
+  Sparkles,
+  Copy
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
@@ -43,24 +44,41 @@ import McpSetupCard from '@/components/McpSetupCard';
 function cleanLog(raw: string): string {
   if (!raw || typeof raw !== 'string') return '';
 
-  // 1. Strip ANSI escape sequences and non-printable control characters
+  // 1. Strip ANSI escape sequences and non-printable control characters & docker multiplex headers
   let clean = raw
     .replace(/\u001b\[[0-9;]*[a-zA-Z]/g, '')
     .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
-    .replace(/[\x00-\x08\x0b-\x0c\x0e-\x1f]/g, '')
+    .replace(/[\x00-\x1f\x7f-\x9f\uFFFD]/g, '')
     .trim();
 
-  // 2. Check for Nginx / Apache Combined or Common log format
-  const nginxRegex = /^(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)\s+)?(?:[\d\.]+|[a-fA-F0-9:]+)\s+-\s+-\s+\[[^\]]+\]\s+"([A-Z]+)\s+([^"\s]+)(?:\s+HTTP\/[0-9\.]+)?"\s+(\d{3})\s+(\d+|-)/;
-  const match = clean.match(nginxRegex);
-  if (match) {
-    const [, , method, rawPath, status, bytes] = match;
+  if (!clean) return '';
+
+  // 2. Simplify Nginx / Apache file-not-found error logs
+  const nginxErrMatch = clean.match(/(?:\[error\]|\[warn\]|\[crit\])\s+\d+#\d+:\s+\*\d+\s+"([^"]+)"\s+is not found/i);
+  if (nginxErrMatch) {
+    const fullPath = nginxErrMatch[1];
+    const displayPath = fullPath.replace(/^\/usr\/share\/nginx\/html/, '') || fullPath;
+    return `[404] File not found: ${displayPath}`;
+  }
+
+  // 3. Simplify other [error] log lines by stripping leading timestamps and trailing proxy metadata
+  if (clean.includes('[error]')) {
+    let errClean = clean.replace(/^(?:\d{4}[/-]\d{2}[/-]\d{2}[\sT]\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?\s+)?/, '');
+    errClean = errClean.replace(/,\s+client:.*$/, '');
+    return errClean.trim();
+  }
+
+  // 4. Check for Nginx / Apache Combined or Common HTTP access log format
+  const nginxAccessMatch = clean.match(/"([A-Z]+)\s+([^"\s]+)(?:\s+HTTP\/[0-9\.]+)?"\s+(\d{3})\s+(\d+|-)/);
+  if (nginxAccessMatch) {
+    const [, method, rawPath, status, bytes] = nginxAccessMatch;
     let decodedPath = rawPath;
     try {
       decodedPath = decodeURIComponent(rawPath);
     } catch {
       decodedPath = rawPath;
     }
+    decodedPath = decodedPath.replace(/^\/\/+/, '/');
 
     let sizeStr = '';
     if (bytes && bytes !== '-' && bytes !== '0') {
@@ -73,20 +91,31 @@ function cleanLog(raw: string): string {
     return `${method} ${decodedPath} [${status}]${sizeStr}`;
   }
 
-  // 3. Strip leading big Docker ISO timestamps (e.g. 2026-11-22T10:11:09.693497174Z )
-  clean = clean.replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s+/, '');
+  // 5. Strip leading big Docker ISO or slashed timestamps
+  clean = clean.replace(/^\d{4}[/-]\d{2}[/-]\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?\s+/, '');
 
-  return clean;
+  return clean.trim();
 }
 
 function getLogColor(line: string): string {
-  if (line.includes('[ERROR]') || line.includes('Error:') || line.includes('[500]') || line.includes('[404]') || line.includes('[502]')) {
-    return 'text-red-400';
+  if (
+    line.includes('[ERROR]') ||
+    line.includes('[error]') ||
+    line.includes('Error:') ||
+    line.includes('[404]') ||
+    line.includes('[500]') ||
+    line.includes('[502]') ||
+    line.includes('[503]') ||
+    line.includes('[400]') ||
+    line.includes('[401]') ||
+    line.includes('[403]')
+  ) {
+    return 'text-rose-400';
   }
-  if (line.includes('[304]') || line.includes('[notice]')) {
-    return 'text-blue-400';
+  if (line.includes('[301]') || line.includes('[302]') || line.includes('[304]') || line.includes('[notice]')) {
+    return 'text-sky-400';
   }
-  if (line.includes('[200]') || line.includes('[201]') || line.includes('Success!') || line.includes('> Your app is now live!')) {
+  if (line.includes('[200]') || line.includes('[201]') || line.includes('[204]') || line.includes('Success!') || line.includes('> Your app is now live!')) {
     return 'text-emerald-400';
   }
   if (line.startsWith('>') || line.includes('Ready in') || line.includes('listening on')) {
@@ -179,6 +208,10 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   const [newName, setNewName] = useState('');
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
   const [checkingName, setCheckingName] = useState(false);
+
+  // Console & header UX state
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedLogs, setCopiedLogs] = useState(false);
 
 
   useEffect(() => {
@@ -301,10 +334,25 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   }, [params.id]);
 
   useEffect(() => {
-    if (activeTab === 'console') {
+    if (activeTab === 'console' && logs.length > 0) {
       logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs, activeTab]);
+
+  const handleCopyUrl = () => {
+    if (!project) return;
+    navigator.clipboard.writeText(`https://${project.name.toLowerCase()}.code-host.online`);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
+  };
+
+  const handleCopyLogs = () => {
+    const text = logs.map((l) => cleanLog(l.message)).filter(Boolean).join('\n');
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedLogs(true);
+    setTimeout(() => setCopiedLogs(false), 2000);
+  };
 
   const handleAction = async (action: 'restart' | 'stop' | 'delete' | 'redeploy') => {
     if (action === 'delete' && !confirm('Are you sure you want to delete this project? This cannot be undone.')) return;
@@ -505,90 +553,123 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
 
   return (
     <PanelLayout user={user} projectName={project.name}>
-      <div className="flex flex-col space-y-8">
+      <div className="flex flex-col space-y-6">
 
-        {/* Project Header + Actions */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center space-x-4">
-             <div className="w-16 h-16 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-blue-600 shadow-sm">
-                <Box size={32} />
-             </div>
-             <div>
-               <div className="flex items-center space-x-3">
-                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{project.name}</h1>
-                 <div className={`flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full mr-2 ${project.status === 'running' ? 'bg-emerald-500 animate-pulse' : statusConfig.color.replace('text-', 'bg-')}`} />
-                    {statusConfig.label}
-                 </div>
-               </div>
-               <p className="text-slate-500 font-medium mt-1 flex items-center">
-                 <Globe size={14} className="mr-2" />
-                 {project.name.toLowerCase()}.code-host.online
-               </p>
-             </div>
+        {/* Project Header Card + Actions */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="flex items-center space-x-4 min-w-0">
+            <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-600/20 shrink-0">
+              <Box size={26} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight truncate">{project.name}</h1>
+                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${project.status === 'running' ? 'bg-emerald-500 animate-pulse' : statusConfig.color.replace('text-', 'bg-')}`} />
+                  {statusConfig.label}
+                </div>
+                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
+                  {project.tier ? project.tier.toUpperCase() : 'FREE'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <a
+                  href={`https://${project.name.toLowerCase()}.code-host.online`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs sm:text-sm text-slate-500 hover:text-blue-600 font-medium inline-flex items-center gap-1.5 truncate transition-colors"
+                >
+                  <Globe size={14} className="shrink-0" />
+                  <span className="truncate">{project.name.toLowerCase()}.code-host.online</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCopyUrl}
+                  title="Copy URL"
+                  className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+                >
+                  {copiedUrl ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-             <button
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <div className="inline-flex items-center bg-slate-100/80 border border-slate-200/80 rounded-xl p-1 gap-1">
+              <button
                 onClick={() => handleAction('redeploy')}
                 disabled={actionLoading !== null || project.status === 'building'}
-                className="flex items-center px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm disabled:opacity-50"
-             >
-                {actionLoading === 'redeploy' ? <Loader2 size={16} className="animate-spin mr-2" /> : <RotateCcw size={16} className="mr-2 text-purple-500" />}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white hover:shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading === 'redeploy' ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <RotateCcw size={14} className="mr-1.5 text-purple-500" />}
                 Redeploy
-             </button>
-             <button
+              </button>
+              <button
                 onClick={() => handleAction('restart')}
                 disabled={actionLoading !== null || project.status === 'building'}
-                className="flex items-center px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm disabled:opacity-50"
-             >
-                {actionLoading === 'restart' ? <Loader2 size={16} className="animate-spin mr-2" /> : <RefreshCw size={16} className="mr-2 text-blue-500" />}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white hover:shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading === 'restart' ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <RefreshCw size={14} className="mr-1.5 text-blue-500" />}
                 {project.status === 'running' ? 'Restart' : 'Start'}
-             </button>
-             <button
+              </button>
+              <button
                 onClick={() => handleAction('stop')}
                 disabled={actionLoading !== null || project.status === 'stopped' || project.status === 'idle' || project.status === 'building'}
-                className="flex items-center px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm disabled:opacity-50"
-             >
-                {actionLoading === 'stop' ? <Loader2 size={16} className="animate-spin mr-2" /> : <Square size={16} className="mr-2 text-red-500" />}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white hover:shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading === 'stop' ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Square size={14} className="mr-1.5 text-rose-500" />}
                 Stop
-             </button>
-             <a
-                href={`https://${project.name.toLowerCase()}.code-host.online`}
-                target="_blank"
-                className="flex items-center px-5 py-2.5 bg-blue-600 rounded-xl text-sm font-bold text-white hover:bg-blue-500 transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-500/20"
-             >
-                <ExternalLink size={16} className="mr-2" />
-                Open App
-             </a>
+              </button>
+            </div>
+            <a
+              href={`https://${project.name.toLowerCase()}.code-host.online`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-blue-600/20 transition-all hover:-translate-y-0.5"
+            >
+              <ExternalLink size={15} className="mr-2" />
+              Open App
+            </a>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="w-full max-w-full overflow-x-auto scrollbar-none py-1 -mx-1 px-1">
-           <div className="inline-flex items-center space-x-1.5 p-1.5 bg-slate-200/60 rounded-2xl min-w-max border border-slate-200/50">
-              {[
-                { id: 'console', label: 'Console', icon: Terminal },
-                { id: 'files', label: 'File Manager', icon: FileCode },
-                { id: 'network', label: 'Network', icon: Network },
-                { id: 'history', label: 'History', icon: History },
-                { id: 'settings', label: 'Settings', icon: Settings },
-              ].map((tab) => (
+        <div className="w-full max-w-full overflow-x-auto scrollbar-none py-0.5">
+          <div className="bg-white border border-slate-200/80 p-1 rounded-2xl shadow-xs inline-flex items-center gap-1 min-w-max">
+            {[
+              { id: 'console', label: 'Console', icon: Terminal },
+              { id: 'files', label: 'File Manager', icon: FileCode },
+              { id: 'network', label: 'Network', icon: Network },
+              { id: 'history', label: 'History', icon: History },
+              { id: 'settings', label: 'Settings', icon: Settings },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
                 <button
-                   key={tab.id}
-                   onClick={() => setActiveTab(tab.id as TabType)}
-                   className={`
-                     flex items-center space-x-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer shrink-0
-                     ${activeTab === tab.id
-                       ? 'bg-white text-blue-600 shadow-xs'
-                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'}
-                   `}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as TabType)}
+                  className={`flex items-center space-x-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                    isActive
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                  }`}
                 >
-                   <tab.icon size={16} />
-                   <span>{tab.label}</span>
+                  <tab.icon size={15} />
+                  <span>{tab.label}</span>
+                  {tab.id === 'console' && project.status === 'running' && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
+                  {tab.id === 'history' && deployments.length > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black leading-none ${
+                      isActive ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {deployments.length}
+                    </span>
+                  )}
                 </button>
-              ))}
-           </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Free-Tier Hibernation Banner */}
@@ -652,40 +733,69 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         {/* Tab Content */}
         <div className="min-h-[500px]">
           {activeTab === 'console' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               {/* Console */}
-              <div className="lg:col-span-2 flex flex-col h-[600px]">
-                <div className="bg-[#0d1117] rounded-3xl shadow-2xl border border-[#30363d] overflow-hidden flex flex-col flex-1">
-                  <div className="px-6 py-4 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                       <Terminal className="w-5 h-5 text-slate-400" />
-                       <span className="text-xs font-black text-slate-200 uppercase tracking-widest">Live Terminal</span>
+              <div className="lg:col-span-2 flex flex-col h-[620px]">
+                <div className="bg-[#0d1117] rounded-2xl shadow-lg border border-[#30363d] overflow-hidden flex flex-col flex-1">
+                  <div className="px-5 py-3.5 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between">
+                    <div className="flex items-center space-x-2.5">
+                      <Terminal className="w-4 h-4 text-slate-400" />
+                      <span className="text-xs font-black text-slate-200 uppercase tracking-widest">Live Terminal</span>
+                      {logs.length > 0 && (
+                        <span className="text-[11px] font-mono text-slate-500">
+                          &bull; {logs.length} {logs.length === 1 ? 'line' : 'lines'}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center space-x-3">
-                       <button
-                         onClick={() => setLogs([])}
-                         className="text-[8px] font-black uppercase tracking-tighter text-slate-500 hover:text-slate-300 border border-[#30363d] px-2 py-0.5 rounded hover:border-slate-500 transition-all cursor-pointer"
-                       >
-                         Clear
-                       </button>
-                       <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
-                          {project.status === 'running' ? 'Connected' : 'Offline'}
-                       </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyLogs}
+                        disabled={logs.length === 0}
+                        className="inline-flex items-center space-x-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200 border border-[#30363d] px-2.5 py-1 rounded-md hover:border-slate-500 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {copiedLogs ? (
+                          <>
+                            <Check size={11} className="text-emerald-400" />
+                            <span className="text-emerald-400">Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={11} />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLogs([])}
+                        className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200 border border-[#30363d] px-2.5 py-1 rounded-md hover:border-slate-500 transition-all cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                      <div className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
+                        project.status === 'running'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${project.status === 'running' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                        <span>{project.status === 'running' ? 'Connected' : 'Offline'}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="p-6 flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed text-slate-300 scrollbar-thin scrollbar-thumb-slate-700">
+                  <div className="p-4 sm:p-5 flex-1 overflow-y-auto font-mono text-xs leading-6 text-slate-300 scrollbar-thin scrollbar-thumb-slate-700">
                     {logs.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full space-y-4 opacity-40">
-                        <Terminal size={40} className="text-slate-600" />
-                        <p className="italic font-medium text-center max-w-xs">Initializing console session. Logs will appear once your application is active.</p>
+                      <div className="flex flex-col items-center justify-center h-full space-y-3 opacity-45">
+                        <Terminal size={36} className="text-slate-500" />
+                        <p className="italic font-medium text-center max-w-xs text-xs">Initializing console session. Logs will appear once your application is active.</p>
                       </div>
                     ) : (
                       logs.map((log, index) => {
                         const cleaned = cleanLog(log.message);
                         if (!cleaned) return null;
                         return (
-                          <div key={index} className="flex space-x-4 mb-0.5 hover:bg-white/5 px-2 py-0.5 rounded transition group">
-                            <span className="text-slate-600 shrink-0 select-none opacity-40 group-hover:opacity-100 transition-opacity">
+                          <div key={index} className="flex items-start space-x-3 mb-0.5 hover:bg-white/5 px-2 py-0.5 rounded transition group">
+                            <span className="text-slate-600 shrink-0 select-none text-[11px] tabular-nums opacity-60 group-hover:opacity-100 transition-opacity">
                               {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
                             </span>
                             <span className={`whitespace-pre-wrap break-all ${getLogColor(cleaned)}`}>
@@ -701,20 +811,22 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
               </div>
 
               {/* Side Panels */}
-              <div className="flex flex-col space-y-6">
+              <div className="flex flex-col gap-5">
                 {/* Deploy Panel */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Deploy</h3>
-                    <Upload size={18} className="text-blue-600" />
+                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Deploy</h3>
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <Upload size={14} />
+                    </div>
                   </div>
 
                   {/* Deploy Mode Toggle */}
-                  <div className="flex items-center space-x-1 p-1 bg-slate-100 rounded-xl mb-4">
+                  <div className="flex items-center space-x-1 p-1 bg-slate-100/90 border border-slate-200/60 rounded-xl mb-4">
                     <button
                       onClick={() => setDeployMode('zip')}
-                      className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
-                        deployMode === 'zip' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      className={`flex-1 flex items-center justify-center space-x-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        deployMode === 'zip' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
                       <Upload size={12} />
@@ -722,8 +834,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                     </button>
                     <button
                       onClick={() => setDeployMode('github')}
-                      className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
-                        deployMode === 'github' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      className={`flex-1 flex items-center justify-center space-x-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        deployMode === 'github' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
                       <GitBranch size={12} />
@@ -731,8 +843,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                     </button>
                     <button
                       onClick={() => setDeployMode('mcp')}
-                      className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
-                        deployMode === 'mcp' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      className={`flex-1 flex items-center justify-center space-x-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        deployMode === 'mcp' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
                       <Sparkles size={12} />
@@ -766,8 +878,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                         </div>
                       ) : (
                         <div className="flex flex-col items-center">
-                          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3">
-                            <Upload size={20} />
+                          <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
+                            <Upload size={18} />
                           </div>
                           <h4 className="text-sm font-bold text-slate-900">Drop ZIP here</h4>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Node.js / Python / Static</p>
@@ -783,18 +895,18 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                         <input
                           type="url"
                           placeholder="https://github.com/user/repo"
-                          className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          className="w-full px-3 py-2.5 bg-slate-50/70 rounded-xl border border-slate-200 font-mono text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all"
                           value={githubUrl}
                           onChange={(e) => setGithubUrl(e.target.value)}
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2.5">
                         <div>
                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">Branch</label>
                           <input
                             type="text"
                             placeholder="main"
-                            className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="w-full px-3 py-2.5 bg-slate-50/70 rounded-xl border border-slate-200 font-mono text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all"
                             value={githubBranch}
                             onChange={(e) => setGithubBranch(e.target.value)}
                           />
@@ -804,7 +916,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                           <input
                             type="text"
                             placeholder="(optional)"
-                            className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="w-full px-3 py-2.5 bg-slate-50/70 rounded-xl border border-slate-200 font-mono text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all"
                             value={githubSubdir}
                             onChange={(e) => setGithubSubdir(e.target.value)}
                           />
@@ -813,7 +925,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                       <button
                         onClick={handleGithubDeploy}
                         disabled={githubDeploying || !githubUrl || project.status === 'building'}
-                        className="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center space-x-2"
+                        className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center space-x-2 shadow-xs cursor-pointer"
                       >
                         {githubDeploying ? (
                           <Loader2 size={14} className="animate-spin" />
@@ -828,49 +940,82 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                   )}
                 </div>
 
-                {/* Status Stats */}
-                <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl shadow-slate-900/10 flex flex-col space-y-5">
-                   <div className="flex items-center justify-between">
-                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Live Resources</span>
-                     <Activity size={14} className={project.status === 'running' ? 'text-emerald-500 animate-pulse' : 'text-slate-600'} />
-                   </div>
+                {/* Live Resources Telemetry Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <Activity size={14} />
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-widest text-slate-900">Live Resources</span>
+                    </div>
+                    <span className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                      project.status === 'running'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-slate-100 text-slate-500 border-slate-200'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${project.status === 'running' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                      <span>{project.status === 'running' ? 'Live' : 'Offline'}</span>
+                    </span>
+                  </div>
 
-                   <div className="space-y-3">
-                      <div className="flex justify-between items-end">
-                         <span className="text-xs font-bold text-slate-400 flex items-center"><Cpu size={12} className="mr-1.5" />CPU</span>
-                         <span className="text-xs font-black">{stats?.cpu || 0}%</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                         <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${Math.min(stats?.cpu || 0, 100)}%` }} />
-                      </div>
-                   </div>
+                  {/* CPU Gauge */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-600 flex items-center">
+                        <Cpu size={13} className="mr-1.5 text-slate-400" />
+                        CPU Usage
+                      </span>
+                      <span className="text-xs font-black font-mono tabular-nums text-slate-900">
+                        {stats?.cpu || 0}%
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          (stats?.cpu || 0) >= 90 ? 'bg-rose-500' : (stats?.cpu || 0) >= 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(stats?.cpu || 0, 100)}%` }}
+                      />
+                    </div>
+                  </div>
 
-                   <div className="space-y-3">
-                      <div className="flex justify-between items-end">
-                         <span className="text-xs font-bold text-slate-400 flex items-center"><HardDrive size={12} className="mr-1.5" />Memory</span>
-                         <span className="text-xs font-black">
-                           {stats ? `${Math.round(stats.memory.usage / 1024 / 1024)}MB / ${Math.round(stats.memory.limit / 1024 / 1024)}MB` : '0MB / 128MB'}
-                         </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                         <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${Math.min(stats?.memory.percent || 0, 100)}%` }} />
-                      </div>
-                   </div>
+                  {/* Memory Gauge */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-600 flex items-center">
+                        <HardDrive size={13} className="mr-1.5 text-slate-400" />
+                        Memory
+                      </span>
+                      <span className="text-xs font-black font-mono tabular-nums text-slate-900">
+                        {stats ? `${Math.round(stats.memory.usage / 1024 / 1024)}MB / ${Math.round(stats.memory.limit / 1024 / 1024)}MB` : '0MB / 128MB'}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 rounded-full transition-all duration-700"
+                        style={{ width: `${Math.min(stats?.memory.percent || 0, 100)}%` }}
+                      />
+                    </div>
+                  </div>
 
-                   <div className="pt-3 border-t border-white/5 space-y-2">
-                      <div className="flex justify-between items-center">
-                         <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Status</span>
-                         <span className={`text-[10px] font-black ${project.status === 'running' ? 'text-emerald-400' : 'text-slate-400'}`}>
-                           {project.status.toUpperCase()}
-                         </span>
-                      </div>
-                      {project.port && (
-                        <div className="flex justify-between items-center">
-                           <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Port</span>
-                           <span className="text-[10px] font-black text-slate-300">{project.port}</span>
-                        </div>
-                      )}
-                   </div>
+                  {/* Status & Port Tiles */}
+                  <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-100">
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 flex flex-col">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Status</span>
+                      <span className={`text-xs font-black mt-0.5 ${
+                        project.status === 'running' ? 'text-emerald-600' : project.status === 'stopped' ? 'text-amber-600' : 'text-slate-700'
+                      }`}>
+                        {project.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 flex flex-col">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Port</span>
+                      <span className="text-xs font-black font-mono text-slate-800 mt-0.5">
+                        {project.port || 'Auto'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

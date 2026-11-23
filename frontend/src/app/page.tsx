@@ -1375,11 +1375,6 @@ export default function Home() {
           <p className="text-slate-500 font-medium text-sm sm:text-base max-w-2xl mx-auto mt-3 px-2">
             Native multi-runtime builder detects manifests, installs dependencies, and compiles production sandboxes with zero Dockerfile required.
           </p>
-
-          <div className="inline-flex items-center space-x-2 text-xs font-bold text-slate-400 mt-4 bg-slate-50 px-3.5 py-1 rounded-full border border-slate-100">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            <span>Continuous live auto-scroll &bull; Hover card to pause</span>
-          </div>
         </div>
 
         {/* 2-ROW INFINITE DUAL MARQUEE */}
