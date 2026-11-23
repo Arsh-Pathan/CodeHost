@@ -106,8 +106,6 @@ export default function PanelLayout({
     { name: 'New Server', icon: Plus, href: '/dashboard/new' },
     { name: 'Billing', icon: CreditCard, href: '/dashboard/billing' },
     { name: 'Refer & Earn', icon: Gift, href: '/dashboard/referrals', badge: 'Bonus' },
-    { name: 'Docs & MCP', icon: Compass, href: '/docs' },
-    { name: 'Profile', icon: Settings, href: '/dashboard/profile' },
   ];
 
   return (

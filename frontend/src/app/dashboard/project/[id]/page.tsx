@@ -38,7 +38,62 @@ import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
 import FileManager from '@/components/FileManager';
 import McpSetupCard from '@/components/McpSetupCard';
-import LiveConsole from '@/components/LiveConsole';
+
+
+function cleanLog(raw: string): string {
+  if (!raw || typeof raw !== 'string') return '';
+
+  // 1. Strip ANSI escape sequences and non-printable control characters
+  let clean = raw
+    .replace(/\u001b\[[0-9;]*[a-zA-Z]/g, '')
+    .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
+    .replace(/[\x00-\x08\x0b-\x0c\x0e-\x1f]/g, '')
+    .trim();
+
+  // 2. Check for Nginx / Apache Combined or Common log format
+  const nginxRegex = /^(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)\s+)?(?:[\d\.]+|[a-fA-F0-9:]+)\s+-\s+-\s+\[[^\]]+\]\s+"([A-Z]+)\s+([^"\s]+)(?:\s+HTTP\/[0-9\.]+)?"\s+(\d{3})\s+(\d+|-)/;
+  const match = clean.match(nginxRegex);
+  if (match) {
+    const [, , method, rawPath, status, bytes] = match;
+    let decodedPath = rawPath;
+    try {
+      decodedPath = decodeURIComponent(rawPath);
+    } catch {
+      decodedPath = rawPath;
+    }
+
+    let sizeStr = '';
+    if (bytes && bytes !== '-' && bytes !== '0') {
+      const num = parseInt(bytes, 10);
+      if (!isNaN(num)) {
+        sizeStr = num < 1024 ? ` (${num} B)` : num < 1024 * 1024 ? ` (${(num / 1024).toFixed(1)} KB)` : ` (${(num / (1024 * 1024)).toFixed(1)} MB)`;
+      }
+    }
+
+    return `${method} ${decodedPath} [${status}]${sizeStr}`;
+  }
+
+  // 3. Strip leading big Docker ISO timestamps (e.g. 2026-11-22T10:11:09.693497174Z )
+  clean = clean.replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s+/, '');
+
+  return clean;
+}
+
+function getLogColor(line: string): string {
+  if (line.includes('[ERROR]') || line.includes('Error:') || line.includes('[500]') || line.includes('[404]') || line.includes('[502]')) {
+    return 'text-red-400';
+  }
+  if (line.includes('[304]') || line.includes('[notice]')) {
+    return 'text-blue-400';
+  }
+  if (line.includes('[200]') || line.includes('[201]') || line.includes('Success!') || line.includes('> Your app is now live!')) {
+    return 'text-emerald-400';
+  }
+  if (line.startsWith('>') || line.includes('Ready in') || line.includes('listening on')) {
+    return 'text-cyan-400';
+  }
+  return 'text-slate-300';
+}
 
 interface Project {
   id: string;
@@ -164,10 +219,10 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
           .filter(Boolean)
           .slice(-200)
           .map((message: string) => ({
-            message,
+            message: cleanLog(message),
             timestamp: new Date().toISOString(),
             type: 'run',
-          }));
+          })).filter((l: any) => Boolean(l.message));
         if (parsedLines.length > 0) {
           setLogs((prev) => (prev.length === 0 ? parsedLines : prev));
         }
@@ -232,7 +287,10 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
     });
 
     socket.on('log', (log: {message: string; timestamp: string; type: string}) => {
-      setLogs((prev) => [...prev, log].slice(-500));
+      const cleaned = cleanLog(log.message);
+      if (cleaned) {
+        setLogs((prev) => [...prev, { ...log, message: cleaned }].slice(-500));
+      }
     });
 
     socket.on('stats', (data: any) => {
@@ -597,12 +655,49 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
               {/* Console */}
               <div className="lg:col-span-2 flex flex-col h-[600px]">
-                <LiveConsole
-                  logs={logs}
-                  onClear={() => setLogs([])}
-                  status={project?.status || 'offline'}
-                  statusConfig={statusConfig}
-                />
+                <div className="bg-[#0d1117] rounded-3xl shadow-2xl border border-[#30363d] overflow-hidden flex flex-col flex-1">
+                  <div className="px-6 py-4 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                       <Terminal className="w-5 h-5 text-slate-400" />
+                       <span className="text-xs font-black text-slate-200 uppercase tracking-widest">Live Terminal</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                       <button
+                         onClick={() => setLogs([])}
+                         className="text-[8px] font-black uppercase tracking-tighter text-slate-500 hover:text-slate-300 border border-[#30363d] px-2 py-0.5 rounded hover:border-slate-500 transition-all cursor-pointer"
+                       >
+                         Clear
+                       </button>
+                       <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
+                          {project.status === 'running' ? 'Connected' : 'Offline'}
+                       </div>
+                    </div>
+                  </div>
+                  <div className="p-6 flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed text-slate-300 scrollbar-thin scrollbar-thumb-slate-700">
+                    {logs.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full space-y-4 opacity-40">
+                        <Terminal size={40} className="text-slate-600" />
+                        <p className="italic font-medium text-center max-w-xs">Initializing console session. Logs will appear once your application is active.</p>
+                      </div>
+                    ) : (
+                      logs.map((log, index) => {
+                        const cleaned = cleanLog(log.message);
+                        if (!cleaned) return null;
+                        return (
+                          <div key={index} className="flex space-x-4 mb-0.5 hover:bg-white/5 px-2 py-0.5 rounded transition group">
+                            <span className="text-slate-600 shrink-0 select-none opacity-40 group-hover:opacity-100 transition-opacity">
+                              {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
+                            </span>
+                            <span className={`whitespace-pre-wrap break-all ${getLogColor(cleaned)}`}>
+                              {cleaned}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                    <div ref={logsEndRef} />
+                  </div>
+                </div>
               </div>
 
               {/* Side Panels */}
