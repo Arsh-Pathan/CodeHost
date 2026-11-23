@@ -32,12 +32,7 @@ import {
   Check,
   Award,
   Zap,
-  Sparkles,
-  Copy,
-  ShieldCheck,
-  Share2,
-  Lightbulb,
-  FolderOpen
+  Sparkles
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import PanelLayout from '@/components/PanelLayout';
@@ -225,11 +220,6 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
   const [checkingName, setCheckingName] = useState(false);
 
-  // Console & header UX state
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [copiedLogs, setCopiedLogs] = useState(false);
-  const [logFilter, setLogFilter] = useState<'all' | 'requests' | 'errors'>('all');
-
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -351,25 +341,10 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   }, [params.id]);
 
   useEffect(() => {
-    if (activeTab === 'console' && logs.length > 0) {
+    if (activeTab === 'console') {
       logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs, activeTab]);
-
-  const handleCopyUrl = () => {
-    if (!project) return;
-    navigator.clipboard.writeText(`https://${project.name.toLowerCase()}.code-host.online`);
-    setCopiedUrl(true);
-    setTimeout(() => setCopiedUrl(false), 2000);
-  };
-
-  const handleCopyLogs = () => {
-    const text = logs.map((l) => cleanLog(l.message)).filter(Boolean).join('\n');
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    setCopiedLogs(true);
-    setTimeout(() => setCopiedLogs(false), 2000);
-  };
 
   const handleAction = async (action: 'restart' | 'stop' | 'delete' | 'redeploy') => {
     if (action === 'delete' && !confirm('Are you sure you want to delete this project? This cannot be undone.')) return;
@@ -567,275 +542,93 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
 
   if (!project) return null;
   const statusConfig = getStatusConfig(project.status);
-  const liveUrl = `https://${project.name.toLowerCase()}.code-host.online`;
-  const latestDeployment = deployments[0] || null;
-  const memUsageMb = stats ? Math.round(stats.memory.usage / 1024 / 1024) : 0;
-  const memLimitMb = stats ? Math.round(stats.memory.limit / 1024 / 1024) : 128;
-  const cpuPercent = stats?.cpu || 0;
-
-  const healthBadge =
-    project.status === 'running'
-      ? cpuPercent >= 80
-        ? { label: 'High Load', color: 'text-amber-600' }
-        : { label: 'Healthy', color: 'text-emerald-600' }
-      : project.status === 'building'
-      ? { label: 'Building', color: 'text-blue-600' }
-      : { label: 'Idle / Paused', color: 'text-slate-500' };
-
-  const studentTip =
-    project.status === 'building'
-      ? 'Your code is building right now. Watch live logs on the left — your URL updates automatically once ready.'
-      : project.status === 'failed'
-      ? 'Something stopped during startup. Filter logs to Errors on the left, or check Start Command in Settings.'
-      : project.status === 'stopped' || project.status === 'idle'
-      ? 'Your app is sleeping to save credits. Click Start above or open your live URL to wake it up in seconds.'
-      : 'Your site is live! Open Files to tweak code quickly, or click Copy Share Link to share it with classmates or instructors.';
-
-  const filteredLogs = logs
-    .map((log) => ({ ...log, cleaned: cleanLog(log.message) }))
-    .filter((entry) => {
-      if (!entry.cleaned) return false;
-      if (logFilter === 'requests') {
-        return /^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\s+/.test(entry.cleaned);
-      }
-      if (logFilter === 'errors') {
-        return (
-          entry.cleaned.includes('[404]') ||
-          entry.cleaned.includes('[500]') ||
-          entry.cleaned.includes('[502]') ||
-          entry.cleaned.includes('[503]') ||
-          entry.cleaned.includes('Error:') ||
-          entry.cleaned.includes('[error]') ||
-          entry.cleaned.includes('[ERROR]') ||
-          entry.cleaned.startsWith('Missing file:')
-        );
-      }
-      return true;
-    });
 
   return (
     <PanelLayout user={user} projectName={project.name}>
-      <div className="flex flex-col space-y-5">
+      <div className="flex flex-col space-y-8">
 
-        {/* Breadcrumb */}
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors self-start"
-        >
-          <ArrowLeft size={14} />
-          <span>Back to All Projects</span>
-        </Link>
-
-        {/* Student-Friendly Hero Header Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-          <div className="flex items-center space-x-4 min-w-0">
-            <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-600/20 shrink-0">
-              <Box size={26} />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight truncate">{project.name}</h1>
-                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
-                  <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${project.status === 'running' ? 'bg-emerald-500 animate-pulse' : statusConfig.color.replace('text-', 'bg-')}`} />
-                  {statusConfig.label}
-                </div>
-                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
-                  {project.tier ? project.tier.toUpperCase() : 'FREE'}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                <a
-                  href={liveUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-xs font-medium text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-colors max-w-full"
-                >
-                  <ShieldCheck size={13} className="text-emerald-600 shrink-0" />
-                  <span className="truncate">{project.name.toLowerCase()}.code-host.online</span>
-                </a>
-                <button
-                  type="button"
-                  onClick={handleCopyUrl}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px] font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-                >
-                  {copiedUrl ? (
-                    <>
-                      <Check size={12} className="text-emerald-600" />
-                      <span className="text-emerald-600">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={12} />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
+        {/* Project Header + Actions */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center space-x-4">
+             <div className="w-16 h-16 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-blue-600 shadow-sm">
+                <Box size={32} />
+             </div>
+             <div>
+               <div className="flex items-center space-x-3">
+                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{project.name}</h1>
+                 <div className={`flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full mr-2 ${project.status === 'running' ? 'bg-emerald-500 animate-pulse' : statusConfig.color.replace('text-', 'bg-')}`} />
+                    {statusConfig.label}
+                 </div>
+               </div>
+               <p className="text-slate-500 font-medium mt-1 flex items-center">
+                 <Globe size={14} className="mr-2" />
+                 {project.name.toLowerCase()}.code-host.online
+               </p>
+             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <div className="inline-flex items-center bg-slate-100/80 border border-slate-200/80 rounded-xl p-1 gap-1">
-              <button
+          <div className="flex items-center space-x-2 flex-wrap gap-y-2">
+             <button
                 onClick={() => handleAction('redeploy')}
                 disabled={actionLoading !== null || project.status === 'building'}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white hover:shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {actionLoading === 'redeploy' ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <RotateCcw size={14} className="mr-1.5 text-purple-500" />}
+                className="flex items-center px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm disabled:opacity-50"
+             >
+                {actionLoading === 'redeploy' ? <Loader2 size={16} className="animate-spin mr-2" /> : <RotateCcw size={16} className="mr-2 text-purple-500" />}
                 Redeploy
-              </button>
-              <button
+             </button>
+             <button
                 onClick={() => handleAction('restart')}
                 disabled={actionLoading !== null || project.status === 'building'}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white hover:shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {actionLoading === 'restart' ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <RefreshCw size={14} className="mr-1.5 text-blue-500" />}
+                className="flex items-center px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm disabled:opacity-50"
+             >
+                {actionLoading === 'restart' ? <Loader2 size={16} className="animate-spin mr-2" /> : <RefreshCw size={16} className="mr-2 text-blue-500" />}
                 {project.status === 'running' ? 'Restart' : 'Start'}
-              </button>
-              <button
+             </button>
+             <button
                 onClick={() => handleAction('stop')}
                 disabled={actionLoading !== null || project.status === 'stopped' || project.status === 'idle' || project.status === 'building'}
-                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white hover:shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {actionLoading === 'stop' ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Square size={14} className="mr-1.5 text-rose-500" />}
+                className="flex items-center px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm disabled:opacity-50"
+             >
+                {actionLoading === 'stop' ? <Loader2 size={16} className="animate-spin mr-2" /> : <Square size={16} className="mr-2 text-red-500" />}
                 Stop
-              </button>
-            </div>
-            <a
-              href={liveUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-blue-600/20 transition-all hover:-translate-y-0.5"
-            >
-              <ExternalLink size={15} className="mr-2" />
-              Visit Live Site
-            </a>
-          </div>
-        </div>
-
-        {/* 4-Card Student Overview Strip */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {/* Card 1: Site Status */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col justify-between">
-            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400">
-              <span>Site Status</span>
-              <Globe size={13} className="text-blue-500" />
-            </div>
-            <div className="mt-2">
-              <p className={`text-sm font-black ${project.status === 'running' ? 'text-emerald-600' : 'text-slate-900'}`}>
-                {statusConfig.label} &bull; Ready
-              </p>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
-                <ShieldCheck size={12} className="text-emerald-500 shrink-0" />
-                <span>Auto HTTPS (SSL) Active</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Card 2: Last Deployed */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col justify-between">
-            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400">
-              <span>Last Deployed</span>
-              <Clock size={13} className="text-purple-500" />
-            </div>
-            <div className="mt-2">
-              <p className="text-sm font-black text-slate-900 truncate">
-                {latestDeployment
-                  ? new Date(latestDeployment.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                  : 'Not deployed yet'}
-              </p>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5 truncate">
-                {project.repoUrl ? `GitHub · ${project.repoBranch || 'main'}` : latestDeployment?.source === 'github' ? 'GitHub Sync' : 'ZIP Upload'}
-              </p>
-            </div>
-          </div>
-
-          {/* Card 3: Server Health */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col justify-between">
-            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400">
-              <span>Server Health</span>
-              <Activity size={13} className={project.status === 'running' ? 'text-emerald-500' : 'text-slate-400'} />
-            </div>
-            <div className="mt-2 space-y-1.5">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className={`text-sm font-black ${healthBadge.color}`}>{healthBadge.label}</span>
-                <span className="text-[11px] font-mono font-bold text-slate-500 tabular-nums">
-                  CPU {cpuPercent}% &middot; {memUsageMb}/{memLimitMb}MB
-                </span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-600 rounded-full transition-all duration-700"
-                  style={{ width: `${Math.min(stats?.memory.percent || (memLimitMb ? Math.round((memUsageMb / memLimitMb) * 100) : 0), 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Quick Shortcuts */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col justify-between">
-            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400">
-              <span>Quick Shortcuts</span>
-              <Sparkles size={13} className="text-amber-500" />
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-2.5">
-              <button
-                type="button"
-                onClick={() => setActiveTab('files')}
-                className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200/80 hover:border-blue-200 text-xs font-bold text-slate-700 hover:text-blue-700 transition-colors cursor-pointer"
-              >
-                <FolderOpen size={13} />
-                <span>Edit Files</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('settings')}
-                className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-xs font-bold text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
-              >
-                <Settings size={13} />
-                <span>Settings</span>
-              </button>
-            </div>
+             </button>
+             <a
+                href={`https://${project.name.toLowerCase()}.code-host.online`}
+                target="_blank"
+                className="flex items-center px-5 py-2.5 bg-blue-600 rounded-xl text-sm font-bold text-white hover:bg-blue-500 transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-500/20"
+             >
+                <ExternalLink size={16} className="mr-2" />
+                Open App
+             </a>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="w-full max-w-full overflow-x-auto scrollbar-none py-0.5">
-          <div className="bg-white border border-slate-200/80 p-1 rounded-2xl shadow-xs inline-flex items-center gap-1 min-w-max">
-            {[
-              { id: 'console', label: 'Overview & Logs', icon: Terminal },
-              { id: 'files', label: 'Files', icon: FileCode },
-              { id: 'network', label: 'Domains', icon: Network },
-              { id: 'history', label: 'Deployments', icon: History },
-              { id: 'settings', label: 'Settings', icon: Settings },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
+        <div className="w-full max-w-full overflow-x-auto scrollbar-none py-1 -mx-1 px-1">
+           <div className="inline-flex items-center space-x-1.5 p-1.5 bg-slate-200/60 rounded-2xl min-w-max border border-slate-200/50">
+              {[
+                { id: 'console', label: 'Console', icon: Terminal },
+                { id: 'files', label: 'File Manager', icon: FileCode },
+                { id: 'network', label: 'Network', icon: Network },
+                { id: 'history', label: 'History', icon: History },
+                { id: 'settings', label: 'Settings', icon: Settings },
+              ].map((tab) => (
                 <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as TabType)}
-                  className={`flex items-center space-x-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-                    isActive
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-                  }`}
+                   key={tab.id}
+                   onClick={() => setActiveTab(tab.id as TabType)}
+                   className={`
+                     flex items-center space-x-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer shrink-0
+                     ${activeTab === tab.id
+                       ? 'bg-white text-blue-600 shadow-xs'
+                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'}
+                   `}
                 >
-                  <tab.icon size={15} />
-                  <span>{tab.label}</span>
-                  {tab.id === 'console' && project.status === 'running' && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  )}
-                  {tab.id === 'history' && deployments.length > 0 && (
-                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black leading-none ${
-                      isActive ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {deployments.length}
-                    </span>
-                  )}
+                   <tab.icon size={16} />
+                   <span>{tab.label}</span>
                 </button>
-              );
-            })}
-          </div>
+              ))}
+           </div>
         </div>
 
         {/* Free-Tier Hibernation Banner */}
@@ -899,124 +692,69 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         {/* Tab Content */}
         <div className="min-h-[500px]">
           {activeTab === 'console' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Live Logs Terminal */}
-              <div className="lg:col-span-7 xl:col-span-8 flex flex-col h-[560px]">
-                <div className="bg-[#0d1117] rounded-2xl shadow-lg border border-[#30363d] overflow-hidden flex flex-col flex-1">
-                  <div className="px-4 sm:px-5 py-3 bg-[#161b22] border-b border-[#30363d] flex flex-wrap items-center justify-between gap-2">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+              {/* Console */}
+              <div className="lg:col-span-2 flex flex-col h-[600px]">
+                <div className="bg-[#0d1117] rounded-3xl shadow-2xl border border-[#30363d] overflow-hidden flex flex-col flex-1">
+                  <div className="px-6 py-4 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2">
-                        <Terminal className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs font-black text-slate-200 uppercase tracking-widest">Live Logs</span>
-                      </div>
-                      {/* 1-click log filter pills */}
-                      <div className="inline-flex items-center bg-[#0d1117] border border-[#30363d] rounded-lg p-0.5">
-                        {(
-                          [
-                            { id: 'all', label: 'All' },
-                            { id: 'requests', label: 'Requests' },
-                            { id: 'errors', label: 'Errors' },
-                          ] as const
-                        ).map((f) => (
-                          <button
-                            key={f.id}
-                            type="button"
-                            onClick={() => setLogFilter(f.id)}
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors cursor-pointer ${
-                              logFilter === f.id
-                                ? 'bg-slate-700 text-white'
-                                : 'text-slate-400 hover:text-slate-200'
-                            }`}
-                          >
-                            {f.label}
-                          </button>
-                        ))}
-                      </div>
+                       <Terminal className="w-5 h-5 text-slate-400" />
+                       <span className="text-xs font-black text-slate-200 uppercase tracking-widest">Live Terminal</span>
                     </div>
-
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={handleCopyLogs}
-                        disabled={filteredLogs.length === 0}
-                        className="inline-flex items-center space-x-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200 border border-[#30363d] px-2.5 py-1 rounded-md hover:border-slate-500 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        {copiedLogs ? (
-                          <>
-                            <Check size={11} className="text-emerald-400" />
-                            <span className="text-emerald-400">Copied</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={11} />
-                            <span>Copy</span>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setLogs([])}
-                        className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200 border border-[#30363d] px-2.5 py-1 rounded-md hover:border-slate-500 transition-all cursor-pointer"
-                      >
-                        Clear
-                      </button>
-                      <div className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
-                        project.status === 'running'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${project.status === 'running' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
-                        <span>{project.status === 'running' ? 'Connected' : 'Offline'}</span>
-                      </div>
+                    <div className="flex items-center space-x-3">
+                       <button
+                         onClick={() => setLogs([])}
+                         className="text-[8px] font-black uppercase tracking-tighter text-slate-500 hover:text-slate-300 border border-[#30363d] px-2 py-0.5 rounded hover:border-slate-500 transition-all cursor-pointer"
+                       >
+                         Clear
+                       </button>
+                       <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
+                          {project.status === 'running' ? 'Connected' : 'Offline'}
+                       </div>
                     </div>
                   </div>
-                  <div className="p-4 sm:p-5 flex-1 overflow-y-auto font-mono text-xs leading-6 text-slate-300 scrollbar-thin scrollbar-thumb-slate-700">
-                    {filteredLogs.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full space-y-3 opacity-50">
-                        <Terminal size={36} className="text-slate-500" />
-                        <p className="italic font-medium text-center max-w-xs text-xs">
-                          {logs.length === 0
-                            ? 'Initializing console session. Logs will appear once your app receives requests or starts up.'
-                            : `No ${logFilter} logs recorded yet. Switch back to All to see full output.`}
-                        </p>
+                  <div className="p-6 flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed text-slate-300 scrollbar-thin scrollbar-thumb-slate-700">
+                    {logs.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full space-y-4 opacity-40">
+                        <Terminal size={40} className="text-slate-600" />
+                        <p className="italic font-medium text-center max-w-xs">Initializing console session. Logs will appear once your application is active.</p>
                       </div>
                     ) : (
-                      filteredLogs.map((entry, index) => (
-                        <div key={index} className="flex items-start space-x-3 mb-0.5 hover:bg-white/5 px-2 py-0.5 rounded transition group">
-                          <span className="text-slate-600 shrink-0 select-none text-[11px] tabular-nums opacity-60 group-hover:opacity-100 transition-opacity">
-                            {new Date(entry.timestamp).toLocaleTimeString([], { hour12: false })}
-                          </span>
-                          <span className={`whitespace-pre-wrap break-all ${getLogColor(entry.cleaned)}`}>
-                            {entry.cleaned}
-                          </span>
-                        </div>
-                      ))
+                      logs.map((log, index) => {
+                        const cleaned = cleanLog(log.message);
+                        if (!cleaned) return null;
+                        return (
+                          <div key={index} className="flex space-x-4 mb-0.5 hover:bg-white/5 px-2 py-0.5 rounded transition group">
+                            <span className="text-slate-600 shrink-0 select-none opacity-40 group-hover:opacity-100 transition-opacity">
+                              {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
+                            </span>
+                            <span className={`whitespace-pre-wrap break-all ${getLogColor(cleaned)}`}>
+                              {cleaned}
+                            </span>
+                          </div>
+                        );
+                      })
                     )}
                     <div ref={logsEndRef} />
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Update Your App + Share & Quick Help */}
-              <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-5">
-                {/* Update Your App (Deploy Card) */}
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-sm font-black text-slate-900 tracking-tight">Update Your App</h3>
-                      <p className="text-[11px] text-slate-500 font-medium mt-0.5">Push changes via GitHub, ZIP, or AI</p>
-                    </div>
-                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                      <Upload size={15} />
-                    </div>
+              {/* Side Panels */}
+              <div className="flex flex-col space-y-6">
+                {/* Deploy Panel */}
+                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Deploy</h3>
+                    <Upload size={18} className="text-blue-600" />
                   </div>
 
                   {/* Deploy Mode Toggle */}
-                  <div className="flex items-center space-x-1 p-1 bg-slate-100/90 border border-slate-200/60 rounded-xl mb-4">
+                  <div className="flex items-center space-x-1 p-1 bg-slate-100 rounded-xl mb-4">
                     <button
                       onClick={() => setDeployMode('zip')}
-                      className={`flex-1 flex items-center justify-center space-x-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        deployMode === 'zip' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                      className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                        deployMode === 'zip' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                       }`}
                     >
                       <Upload size={12} />
@@ -1024,8 +762,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                     </button>
                     <button
                       onClick={() => setDeployMode('github')}
-                      className={`flex-1 flex items-center justify-center space-x-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        deployMode === 'github' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                      className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                        deployMode === 'github' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                       }`}
                     >
                       <GitBranch size={12} />
@@ -1033,8 +771,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                     </button>
                     <button
                       onClick={() => setDeployMode('mcp')}
-                      className={`flex-1 flex items-center justify-center space-x-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        deployMode === 'mcp' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                      className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                        deployMode === 'mcp' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                       }`}
                     >
                       <Sparkles size={12} />
@@ -1068,8 +806,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                         </div>
                       ) : (
                         <div className="flex flex-col items-center">
-                          <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
-                            <Upload size={18} />
+                          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3">
+                            <Upload size={20} />
                           </div>
                           <h4 className="text-sm font-bold text-slate-900">Drop ZIP here</h4>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Node.js / Python / Static</p>
@@ -1085,18 +823,18 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                         <input
                           type="url"
                           placeholder="https://github.com/user/repo"
-                          className="w-full px-3 py-2.5 bg-slate-50/70 rounded-xl border border-slate-200 font-mono text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all"
+                          className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                           value={githubUrl}
                           onChange={(e) => setGithubUrl(e.target.value)}
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-2.5">
+                      <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">Branch</label>
                           <input
                             type="text"
                             placeholder="main"
-                            className="w-full px-3 py-2.5 bg-slate-50/70 rounded-xl border border-slate-200 font-mono text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all"
+                            className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             value={githubBranch}
                             onChange={(e) => setGithubBranch(e.target.value)}
                           />
@@ -1106,7 +844,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                           <input
                             type="text"
                             placeholder="(optional)"
-                            className="w-full px-3 py-2.5 bg-slate-50/70 rounded-xl border border-slate-200 font-mono text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all"
+                            className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             value={githubSubdir}
                             onChange={(e) => setGithubSubdir(e.target.value)}
                           />
@@ -1115,7 +853,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                       <button
                         onClick={handleGithubDeploy}
                         disabled={githubDeploying || !githubUrl || project.status === 'building'}
-                        className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center space-x-2 shadow-xs cursor-pointer"
+                        className="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center space-x-2"
                       >
                         {githubDeploying ? (
                           <Loader2 size={14} className="animate-spin" />
@@ -1130,61 +868,49 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                   )}
                 </div>
 
-                {/* Share & Quick Help Card */}
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-black text-slate-900 tracking-tight">Share &amp; Quick Help</h3>
-                      <p className="text-[11px] text-slate-500 font-medium mt-0.5">Handy links for demos &amp; class submissions</p>
-                    </div>
-                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                      <Share2 size={15} />
-                    </div>
-                  </div>
+                {/* Status Stats */}
+                <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl shadow-slate-900/10 flex flex-col space-y-5">
+                   <div className="flex items-center justify-between">
+                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Live Resources</span>
+                     <Activity size={14} className={project.status === 'running' ? 'text-emerald-500 animate-pulse' : 'text-slate-600'} />
+                   </div>
 
-                  {/* Live Link + Port */}
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 space-y-2">
-                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      <span>Public Address</span>
-                      <span className="font-mono text-slate-600">Port {project.port || 'Auto'}</span>
-                    </div>
-                    <a
-                      href={liveUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-mono font-bold text-blue-600 hover:underline block truncate"
-                    >
-                      {project.name.toLowerCase()}.code-host.online
-                    </a>
-                  </div>
+                   <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                         <span className="text-xs font-bold text-slate-400 flex items-center"><Cpu size={12} className="mr-1.5" />CPU</span>
+                         <span className="text-xs font-black">{stats?.cpu || 0}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                         <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${Math.min(stats?.cpu || 0, 100)}%` }} />
+                      </div>
+                   </div>
 
-                  {/* Action Buttons: Copy Share Link + Claim Certificate */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <button
-                      type="button"
-                      onClick={handleCopyUrl}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
-                    >
-                      {copiedUrl ? <Check size={13} className="text-emerald-400" /> : <Share2 size={13} />}
-                      <span>{copiedUrl ? 'Link Copied!' : 'Copy Share Link'}</span>
-                    </button>
-                    <Link
-                      href="/dashboard/profile"
-                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100/80 border border-purple-200/80 text-purple-700 text-xs font-bold transition-colors"
-                    >
-                      <Award size={13} />
-                      <span>Deploy Certificate</span>
-                    </Link>
-                  </div>
+                   <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                         <span className="text-xs font-bold text-slate-400 flex items-center"><HardDrive size={12} className="mr-1.5" />Memory</span>
+                         <span className="text-xs font-black">
+                           {stats ? `${Math.round(stats.memory.usage / 1024 / 1024)}MB / ${Math.round(stats.memory.limit / 1024 / 1024)}MB` : '0MB / 128MB'}
+                         </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                         <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${Math.min(stats?.memory.percent || 0, 100)}%` }} />
+                      </div>
+                   </div>
 
-                  {/* Context-Aware Student Tip */}
-                  <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-3.5 flex items-start space-x-2.5">
-                    <Lightbulb size={15} className="text-blue-600 shrink-0 mt-0.5" />
-                    <div className="text-[11px] text-slate-700 leading-relaxed">
-                      <span className="font-bold text-blue-900 block mb-0.5">Tip</span>
-                      {studentTip}
-                    </div>
-                  </div>
+                   <div className="pt-3 border-t border-white/5 space-y-2">
+                      <div className="flex justify-between items-center">
+                         <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Status</span>
+                         <span className={`text-[10px] font-black ${project.status === 'running' ? 'text-emerald-400' : 'text-slate-400'}`}>
+                           {project.status.toUpperCase()}
+                         </span>
+                      </div>
+                      {project.port && (
+                        <div className="flex justify-between items-center">
+                           <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Port</span>
+                           <span className="text-[10px] font-black text-slate-300">{project.port}</span>
+                        </div>
+                      )}
+                   </div>
                 </div>
               </div>
             </div>
