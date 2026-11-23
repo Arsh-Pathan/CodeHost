@@ -660,40 +660,69 @@ export default function Home() {
        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05]"
             style={{ backgroundImage: 'radial-gradient(#2563EB 2px, transparent 2px)', backgroundSize: '60px 60px' }} />
 
-      <nav className="fixed top-0 w-full z-50 bg-white/75 backdrop-blur-2xl px-4 sm:px-8 py-3.5 sm:py-4 flex items-center justify-between border-b border-slate-100/80 transition-all">
-        <div className="scale-90 sm:scale-100 origin-left">
-          <LogoWithText />
-        </div>
-        <div className="hidden lg:flex items-center space-x-5 xl:space-x-7">
-          <Link href="#features" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Features</Link>
-          <Link href="#databases" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Databases</Link>
-          <Link href="#stacks" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Compatibility</Link>
-          <Link href="/docs#mcp" className="text-xs xl:text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors flex items-center space-x-1">
-            <span>MCP Agent</span>
-            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">New</span>
-          </Link>
-          <Link href="#pricing" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Pricing</Link>
-          <Link href="/docs" className="text-xs xl:text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Docs</Link>
-          <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" className="text-xs xl:text-sm font-semibold text-[#5865F2] hover:text-[#4752C4] transition-colors flex items-center space-x-1">
-            <MessageSquare size={13} />
-            <span>Discord</span>
+      <div className="fixed top-0 w-full z-50">
+        {/* Top Subtle Announcement Banner (Matching CSky reference) */}
+        <div className="bg-[#0F172A] text-white text-[11px] font-medium py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-slate-800">
+          <span className="bg-blue-600 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-full tracking-wider flex items-center space-x-1">
+            <span>🚀</span>
+            <span>CLOUD 2.0</span>
+          </span>
+          <span className="hidden sm:inline text-slate-300">Native MCP AI Agent Cloud Deployment is now live for Cursor &amp; Claude!</span>
+          <span className="sm:hidden text-slate-300">MCP AI Agent Hosting is live!</span>
+          <Link href="/docs#mcp" className="text-blue-400 hover:text-blue-300 font-bold underline inline-flex items-center space-x-0.5 ml-1">
+            <span>Read Announcement</span>
+            <ArrowRight size={11} />
           </Link>
         </div>
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          {isLoggedIn ? (
-            <Link href="/dashboard" className="px-4 sm:px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm active:scale-95">
-               Dashboard
+
+        {/* Main Navbar */}
+        <nav className="w-full bg-white/85 backdrop-blur-2xl px-4 sm:px-8 py-3.5 flex items-center justify-between border-b border-slate-100/80 transition-all">
+          <div className="scale-90 sm:scale-100 origin-left">
+            <LogoWithText />
+          </div>
+
+          {/* Clean Uncluttered Center Links */}
+          <div className="hidden lg:flex items-center space-x-7 xl:space-x-9">
+            <Link href="#features" className="text-xs xl:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Features</Link>
+            <Link href="#pricing" className="text-xs xl:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Pricing</Link>
+            <Link href="/docs" className="text-xs xl:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Docs</Link>
+            <Link href="/terms" className="text-xs xl:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Terms</Link>
+          </div>
+
+          {/* Right Actions matching CSky pill style */}
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <Link
+              href="https://discord.gg/gsh2qpEXT4"
+              target="_blank"
+              className="hidden sm:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-[#5865F2]/10 text-[#5865F2] hover:bg-[#5865F2]/20 text-xs font-bold transition-colors"
+            >
+              <MessageSquare size={13} />
+              <span>Discord</span>
             </Link>
-          ) : (
-            <>
-              <Link href="/login" className="text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 px-2.5 sm:px-4 py-2 transition-colors">Login</Link>
-              <Link href="/signup" className="px-3.5 sm:px-5 py-2 bg-[#0F172A] text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-sm active:scale-95">
-                 Get Started
+
+            {isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                className="px-5 py-2 bg-[#0F172A] text-white text-xs font-bold rounded-full hover:bg-slate-800 transition-all shadow-sm active:scale-95 flex items-center space-x-1.5 cursor-pointer"
+              >
+                <span>Dashboard</span>
+                <ArrowRight size={13} />
               </Link>
-            </>
-          )}
-        </div>
-      </nav>
+            ) : (
+              <>
+                <Link href="/login" className="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 transition-colors">Login</Link>
+                <Link
+                  href="/signup"
+                  className="px-5 py-2 bg-[#0F172A] text-white text-xs font-bold rounded-full hover:bg-slate-800 transition-all shadow-sm active:scale-95 flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <span>Get Started</span>
+                  <ArrowRight size={13} />
+                </Link>
+              </>
+            )}
+          </div>
+        </nav>
+      </div>
 
       {/* Hero Section */}
       <header id="hero" ref={heroRef} className="relative pt-28 sm:pt-36 md:pt-56 pb-12 sm:pb-20 px-4 sm:px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
@@ -969,24 +998,24 @@ export default function Home() {
         </div>
       </section>
 
-            {/* 8-LAYER DEVELOPER INFRASTRUCTURE SHOWCASE - STICKY STACKING CARDS */}
+            {/* 4-LAYER ESSENTIAL CLOUD INFRASTRUCTURE - STACKED CARDS SHOWCASE */}
       <section id="features" className="py-20 sm:py-28 md:py-32 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-20">
-        <div className="text-center mb-16 sm:mb-24">
+        <div className="text-center mb-16 sm:mb-20">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
             <Sparkles size={13} className="text-blue-600" />
-            <span>Developer Cloud Architecture</span>
+            <span>Core Cloud Architecture</span>
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-slate-900 tracking-tight mt-4">
             Everything you need to ship. <br className="hidden sm:inline" />
             <span className="text-brand-gradient">Layered to perfection.</span>
           </h2>
           <p className="text-slate-500 font-medium text-sm sm:text-base max-w-2xl mx-auto mt-4 px-2">
-            Explore CodeHost's 8 core infrastructure layers. Scroll down to experience the stacked card progression.
+            Explore CodeHost's 4 foundational developer cloud layers. Scroll down to experience the stacked card progression.
           </p>
         </div>
 
         <div className="relative pb-24">
-{/* SHOWCASE SECTION 1: Text Left, Smooth Visual Right (Git Deployments) */}
+          {/* LAYER 01: CI/CD Pipeline */}
           <div className="sticky top-20 sm:top-24 z-10 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.10)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-blue-200">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
@@ -995,107 +1024,95 @@ export default function Home() {
                 </span>
                 <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Zero Downtime Rollouts</span>
               </div>
-              <span className="text-xs font-black text-slate-400">1 / 8</span>
+              <span className="text-xs font-black text-slate-400">1 / 4</span>
             </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-          <div className="lg:col-span-5 space-y-4 sm:space-y-6">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
-              <GitBranch size={13} className="text-blue-600" />
-              <span>Automated CI/CD Pipeline</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-              Push to GitHub. We handle the rest.
-            </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
-              Say goodbye to messy manual FTP uploads or manually executing SSH scripts. Simply push code to your repository and CodeHost runs dependency installs, generates optimized production builds, and rolls out updates with zero downtime.
-            </p>
-            <div className="space-y-2.5 sm:space-y-3 pt-2">
-              {[
-                "Automatic builds triggered instantly on push to main",
-                "Isolated build sandboxes prevent dependency conflicts",
-                "Instant automatic rollback if a runtime healthcheck fails"
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-3">
-                  <div className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check size={12} className="stroke-[3]" />
-                  </div>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+              <div className="lg:col-span-5 space-y-4 sm:space-y-6">
+                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
+                  <GitBranch size={13} className="text-blue-600" />
+                  <span>Automated CI/CD Pipeline</span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="lg:col-span-7">
-            {/* Smooth Rounded Visual Frame */}
-            <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-200/80 shadow-2xl overflow-hidden bg-slate-900 p-4 sm:p-6 md:p-8 text-white transition-all hover:shadow-blue-500/10">
-              {/* Window Bar */}
-              <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
+                  Push to GitHub. We handle the rest.
+                </h3>
+                <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
+                  Say goodbye to messy manual FTP uploads or manually executing SSH scripts. Simply push code to your repository and CodeHost runs dependency installs, generates optimized production builds, and rolls out updates with zero downtime.
+                </p>
+                <div className="space-y-2.5 sm:space-y-3 pt-2">
+                  {[
+                    "Automatic builds triggered instantly on push to main",
+                    "Isolated build sandboxes prevent dependency conflicts",
+                    "Instant automatic rollback if a runtime healthcheck fails"
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-start space-x-3">
+                      <div className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check size={12} className="stroke-[3]" />
+                      </div>
+                      <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="px-3.5 py-1 rounded-full bg-slate-800 text-[10px] font-mono font-bold text-slate-400 flex items-center space-x-2">
-                  <Github size={12} />
-                  <span>github.com/developer/webapp:main</span>
-                </div>
-                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2.5 py-1 rounded-md">Live</span>
               </div>
 
-              {/* Pipeline Steps Card */}
-              <div className="space-y-3.5 font-mono text-xs">
-                <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">✓</span>
-                    <span className="text-slate-200 font-semibold">Clone repo & inspect manifest</span>
+              <div className="lg:col-span-7">
+                <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-200/80 shadow-2xl overflow-hidden bg-slate-900 p-4 sm:p-6 md:p-8 text-white transition-all hover:shadow-blue-500/10">
+                  <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                      <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                    </div>
+                    <div className="px-3.5 py-1 rounded-full bg-slate-800 text-[10px] font-mono font-bold text-slate-400 flex items-center space-x-2">
+                      <Github size={12} />
+                      <span>github.com/developer/webapp:main</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2.5 py-1 rounded-md">Live</span>
                   </div>
-                  <span className="text-slate-500 text-[11px]">0.4s</span>
-                </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">✓</span>
-                    <span className="text-slate-200 font-semibold">Install production packages</span>
+                  <div className="space-y-3.5 font-mono text-xs">
+                    <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">&check;</span>
+                        <span className="text-slate-200 font-semibold">Clone repo &amp; inspect manifest</span>
+                      </div>
+                      <span className="text-slate-500 text-[10px]">0.4s</span>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">&check;</span>
+                        <span className="text-slate-200 font-semibold">Install production packages</span>
+                      </div>
+                      <span className="text-slate-500 text-[10px]">3.6s</span>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">&check;</span>
+                        <span className="text-slate-200 font-semibold">Turbo build &amp; asset optimization</span>
+                      </div>
+                      <span className="text-slate-500 text-[10px]">8.1s</span>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping" />
+                        <span className="text-blue-300 font-semibold">Routing traffic via SSL Reverse Proxy</span>
+                      </div>
+                      <span className="text-blue-400 text-[10px] uppercase font-bold">Active</span>
+                    </div>
                   </div>
-                  <span className="text-slate-500 text-[11px]">3.6s</span>
-                </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">✓</span>
-                    <span className="text-slate-200 font-semibold">Turbo build & asset optimization</span>
-                  </div>
-                  <span className="text-slate-500 text-[11px]">8.1s</span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between text-blue-400">
-                  <div className="flex items-center space-x-3">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                  <div className="mt-6 pt-6 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono">
+                    <span className="flex items-center space-x-2 text-slate-300">
+                      <Globe size={13} className="text-emerald-400" />
+                      <span>https://webapp.code-host.online</span>
                     </span>
-                    <span className="font-semibold text-blue-300">Routing traffic via SSL Reverse Proxy</span>
+                    <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">HTTP 200 OK</span>
                   </div>
-                  <span className="text-blue-400 font-bold text-[11px]">Active</span>
                 </div>
-              </div>
-
-              {/* Bottom URL Pill */}
-              <div className="mt-6 pt-5 border-t border-slate-800 flex items-center justify-between text-xs">
-                <div className="flex items-center space-x-2">
-                  <Globe size={14} className="text-emerald-400" />
-                  <span className="text-slate-300 font-bold">https://webapp.code-host.online</span>
-                </div>
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                  HTTP 200 OK
-                </span>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* SHOWCASE SECTION 2: Smooth Visual Left, Text Right (Live Telemetry & Logs) */}
+          {/* LAYER 02: Live Observability */}
           <div className="sticky top-24 sm:top-28 z-20 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.12)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-emerald-200">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
@@ -1104,86 +1121,80 @@ export default function Home() {
                 </span>
                 <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Real-Time WebSocket Stdout</span>
               </div>
-              <span className="text-xs font-black text-slate-400">2 / 8</span>
+              <span className="text-xs font-black text-slate-400">2 / 4</span>
             </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-          <div className="lg:col-span-7 order-2 lg:order-1">
-            {/* Smooth Rounded Terminal Frame */}
-            <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0B0F19] p-4 sm:p-6 md:p-8 font-mono text-xs transition-all hover:shadow-emerald-500/10">
-              {/* Window Bar */}
-              <div className="flex items-center justify-between pb-4 sm:pb-6 mb-4 sm:mb-6 border-b border-slate-800/80">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                </div>
-                <span className="text-slate-400 font-bold text-[10px] sm:text-[11px] tracking-wide truncate">
-                  Live Container Console (WebSocket)
-                </span>
-                <div className="flex items-center space-x-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[10px] text-emerald-400 font-bold hidden sm:inline">Streaming</span>
-                </div>
-              </div>
-
-              {/* Streaming Output */}
-              <div className="space-y-2 text-slate-300 leading-relaxed font-mono text-[11px] sm:text-xs overflow-x-auto">
-                <p><span className="text-slate-500">[12:00:01]</span> <span className="text-blue-400">[INIT]</span> Initializing isolated Docker container sandbox...</p>
-                <p><span className="text-slate-500">[12:00:02]</span> <span className="text-blue-400">[PORT]</span> Container bound to internal port 3000</p>
-                <p><span className="text-slate-500">[12:00:03]</span> <span className="text-emerald-400">[READY]</span> Next.js 16 production server initialized</p>
-                <p><span className="text-slate-500">[12:00:04]</span> <span className="text-purple-400">[CERT]</span> Let's Encrypt TLS certificate active</p>
-                <p><span className="text-slate-500">[12:00:05]</span> <span className="text-emerald-400">[HEALTH]</span> Health check passed (200 OK, latency: 1.8ms)</p>
-                <p className="text-emerald-300 font-bold"><span className="text-slate-500">[12:00:06]</span> [SERVE] Serving traffic at coffee-shop.code-host.online</p>
-              </div>
-
-              {/* Live Metric Strip */}
-              <div className="mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-slate-800/80 grid grid-cols-3 gap-2 sm:gap-4 text-center">
-                <div className="bg-slate-900/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 border border-slate-800">
-                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">CPU</p>
-                  <p className="text-sm sm:text-base font-black text-blue-400 mt-1">14%</p>
-                </div>
-                <div className="bg-slate-900/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 border border-slate-800">
-                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">RAM</p>
-                  <p className="text-sm sm:text-base font-black text-purple-400 mt-1 truncate">86MB / 512MB</p>
-                </div>
-                <div className="bg-slate-900/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 border border-slate-800">
-                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ping</p>
-                  <p className="text-sm sm:text-base font-black text-emerald-400 mt-1">3 ms</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-5 space-y-4 sm:space-y-6 order-1 lg:order-2">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[11px] font-black uppercase tracking-widest">
-              <Terminal size={13} className="text-emerald-600" />
-              <span>Real-Time Observability</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-              Inspect live stdout & stderr without touching SSH.
-            </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
-              Traditional VPS setups force you to configure SSH keys, open security groups, and remember complicated commands like <code className="text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded text-xs font-mono">journalctl -u app -f</code>. CodeHost streams real-time stdout logs right into your browser with zero latency.
-            </p>
-            <div className="space-y-2.5 sm:space-y-3 pt-2">
-              {[
-                "Instant log search, level filtering, and crash highlights",
-                "One-click Restart, Pause, and Rebuild buttons",
-                "Automated memory leak and crash loop detection alerts"
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-3">
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check size={12} className="stroke-[3]" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+              <div className="lg:col-span-7 order-2 lg:order-1">
+                <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0B0F19] p-4 sm:p-6 md:p-8 font-mono text-xs transition-all hover:shadow-emerald-500/10">
+                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800/80">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      <span className="ml-2 text-slate-400 text-[10px]">Live Container Console (WebSocket)</span>
+                    </div>
+                    <span className="flex items-center space-x-1.5 text-[9px] text-emerald-400 font-bold uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Streaming</span>
+                    </span>
                   </div>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
+
+                  <div className="space-y-2 text-slate-300 leading-relaxed font-mono text-[11px] sm:text-xs overflow-x-auto">
+                    <p className="text-slate-400">[12:00:01] <span className="text-blue-400">[INIT]</span> Initializing isolated Docker container sandbox...</p>
+                    <p className="text-slate-400">[12:00:02] <span className="text-emerald-400">[PORT]</span> Container bound to internal port 3000</p>
+                    <p className="text-slate-400">[12:00:03] <span className="text-cyan-400">[READY]</span> Next.js 16 production server initialized</p>
+                    <p className="text-slate-400">[12:00:04] <span className="text-purple-400">[CERT]</span> Let's Encrypt TLS certificate active</p>
+                    <p className="text-slate-400">[12:00:05] <span className="text-emerald-400">[HEALTH]</span> Health check passed (200 OK, latency: 1.8ms)</p>
+                    <p className="text-emerald-400">[12:00:06] [SERVE] Serving traffic at coffee-shop.code-host.online</p>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-800/80 grid grid-cols-3 gap-3 text-center">
+                    <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">CPU</span>
+                      <span className="text-sm font-black text-white">14%</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">RAM</span>
+                      <span className="text-sm font-black text-purple-400">86MB / 512MB</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Ping</span>
+                      <span className="text-sm font-black text-emerald-400">3 ms</span>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              </div>
+
+              <div className="lg:col-span-5 space-y-4 sm:space-y-6 order-1 lg:order-2">
+                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[11px] font-black uppercase tracking-widest">
+                  <Activity size={13} className="text-emerald-600" />
+                  <span>Real-Time Observability</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
+                  Inspect live stdout &amp; stderr without touching SSH.
+                </h3>
+                <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
+                  Traditional VPS setups force you to configure SSH keys, open security groups, and remember complicated commands. CodeHost streams real-time stdout logs right into your browser with zero latency.
+                </p>
+                <div className="space-y-2.5 sm:space-y-3 pt-2">
+                  {[
+                    "Instant log search, level filtering, and crash highlights",
+                    "One-click Restart, Pause, and Rebuild buttons",
+                    "Automated memory leak and crash loop detection alerts"
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-start space-x-3">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check size={12} className="stroke-[3]" />
+                      </div>
+                      <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* SHOWCASE SECTION: 1-Click Managed Databases & Add-ons (Text Left, Visual Right) */}
+          {/* LAYER 03: Instant Managed Databases */}
           <div id="databases" className="sticky top-28 sm:top-32 z-30 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.14)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-emerald-200 scroll-mt-28">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
@@ -1192,698 +1203,166 @@ export default function Home() {
                 </span>
                 <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">PostgreSQL 16 &amp; Redis 7</span>
               </div>
-              <span className="text-xs font-black text-slate-400">3 / 8</span>
+              <span className="text-xs font-black text-slate-400">3 / 4</span>
             </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-          <div className="lg:col-span-5 space-y-4 sm:space-y-6">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[11px] font-black uppercase tracking-widest">
-              <Database size={13} className="text-emerald-600" />
-              <span>Instant Managed Databases</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-              PostgreSQL & Redis. One-click provisioned.
-            </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
-              No need to configure complex database clusters, firewall ports, or manage database user grants. Launch dedicated PostgreSQL or Redis instances with automated daily backups, persistent NVMe storage, and direct connection string exports for your app.
-            </p>
-            <div className="space-y-3 pt-2">
-              {[
-                "1-Click connection strings ready for instant .env injection",
-                "Automated daily point-in-time snapshots with instant restore",
-                "Connection pooling and automated failover monitoring"
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-3">
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check size={12} className="stroke-[3]" />
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700">{item}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+              <div className="lg:col-span-5 space-y-4 sm:space-y-6">
+                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[11px] font-black uppercase tracking-widest">
+                  <Database size={13} className="text-emerald-600" />
+                  <span>Instant Managed Databases</span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="lg:col-span-7">
-            {/* Interactive Database Frame */}
-            <div className="relative rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0A0E17] p-6 md:p-8 text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-emerald-500/10">
-              {/* Window Header with Database Tabs */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-800">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
+                  PostgreSQL &amp; Redis. One-click provisioned.
+                </h3>
+                <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
+                  No need to configure complex database clusters, firewall ports, or manage database user grants. Launch dedicated PostgreSQL or Redis instances with automated daily backups, persistent NVMe storage, and direct connection string exports.
+                </p>
+                <div className="space-y-2.5 sm:space-y-3 pt-2">
+                  {[
+                    "1-Click connection strings ready for instant .env injection",
+                    "Automated daily point-in-time snapshots with instant restore",
+                    "Connection pooling and automated failover monitoring"
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-start space-x-3">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check size={12} className="stroke-[3]" />
+                      </div>
+                      <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
+                    </div>
+                  ))}
                 </div>
-                {/* Switch Tabs */}
-                <div className="flex bg-slate-900/90 p-1 rounded-xl border border-slate-700/60">
-                  <button
-                    onClick={() => setActiveDbTab('postgres')}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
-                      activeDbTab === 'postgres' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    PostgreSQL 16
-                  </button>
-                  <button
-                    onClick={() => setActiveDbTab('redis')}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
-                      activeDbTab === 'redis' ? 'bg-red-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Redis 7 Cache
-                  </button>
-                </div>
-                <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
-                  TLS Encrypted
-                </span>
               </div>
 
-              {activeDbTab === 'postgres' ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                      Production Connection URI
-                    </label>
-                    <div className="flex items-center justify-between p-3.5 bg-slate-950 rounded-2xl border border-slate-800 font-mono text-xs">
-                      <span className="text-emerald-400 truncate mr-3">postgresql://codehost_prod:••••••••@db.code-host.online:5432/main</span>
-                      <button
-                        onClick={() => copyDbUri("postgresql://codehost_prod:p4ssw0rd@db.code-host.online:5432/main")}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors flex items-center space-x-1.5 shrink-0 cursor-pointer"
-                      >
-                        <Copy size={12} />
-                        <span className="text-[11px] font-bold">{copiedDbUri ? 'Copied!' : 'Copy'}</span>
-                      </button>
+              <div className="lg:col-span-7">
+                <div className="relative rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0A0E17] p-6 md:p-8 text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-emerald-500/10">
+                  <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                      <div className="w-3 h-3 rounded-full bg-emerald-500" />
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-mono font-bold">PostgreSQL 16</span>
+                      <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-[10px] font-mono font-bold">Redis 7 Cache</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2.5 py-1 rounded-md">SSL Encrypted</span>
                   </div>
 
-                  {/* Database Metrics */}
-                  <div className="grid grid-cols-3 gap-3 pt-2">
-                    <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[10px] font-mono text-slate-400">Total Tables</p>
-                      <p className="text-lg font-black text-white mt-1">24</p>
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+                      <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block mb-1">Production Connection URI</span>
+                      <div className="flex items-center justify-between text-xs font-mono text-emerald-400">
+                        <span className="truncate">postgres://prod_user:••••••••@db.code-host.online:5432/main</span>
+                        <span className="ml-2 px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">Copy</span>
+                      </div>
                     </div>
-                    <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[10px] font-mono text-slate-400">Storage Size</p>
-                      <p className="text-lg font-black text-blue-400 mt-1">18.4 MB</p>
-                    </div>
-                    <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[10px] font-mono text-slate-400">Daily Backups</p>
-                      <p className="text-lg font-black text-emerald-400 mt-1">Active</p>
-                    </div>
-                  </div>
 
-                  {/* Simulated SQL query console */}
-                  <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 font-mono text-xs space-y-1">
-                    <p className="text-slate-500"># Query Performance (1.2ms latency)</p>
-                    <p className="text-blue-300">SELECT id, email, created_at FROM users LIMIT 3;</p>
-                    <p className="text-slate-400 text-[11px] pt-1">1 | alex@example.com | 2026-09-18 10:14:02</p>
-                    <p className="text-slate-400 text-[11px]">2 | sarah@dev.org    | 2026-09-18 11:32:45</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800/80 text-center">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Total Tables</span>
+                        <span className="text-xl font-black text-white">24</span>
+                      </div>
+                      <div className="p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800/80 text-center">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Storage Used</span>
+                        <span className="text-xl font-black text-blue-400">18.4 MB</span>
+                      </div>
+                      <div className="p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800/80 text-center">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Daily Backups</span>
+                        <span className="text-xl font-black text-emerald-400">Active</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                      Redis Connection URI
-                    </label>
-                    <div className="flex items-center justify-between p-3.5 bg-slate-950 rounded-2xl border border-slate-800 font-mono text-xs">
-                      <span className="text-red-400 truncate mr-3">rediss://default:••••••••@cache.code-host.online:6379</span>
-                      <button
-                        onClick={() => copyDbUri("rediss://default:p4ssw0rd@cache.code-host.online:6379")}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors flex items-center space-x-1.5 shrink-0 cursor-pointer"
-                      >
-                        <Copy size={12} />
-                        <span className="text-[11px] font-bold">{copiedDbUri ? 'Copied!' : 'Copy'}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Redis Metrics */}
-                  <div className="grid grid-cols-3 gap-3 pt-2">
-                    <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[10px] font-mono text-slate-400">Avg Latency</p>
-                      <p className="text-lg font-black text-emerald-400 mt-1">0.4 ms</p>
-                    </div>
-                    <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[10px] font-mono text-slate-400">Cached Keys</p>
-                      <p className="text-lg font-black text-white mt-1">1,420</p>
-                    </div>
-                    <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[10px] font-mono text-slate-400">Cache Hit Rate</p>
-                      <p className="text-lg font-black text-purple-400 mt-1">99.4%</p>
-                    </div>
-                  </div>
-
-                  {/* Redis CLI Simulation */}
-                  <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 font-mono text-xs space-y-1">
-                    <p className="text-slate-500"># In-Memory Cache Stream</p>
-                    <p className="text-red-300">&gt; PING</p>
-                    <p className="text-emerald-400">&lt; PONG (0.2ms)</p>
-                    <p className="text-red-300">&gt; GET session:usr_99</p>
-                    <p className="text-slate-400 text-[11px]">&lt; {`{"role":"developer","auth":true}`}</p>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* SHOWCASE SECTION: Scale-to-Zero & Intelligent Auto-Sleep (Visual Left, Text Right) */}
-          <div id="scaletozero" className="sticky top-32 sm:top-36 z-40 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.16)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-cyan-200 scroll-mt-32">
+          {/* LAYER 04: Native MCP AI Agent Deployment */}
+          <div id="mcp" className="sticky top-32 sm:top-36 z-40 bg-white rounded-3xl sm:rounded-[2.5rem] border-2 border-blue-500/40 shadow-[0_-12px_40px_rgba(37,99,235,0.15)] p-6 sm:p-10 md:p-12 mb-12 sm:mb-16 transition-all duration-300 hover:border-blue-500">
             <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
-                <span className="px-3 py-1 rounded-full bg-cyan-50 text-cyan-600 text-[11px] font-black uppercase tracking-widest border border-cyan-100">
-                  Layer 04 &middot; Scale-to-Zero Engine
+                <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest shadow-xs">
+                  Layer 04 &middot; MCP AI Agent Engine
                 </span>
-                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">280ms Warm-Up</span>
+                <span className="text-xs font-mono text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">New Release</span>
               </div>
-              <span className="text-xs font-black text-slate-400">4 / 8</span>
+              <span className="text-xs font-black text-slate-400">4 / 4</span>
             </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-          <div className="lg:col-span-7 order-2 lg:order-1">
-            {/* Smooth Visual Simulator Frame */}
-            <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0A0F1D] p-4 sm:p-6 md:p-8 text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-cyan-500/10">
-              {/* Window Bar */}
-              <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+              <div className="lg:col-span-5 space-y-4 sm:space-y-6">
+                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-purple-50 border border-purple-100 text-purple-700 text-[11px] font-black uppercase tracking-widest">
+                  <Sparkles size={13} className="text-purple-600" />
+                  <span>Model Context Protocol Host</span>
                 </div>
-                <div className="px-3.5 py-1 rounded-full bg-slate-800 text-[10px] font-mono font-bold text-slate-300 flex items-center space-x-2 border border-slate-700">
-                  <Moon size={12} className="text-amber-400" />
-                  <span>Engine: Scale-to-Zero Daemon</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`w-2 h-2 rounded-full ${
-                    wakeSimState === 'sleeping' ? 'bg-amber-400' :
-                    wakeSimState === 'waking' ? 'bg-blue-400 animate-ping' : 'bg-emerald-400 animate-pulse'
-                  }`} />
-                  <span className={`text-[10px] font-black uppercase tracking-wider ${
-                    wakeSimState === 'sleeping' ? 'text-amber-400' :
-                    wakeSimState === 'waking' ? 'text-blue-400' : 'text-emerald-400'
-                  }`}>
-                    {wakeSimState === 'sleeping' ? 'Auto-Sleeping' : wakeSimState === 'waking' ? 'Waking (280ms)' : 'Serving (200 OK)'}
-                  </span>
-                </div>
-              </div>
-
-              {/* State Progression Card */}
-              <div className="space-y-4">
-                <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-black text-slate-200">Interactive Container State</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {wakeSimState === 'sleeping' && 'Container is idle. Compute paused. 0 credits being burned.'}
-                      {wakeSimState === 'waking' && 'Incoming HTTP GET / request detected! Spawning container in isolated cgroup...'}
-                      {wakeSimState === 'active' && 'Container warm & serving traffic! Sub-millisecond proxy response delivered.'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={runWakeSim}
-                    disabled={wakeSimState !== 'sleeping'}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center space-x-2 shrink-0 cursor-pointer shadow-lg shadow-blue-600/30"
-                  >
-                    <Zap size={14} />
-                    <span>{wakeSimState === 'sleeping' ? 'Send Test Request' : 'Serving Traffic'}</span>
-                  </button>
-                </div>
-
-                {/* State Progress Indicators */}
-                <div className="grid grid-cols-3 gap-3 text-center font-mono text-xs">
-                  <div className={`p-3.5 rounded-2xl border transition-all ${
-                    wakeSimState === 'sleeping' ? 'bg-amber-500/10 border-amber-500/40 text-amber-300' : 'bg-slate-900/40 border-slate-800 text-slate-500'
-                  }`}>
-                    <p className="text-[10px] uppercase tracking-widest font-bold">State 1</p>
-                    <p className="font-black text-sm mt-1">Idle Sleep</p>
-                    <p className="text-[10px] text-slate-400 mt-1">0 Credits / hr</p>
-                  </div>
-                  <div className={`p-3.5 rounded-2xl border transition-all ${
-                    wakeSimState === 'waking' ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-slate-900/40 border-slate-800 text-slate-500'
-                  }`}>
-                    <p className="text-[10px] uppercase tracking-widest font-bold">State 2</p>
-                    <p className="font-black text-sm mt-1">280ms Wake</p>
-                    <p className="text-[10px] text-slate-400 mt-1">Proxy Buffering</p>
-                  </div>
-                  <div className={`p-3.5 rounded-2xl border transition-all ${
-                    wakeSimState === 'active' ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300' : 'bg-slate-900/40 border-slate-800 text-slate-500'
-                  }`}>
-                    <p className="text-[10px] uppercase tracking-widest font-bold">State 3</p>
-                    <p className="font-black text-sm mt-1">Live HTTP 200</p>
-                    <p className="text-[10px] text-slate-400 mt-1">Response OK</p>
-                  </div>
-                </div>
-
-                {/* Telemetry preview */}
-                <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 font-mono text-[11px] flex justify-between text-slate-400">
-                  <span>RAM: {wakeSimState === 'active' ? '86 MB' : '0 MB (Paused)'}</span>
-                  <span>CPU: {wakeSimState === 'active' ? '18%' : '0%'}</span>
-                  <span>Savings: <strong className="text-emerald-400">100% idle reduction</strong></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-5 space-y-6 order-1 lg:order-2">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-cyan-50 border border-cyan-100 text-cyan-600 text-[11px] font-black uppercase tracking-widest">
-              <Zap size={13} className="text-cyan-600" />
-              <span>Scale-to-Zero Engine</span>
-            </div>
-            <h3 className="text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-              Pay ₹0 when you sleep. Wakes up in 280ms.
-            </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-base">
-              Why let your credits burn at 3 AM when nobody is visiting your app? CodeHost detects inactivity, safely puts the container compute to sleep, and instantly wakes it on the first incoming request with zero dropped packets.
-            </p>
-            <div className="space-y-3 pt-2">
-              {[
-                "Zero credit burn during periods of zero traffic",
-                "Sub-300ms instant wake via edge reverse proxy buffering",
-                "Seamless transparent restart without dropping visitor requests"
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-3">
-                  <div className="w-5 h-5 rounded-full bg-cyan-500/10 text-cyan-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check size={12} className="stroke-[3]" />
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* SHOWCASE SECTION 3: Text Left, Smooth Visual Right (Hardened Sandboxes) */}
-          <div className="sticky top-36 sm:top-40 z-50 bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.18)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-indigo-200">
-            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
-              <div className="flex items-center space-x-2.5">
-                <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[11px] font-black uppercase tracking-widest border border-indigo-100">
-                  Layer 05 &middot; Hardened Sandboxes
-                </span>
-                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">cgroups v2 &amp; Dedicated NVMe</span>
-              </div>
-              <span className="text-xs font-black text-slate-400">5 / 8</span>
-            </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <div className="lg:col-span-5 space-y-6">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-[11px] font-black uppercase tracking-widest">
-              <Shield size={13} className="text-indigo-600" />
-              <span>Guaranteed Container Isolation</span>
-            </div>
-            <h3 className="text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-              Dedicated resources. Zero noisy neighbors.
-            </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-base">
-              Shared web hosts pack thousands of users onto a single OS, causing one user's runaway script to crash everyone else. On CodeHost, every project runs in an isolated OCI container sandbox with enforced cgroups, guaranteed CPU pinning, and private persistent storage.
-            </p>
-            <div className="space-y-3 pt-2">
-              {[
-                "Strict RAM allocation: from 128MB to 4GB guaranteed",
-                "Persistent isolated data volumes mounted per container",
-                "Automatic DDoS and burst traffic mitigation at the edge"
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-3">
-                  <div className="w-5 h-5 rounded-full bg-indigo-500/10 text-indigo-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check size={12} className="stroke-[3]" />
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="lg:col-span-7">
-            {/* Smooth Rounded Metric Card Frame */}
-            <div className="relative rounded-[2.5rem] border border-slate-200/80 shadow-2xl overflow-hidden bg-white p-6 md:p-10 transition-all hover:shadow-indigo-500/10">
-              <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <Server size={20} />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-slate-900 text-base">Cluster Node: OVH-Cloud-01</h4>
-                    <p className="text-xs text-slate-400 font-medium">Sandboxed Kernel &middot; cgroups v2 enabled</p>
-                  </div>
-                </div>
-                <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-200">
-                  Optimal Health
-                </span>
-              </div>
-
-              {/* Resource Bars */}
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between text-xs font-bold mb-2">
-                    <span className="text-slate-700 flex items-center gap-1.5"><Cpu size={14} className="text-blue-600" /> CPU Core Utilization</span>
-                    <span className="text-slate-900 font-black">22% of 2 vCPUs</span>
-                  </div>
-                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full" style={{ width: '22%' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-bold mb-2">
-                    <span className="text-slate-700 flex items-center gap-1.5"><HardDrive size={14} className="text-purple-600" /> Dedicated Memory</span>
-                    <span className="text-slate-900 font-black">124 MB / 512 MB</span>
-                  </div>
-                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full" style={{ width: '24%' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-bold mb-2">
-                    <span className="text-slate-700 flex items-center gap-1.5"><Layers size={14} className="text-emerald-600" /> NVMe Persistent Storage</span>
-                    <span className="text-slate-900 font-black">1.1 GB / 5.0 GB</span>
-                  </div>
-                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full" style={{ width: '22%' }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                <span className="font-medium">Firewall Status: <strong className="text-slate-900">Protected</strong></span>
-                <span className="font-medium">Rate Limiting: <strong className="text-slate-900">Active</strong></span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* SHOWCASE SECTION: Custom Domains & Automated Zero-Config SSL (Text Left, Visual Right) */}
-          <div id="domains" className="sticky top-40 sm:top-44 z-[60] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.20)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-blue-200 scroll-mt-40">
-            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
-              <div className="flex items-center space-x-2.5">
-                <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[11px] font-black uppercase tracking-widest border border-blue-100">
-                  Layer 06 &middot; Custom Domains &amp; Free TLS
-                </span>
-                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Let's Encrypt TLS 1.3</span>
-              </div>
-              <span className="text-xs font-black text-slate-400">6 / 8</span>
-            </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-          <div className="lg:col-span-5 space-y-4 sm:space-y-6">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest">
-              <Globe size={13} className="text-blue-600" />
-              <span>Custom Domains & Free SSL</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-              Your own domain. Zero SSL headache.
-            </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
-              Connect your apex domain or subdomain (<code className="text-blue-600 font-mono bg-blue-50 px-1.5 py-0.5 rounded text-xs">app.yourcompany.com</code>) with a single DNS A record. CodeHost automatically provisions and renews Let's Encrypt TLS certificates with zero manual Certbot commands.
-            </p>
-            <div className="space-y-3 pt-2">
-              {[
-                "Point single A record to 51.79.249.143 — verified in seconds",
-                "Automated Let's Encrypt TLS renewal with zero downtime",
-                "Automatic HTTP to HTTPS redirect with HSTS security headers"
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-3">
-                  <div className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check size={12} className="stroke-[3]" />
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="lg:col-span-7">
-            {/* Smooth Rounded DNS Frame */}
-            <div className="relative rounded-[2.5rem] border border-slate-200/80 shadow-2xl overflow-hidden bg-white p-6 md:p-8 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-blue-500/10">
-              <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-100">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Globe size={20} />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-slate-900 text-base">DNS Verification Center</h4>
-                    <p className="text-xs text-slate-400 font-medium">Automatic TLS Issuance Active</p>
-                  </div>
-                </div>
-                <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-200 flex items-center space-x-1">
-                  <Check size={12} />
-                  <span>Verified</span>
-                </span>
-              </div>
-
-              {/* Interactive Domain Input Simulator */}
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">
-                    Target Domain
-                  </label>
-                  <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 font-mono text-sm font-bold text-slate-800">
-                    <span className="text-slate-400 mr-1">https://</span>
-                    <input
-                      type="text"
-                      value={customDomainInput}
-                      onChange={(e) => setCustomDomainInput(e.target.value)}
-                      className="bg-transparent border-none outline-none text-blue-600 flex-1 font-bold"
-                      placeholder="app.mybrand.com"
-                    />
-                  </div>
-                </div>
-
-                {/* DNS Record Card */}
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3 font-mono text-xs">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans">Required DNS Record:</p>
-                  <div className="grid grid-cols-4 gap-2 bg-white p-3 rounded-xl border border-slate-200/80 text-center">
-                    <div>
-                      <span className="text-[9px] text-slate-400 uppercase block">Type</span>
-                      <span className="font-black text-slate-900">A</span>
+                <h3 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
+                  Deploy &amp; Host MCP Servers for Claude &amp; Cursor.
+                </h3>
+                <p className="text-slate-500 font-medium leading-relaxed text-sm sm:text-base">
+                  Turn your APIs and Python/TypeScript scripts into autonomous Model Context Protocol agents. Connect Claude Desktop, Cursor, and Windsurf directly to your CodeHost cloud containers with instant SSL SSE and stdio transport.
+                </p>
+                <div className="space-y-2.5 sm:space-y-3 pt-2">
+                  {[
+                    "1-Click MCP SSE endpoint generation (https://*.code-host.online/sse)",
+                    "Direct 1-click config snippet for Claude Desktop & Cursor",
+                    "Secure bearer authentication protects AI tool invocations"
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-start space-x-3">
+                      <div className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check size={12} className="stroke-[3]" />
+                      </div>
+                      <span className="text-xs sm:text-sm font-semibold text-slate-700">{item}</span>
                     </div>
-                    <div>
-                      <span className="text-[9px] text-slate-400 uppercase block">Host</span>
-                      <span className="font-black text-slate-900">@ / app</span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] text-slate-400 uppercase block">Points To</span>
-                      <span className="font-black text-blue-600">51.79.249.143</span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] text-slate-400 uppercase block">TTL</span>
-                      <span className="font-black text-slate-900">Auto (300)</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Certificate Details */}
-                <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/60 flex items-center justify-between text-xs">
-                  <div className="flex items-center space-x-2.5">
-                    <Lock size={15} className="text-emerald-600" />
-                    <div>
-                      <p className="font-bold text-emerald-900">Let's Encrypt TLS Certificate</p>
-                      <p className="text-[10px] text-emerald-600">TLS 1.3 &middot; Auto-renewal enabled &middot; A+ rating</p>
-                    </div>
-                  </div>
-                  <span className="font-mono text-[11px] font-bold text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
-                    200 OK
-                  </span>
+                  ))}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* SHOWCASE SECTION: "Powered by CodeHost" Viral Growth & White-Labeling (Visual Left, Text Right) */}
-          <div className="sticky top-44 sm:top-48 z-[70] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.22)] p-6 sm:p-10 md:p-12 mb-20 sm:mb-28 transition-all duration-300 hover:border-purple-200">
-            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
-              <div className="flex items-center space-x-2.5">
-                <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-[11px] font-black uppercase tracking-widest border border-purple-100">
-                  Layer 07 &middot; White-Labeling &amp; Discovery
-                </span>
-                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Organic Referral Loops</span>
-              </div>
-              <span className="text-xs font-black text-slate-400">7 / 8</span>
-            </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <div className="lg:col-span-7 order-2 lg:order-1">
-            {/* Smooth Mockup Frame */}
-            <div className="relative rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden bg-slate-900 p-6 md:p-8 text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-indigo-500/10">
-              {/* Window Bar */}
-              <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-800">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                </div>
-                <span className="text-slate-400 font-mono text-xs">portfolio.code-host.online</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-800 px-2 py-1 rounded">
-                  Demo App
-                </span>
-              </div>
-
-              {/* Mock App Screen with Floating Viral Badge */}
-              <div className="relative bg-slate-950 rounded-2xl p-8 border border-slate-800 min-h-[260px] flex flex-col justify-between">
-                <div className="space-y-2">
-                  <div className="h-4 w-1/3 bg-slate-800 rounded" />
-                  <div className="h-3 w-2/3 bg-slate-800/60 rounded" />
-                  <div className="h-3 w-1/2 bg-slate-800/40 rounded" />
-                </div>
-
-                {/* Floating Badge Indicator */}
-                <div className="flex items-center justify-end">
-                  {!whiteLabelActive ? (
-                    <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-[#0F172A] border border-slate-700 shadow-xl text-xs font-bold text-white transition-all hover:scale-105">
-                      <Zap size={12} className="text-blue-400" />
-                      <span className="text-[11px]">Powered by <strong className="text-blue-400">CodeHost</strong></span>
+              <div className="lg:col-span-7">
+                <div className="relative rounded-2xl sm:rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden bg-[#0A0F1D] p-4 sm:p-6 md:p-8 text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-blue-500/20">
+                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      <span className="ml-2 font-mono text-slate-400 text-[10px]">claude_desktop_config.json</span>
                     </div>
-                  ) : (
-                    <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
-                      ✓ White-label active: Badge removed
+                    <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-500/20">
+                      Claude &bull; Cursor &bull; Windsurf
                     </span>
-                  )}
-                </div>
-              </div>
-
-              {/* White-Label Toggle Control */}
-              <div className="mt-6 pt-5 border-t border-slate-800 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-black text-white">White-Label Toggle</p>
-                  <p className="text-[11px] text-slate-400">Available on Pro and Business plans for client work</p>
-                </div>
-                <button
-                  onClick={() => setWhiteLabelActive(!whiteLabelActive)}
-                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                    whiteLabelActive
-                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  {whiteLabelActive ? 'White-Label ON' : 'Toggle White-Label'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-5 space-y-6 order-1 lg:order-2">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-purple-50 border border-purple-100 text-purple-600 text-[11px] font-black uppercase tracking-widest">
-              <Sparkles size={13} className="text-purple-600" />
-              <span>Organic Viral Growth</span>
-            </div>
-            <h3 className="text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-              Share your apps. Fuel viral discovery.
-            </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-base">
-              Free projects include a subtle, beautiful "Powered by CodeHost" badge that sparks curiosity among other developers and student hackathon teams. Building for a freelance client? Pro tiers let you remove it with a single toggle.
-            </p>
-            <div className="space-y-3 pt-2">
-              {[
-                "Subtle, unobtrusive floating pill that respects your design",
-                "1-Click white-labeling toggle for commercial client handoffs",
-                "Referral credits earned when peers sign up through your live apps"
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-3">
-                  <div className="w-5 h-5 rounded-full bg-purple-500/10 text-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check size={12} className="stroke-[3]" />
                   </div>
-                  <span className="text-sm font-semibold text-slate-700">{item}</span>
+
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 font-mono text-xs text-slate-200 overflow-x-auto leading-relaxed shadow-inner">
+                    <pre className="text-slate-300">
+{`{
+  "mcpServers": {
+    "codehost-agent": {
+      "url": "https://my-mcp.code-host.online/sse",
+      "transport": "sse",
+      "headers": {
+        "Authorization": "Bearer ch_live_sec_89f02a..."
+      }
+    }
+  }
+}`}
+                    </pre>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                    <span className="flex items-center space-x-1.5 text-emerald-400 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Ready for AI Agent Tool Calling</span>
+                    </span>
+                    <Link href="/docs#mcp" className="text-blue-400 hover:text-blue-300 font-bold underline">
+                      View MCP Docs &rarr;
+                    </Link>
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* SHOWCASE SECTION 4: Smooth Visual Left, Text Right (Prepaid Credits & Custom Amounts) */}
-          <div className="sticky top-48 sm:top-52 z-[80] bg-white rounded-3xl sm:rounded-[2.5rem] border border-slate-200/90 shadow-[0_-12px_40px_rgba(15,23,42,0.24)] p-6 sm:p-10 md:p-12 mb-12 sm:mb-16 transition-all duration-300 hover:border-purple-200">
-            <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100">
-              <div className="flex items-center space-x-2.5">
-                <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-[11px] font-black uppercase tracking-widest border border-purple-100">
-                  Layer 08 &middot; Prepaid Credits Wallet
-                </span>
-                <span className="text-xs font-mono text-slate-400 font-bold hidden sm:inline">Transparent Prepaid Billing</span>
-              </div>
-              <span className="text-xs font-black text-slate-400">8 / 8</span>
-            </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <div className="lg:col-span-7 order-2 lg:order-1">
-            {/* Smooth Rounded Wallet Frame */}
-            <div className="relative rounded-[2.5rem] border border-blue-200/80 shadow-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 p-6 md:p-10 text-white transition-all hover:shadow-blue-500/10">
-              <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-800">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Prepaid Credits Wallet</p>
-                  <h4 className="text-3xl font-black text-white">Top Up Any Amount</h4>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                  <Sliders size={22} />
-                </div>
-              </div>
-
-              {/* Dynamic Calculator Simulation */}
-              <div className="bg-slate-800/60 rounded-2xl p-6 border border-slate-700/60 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-slate-300">Custom Credit Amount:</span>
-                  <span className="text-xl font-black text-blue-400">{calcCredits} Credits</span>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="1000"
-                  step="10"
-                  value={calcCredits}
-                  onChange={(e) => setCalcCredits(Number(e.target.value))}
-                  className="w-full accent-blue-500 cursor-pointer mb-4"
-                />
-                <div className="flex items-baseline justify-between pt-2 border-t border-slate-700/60 text-xs">
-                  <span className="text-slate-400 font-medium">Estimated Total Price:</span>
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-white">₹{Math.round(calcCredits * 1.60)}</span>
-                    <span className="text-xs text-slate-400 ml-2">(${ (calcCredits * 0.02).toFixed(2) })</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-xs font-medium text-slate-300">
-                <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-700/40">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rate</span>
-                  <span className="font-bold text-white">₹1.60 per credit</span>
-                </div>
-                <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-700/40">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Minimum</span>
-                  <span className="font-bold text-white">Just 10 credits (₹16)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-5 space-y-6 order-1 lg:order-2">
-            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-purple-50 border border-purple-100 text-purple-600 text-[11px] font-black uppercase tracking-widest">
-              <Sparkles size={13} className="text-purple-600" />
-              <span>Transparent & Predictable</span>
-            </div>
-            <h3 className="text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight leading-[1.1]">
-              Buy any credit amount. Never fear surprise cloud bills.
-            </h3>
-            <p className="text-slate-500 font-medium leading-relaxed text-base">
-              Tired of getting surprise $400 bills from hyperscalers because a test container kept running? CodeHost uses a 100% transparent prepaid credit system. Buy preset bundles or specify any exact custom amount you want.
-            </p>
-            <div className="space-y-3 pt-2">
-              {[
-                "Buy custom amounts: top up 25, 100, 500, or any number of credits",
-                "Zero hidden fees: credits only burn while your container is active",
-                "Safe auto-pause: containers cleanly pause if credits run low, never lose data"
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-start space-x-3">
-                  <div className="w-5 h-5 rounded-full bg-purple-500/10 text-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check size={12} className="stroke-[3]" />
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-              </div>
       </section>
 
-{/* Supported Stacks & Technologies - Infinite 2-Row Dual Marquee */}
+      {/* Supported Stacks & Technologies - Infinite 2-Row Dual Marquee */}
       <section id="stacks" className="py-20 sm:py-28 max-w-7xl mx-auto border-t border-slate-100 scroll-mt-20 overflow-hidden">
         <div className="text-center mb-10 sm:mb-14 px-4 sm:px-6">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-black uppercase tracking-widest border border-slate-200">
@@ -2011,258 +1490,184 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Comparison Matrix - High-Impact Modern Redesign */}
+      {/* Comparative Breakdown - Modern Visual Cards (Replaces rigid table) */}
       <section className="py-20 sm:py-28 md:py-32 px-4 sm:px-6 max-w-7xl mx-auto border-t border-slate-100">
-        <div className="text-center mb-12 sm:mb-16">
+        <div className="text-center mb-14 sm:mb-20">
           <span className="text-[11px] font-black uppercase tracking-[0.25em] text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
-            Benchmark Matrix
+            Market Comparison
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mt-4">
             CodeHost vs The Alternatives
           </h2>
           <p className="text-slate-500 font-medium text-sm sm:text-base max-w-2xl mx-auto mt-3 px-2">
-            See how CodeHost eliminates DevOps complexity, unpredictable billing traps, and server maintenance overhead compared to legacy cloud platforms.
+            See how CodeHost eliminates DevOps complexity, unpredictable billing traps, and server maintenance compared to traditional options.
           </p>
+        </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-6">
-            <span className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 rounded-full">
-              <span className="text-blue-600 font-black">&bull;</span>
-              <span>&lt; 30s Deploy Velocity</span>
-            </span>
-            <span className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 rounded-full">
-              <span className="text-emerald-600 font-black">&bull;</span>
-              <span>Prepaid Wallet &bull; Zero Surprise Bills</span>
-            </span>
-            <span className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 rounded-full">
-              <span className="text-purple-600 font-black">&bull;</span>
-              <span>100% Free Tier Forever</span>
-            </span>
+        {/* 4 Modern Comparative Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+          {/* Card 1: Traditional VPS */}
+          <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 flex flex-col justify-between shadow-xs hover:border-slate-300 transition-all">
+            <div>
+              <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-700 mb-5">
+                <Server size={22} />
+              </div>
+              <h3 className="text-lg font-black text-slate-900">Traditional VPS</h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">DigitalOcean, Linode, Hetzner</p>
+
+              <div className="mt-6 space-y-3.5 text-xs text-slate-600">
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span><strong>1 - 3 hours</strong> manual Linux, SSH &amp; Nginx configuration</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Terminal &amp; bash scripting mandatory for deployments</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Rigid $20+ monthly minimum &amp; surprise bandwidth traps</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Zero auto-sleep (billed 24/7 even when idle)</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Manual Certbot renewal headaches &amp; DNS maintenance</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-8 pt-4 border-t border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Verdict: High Maintenance
+            </div>
           </div>
-        </div>
 
-        {/* Mobile Swipe Notice */}
-        <div className="flex items-center justify-center space-x-1.5 text-xs font-bold text-blue-600 md:hidden mb-4 bg-blue-50/80 py-1.5 px-3 rounded-full w-fit mx-auto border border-blue-100">
-          <span>&larr; Swipe horizontally to compare &rarr;</span>
-        </div>
+          {/* Card 2: Legacy PaaS */}
+          <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 flex flex-col justify-between shadow-xs hover:border-slate-300 transition-all">
+            <div>
+              <div className="w-11 h-11 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 mb-5">
+                <Zap size={22} />
+              </div>
+              <h3 className="text-lg font-black text-slate-900">Legacy PaaS</h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Heroku, Render</p>
 
-        {/* Elevated Comparison Matrix Container */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden">
-          <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full text-left border-collapse min-w-[760px]">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-black uppercase tracking-wider text-slate-500">
-                  <th className="p-5 pl-6 sm:pl-8 w-1/4">Feature &bull; Capability</th>
-                  <th className="p-5 w-1/4 text-blue-600 bg-blue-50/80 border-x-2 border-t-2 border-blue-500/80 rounded-t-2xl relative shadow-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-black text-blue-600">CodeHost</span>
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-600 text-white tracking-wider">
-                        Recommended
-                      </span>
-                    </div>
-                  </th>
-                  <th className="p-5 w-1/6">Traditional VPS</th>
-                  <th className="p-5 w-1/6">Heroku / Render</th>
-                  <th className="p-5 pr-6 sm:pr-8 w-1/6">AWS / GCP</th>
-                </tr>
-              </thead>
-              <tbody className="text-xs sm:text-sm font-medium text-slate-600 divide-y divide-slate-100">
-                {/* Row 1 */}
-                <tr className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
-                    <div>Setup &amp; First Deploy</div>
-                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">Time from local code to live URL</div>
-                  </td>
-                  <td className="p-5 font-bold text-blue-700 bg-blue-50/50 border-x-2 border-blue-500/80">
-                    <div className="flex items-center space-x-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="text-sm font-black text-blue-700">&lt; 30 Seconds</span>
-                    </div>
-                    <div className="text-[11px] font-medium text-blue-600/80 mt-0.5">1-Click Git push or ZIP upload</div>
-                  </td>
-                  <td className="p-5">
-                    <span className="font-semibold text-slate-700">1 - 3 Hours</span>
-                    <div className="text-[10px] text-slate-400">Manual SSH, Nginx, Linux setup</div>
-                  </td>
-                  <td className="p-5">
-                    <span className="font-semibold text-slate-700">2 - 5 Minutes</span>
-                    <div className="text-[10px] text-slate-400">CLI toolbelt &amp; Procfile needed</div>
-                  </td>
-                  <td className="p-5 pr-6 sm:pr-8">
-                    <span className="font-semibold text-rose-500">Hours / Days</span>
-                    <div className="text-[10px] text-slate-400">IAM policies, VPCs, Security groups</div>
-                  </td>
-                </tr>
+              <div className="mt-6 space-y-3.5 text-xs text-slate-600">
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Painful <strong>20 - 45s cold starts</strong> on container sleep wake</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Expensive $7 - $25/mo per active dyno</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Permanent student free tiers discontinued</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>CLI toolbelt &amp; Procfiles required for basic deploys</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>No native Cursor or Claude MCP server integration</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-8 pt-4 border-t border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Verdict: Expensive Scaling
+            </div>
+          </div>
 
-                {/* Row 2 */}
-                <tr className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
-                    <div>Terminal / SSH Required</div>
-                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">DevOps command-line knowledge</div>
-                  </td>
-                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-blue-500/80">
-                    <div className="flex items-center space-x-1.5">
-                      <CheckCircle2 size={16} className="text-emerald-600" />
-                      <span className="font-black text-emerald-700">Never Required</span>
-                    </div>
-                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">Intuitive web console &amp; live logs</div>
-                  </td>
-                  <td className="p-5 text-rose-500 font-bold">
-                    <span>Always Mandatory</span>
-                    <div className="text-[10px] font-normal text-slate-400">Must configure bash, firewalls, certbot</div>
-                  </td>
-                  <td className="p-5">
-                    <span className="font-semibold text-slate-700">CLI Required</span>
-                    <div className="text-[10px] text-slate-400">Terminal tooling required for deploys</div>
-                  </td>
-                  <td className="p-5 pr-6 sm:pr-8 text-rose-500 font-bold">
-                    <span>Complex CLI / IAM</span>
-                    <div className="text-[10px] font-normal text-slate-400">AWS CLI, keys, and bastion tunnels</div>
-                  </td>
-                </tr>
+          {/* Card 3: Hyperscalers */}
+          <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 flex flex-col justify-between shadow-xs hover:border-slate-300 transition-all">
+            <div>
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 mb-5">
+                <Cloud size={22} />
+              </div>
+              <h3 className="text-lg font-black text-slate-900">Hyperscalers</h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">AWS, GCP, Azure</p>
 
-                {/* Row 3 */}
-                <tr className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
-                    <div>Surprise Bill Protection</div>
-                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">Billing risk &amp; credit card traps</div>
-                  </td>
-                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-blue-500/80">
-                    <div className="flex items-center space-x-1.5">
-                      <CheckCircle2 size={16} className="text-emerald-600" />
-                      <span className="font-black text-emerald-700">Zero Risk (Prepaid Credits)</span>
-                    </div>
-                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">Containers pause safely if credits run low</div>
-                  </td>
-                  <td className="p-5">
-                    <span className="font-semibold text-slate-700">Fixed + Overage</span>
-                    <div className="text-[10px] text-slate-400">Bandwidth overage penalties</div>
-                  </td>
-                  <td className="p-5">
-                    <span className="font-semibold text-slate-700">Expensive Monthly</span>
-                    <div className="text-[10px] text-slate-400">$7 - $25/mo per container</div>
-                  </td>
-                  <td className="p-5 pr-6 sm:pr-8 text-rose-500 font-bold">
-                    <span>Extreme Risk</span>
-                    <div className="text-[10px] font-normal text-slate-400">Runaway bandwidth, NAT gateway &amp; API traps</div>
-                  </td>
-                </tr>
+              <div className="mt-6 space-y-3.5 text-xs text-slate-600">
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Labyrinth of 200+ complex, confusing services</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Complex IAM policies, VPCs, and Security Group rules</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Runaway bandwidth, NAT gateways &amp; $400 surprise bills</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Credit card auto-charge with zero safety circuit breakers</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <span className="text-rose-500 font-black text-sm leading-none mt-0.5">&times;</span>
+                  <span>Must rewrite code for proprietary Lambda/serverless APIs</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-8 pt-4 border-t border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Verdict: Enterprise Bloat
+            </div>
+          </div>
 
-                {/* Row 4 */}
-                <tr className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
-                    <div>Custom Credit Micro-Topups</div>
-                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">Buy exact compute amounts</div>
-                  </td>
-                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-blue-500/80">
-                    <div className="flex items-center space-x-1.5">
-                      <CheckCircle2 size={16} className="text-emerald-600" />
-                      <span className="font-black text-emerald-700">Yes (from ₹16)</span>
-                    </div>
-                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">Pay only for exact CPU/RAM used</div>
-                  </td>
-                  <td className="p-5 text-slate-400">
-                    <span>N/A</span>
-                    <div className="text-[10px] text-slate-400">Must pay fixed monthly minimum</div>
-                  </td>
-                  <td className="p-5 text-slate-400">
-                    <span>Fixed Tiers Only</span>
-                    <div className="text-[10px] text-slate-400">No flexible custom micro-amounts</div>
-                  </td>
-                  <td className="p-5 pr-6 sm:pr-8 text-slate-400">
-                    <span>Postpaid Auto-Charge</span>
-                    <div className="text-[10px] text-slate-400">Direct debit on credit card</div>
-                  </td>
-                </tr>
+          {/* Card 4: CodeHost (THE CROWNED WINNER) */}
+          <div className="bg-gradient-to-b from-blue-50/90 via-white to-white rounded-3xl border-2 border-blue-600 p-6 sm:p-7 flex flex-col justify-between shadow-2xl shadow-blue-500/15 relative lg:-translate-y-2 ring-4 ring-blue-500/10">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-md flex items-center space-x-1 whitespace-nowrap">
+              <Sparkles size={11} />
+              <span>Recommended Choice</span>
+            </div>
 
-                {/* Row 5 */}
-                <tr className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
-                    <div>Automated SSL &amp; Subdomains</div>
-                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">HTTPS certificate configuration</div>
-                  </td>
-                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-blue-500/80">
-                    <div className="flex items-center space-x-1.5">
-                      <CheckCircle2 size={16} className="text-emerald-600" />
-                      <span className="font-black text-emerald-700">1-Click Instant Auto</span>
-                    </div>
-                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">Free *.code-host.online + custom domains</div>
-                  </td>
-                  <td className="p-5">
-                    <span className="font-semibold text-slate-700">Manual Setup</span>
-                    <div className="text-[10px] text-slate-400">Certbot + DNS A-records + cron renewal</div>
-                  </td>
-                  <td className="p-5">
-                    <span className="font-semibold text-slate-700">Included</span>
-                    <div className="text-[10px] text-slate-400">Automated standard TLS</div>
-                  </td>
-                  <td className="p-5 pr-6 sm:pr-8">
-                    <span className="font-semibold text-slate-700">Complex Routing</span>
-                    <div className="text-[10px] text-slate-400">ACM + Route53 + CloudFront setup</div>
-                  </td>
-                </tr>
+            <div>
+              <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center text-white mb-5 shadow-md shadow-blue-500/30">
+                <Rocket size={22} />
+              </div>
+              <h3 className="text-xl font-black text-slate-900">CodeHost</h3>
+              <p className="text-xs text-blue-600 font-bold mt-0.5">Cloud, Made Simple</p>
 
-                {/* Row 6 */}
-                <tr className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
-                    <div>Scale-to-Zero Auto-Sleep</div>
-                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">Save credits during inactivity</div>
-                  </td>
-                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-blue-500/80">
-                    <div className="flex items-center space-x-1.5">
-                      <CheckCircle2 size={16} className="text-emerald-600" />
-                      <span className="font-black text-emerald-700">Yes (Wakes up in 280ms)</span>
-                    </div>
-                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">Zero credit burn while sleeping</div>
-                  </td>
-                  <td className="p-5 text-rose-500">
-                    <span className="font-semibold">No Auto-Sleep</span>
-                    <div className="text-[10px] text-slate-400">Billed 24/7 even when idle</div>
-                  </td>
-                  <td className="p-5">
-                    <span className="font-semibold text-slate-700">Slow Cold Boot</span>
-                    <div className="text-[10px] text-slate-400">Takes 20 - 45s to wake up</div>
-                  </td>
-                  <td className="p-5 pr-6 sm:pr-8">
-                    <span className="font-semibold text-slate-700">Serverless Only</span>
-                    <div className="text-[10px] text-slate-400">Must rewrite app for AWS Lambda</div>
-                  </td>
-                </tr>
+              <div className="mt-6 space-y-3.5 text-xs text-slate-800">
+                <div className="flex items-start space-x-2.5">
+                  <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>&lt; 30s Deploy Velocity:</strong> 1-Click Git push or ZIP upload</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Zero SSH / Terminal:</strong> Complete browser console &amp; live logs</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Zero Surprise Bill Guarantee:</strong> 100% prepaid wallet</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Scale-to-Zero in 280ms:</strong> Pay ₹0 when sleeping</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Forever Free Tier:</strong> 1 live project forever at ₹0</span>
+                </div>
+                <div className="flex items-start space-x-2.5">
+                  <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Native MCP AI Host:</strong> Deploy Claude &amp; Cursor agents</span>
+                </div>
+              </div>
+            </div>
 
-                {/* Row 7 */}
-                <tr className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-5 pl-6 sm:pl-8 font-bold text-slate-900">
-                    <div>Free Tier for Developers</div>
-                    <div className="text-[11px] font-normal text-slate-400 mt-0.5">Permanent free sandbox hosting</div>
-                  </td>
-                  <td className="p-5 font-bold text-emerald-700 bg-blue-50/50 border-x-2 border-b-2 border-blue-500/80 rounded-b-2xl">
-                    <div className="flex items-center space-x-1.5">
-                      <CheckCircle2 size={16} className="text-emerald-600" />
-                      <span className="font-black text-emerald-700">Forever Free (₹0)</span>
-                    </div>
-                    <div className="text-[11px] font-medium text-emerald-700/80 mt-0.5">1 free live project forever</div>
-                    <Link
-                      href="/signup"
-                      className="mt-3 inline-flex items-center space-x-1 text-[11px] font-black uppercase tracking-wider bg-blue-600 text-white px-3 py-1.5 rounded-xl hover:bg-blue-700 transition shadow-xs"
-                    >
-                      <span>Deploy Free</span>
-                      <ArrowRight size={12} />
-                    </Link>
-                  </td>
-                  <td className="p-5 text-rose-500 font-bold">
-                    <span>No Free Tier</span>
-                    <div className="text-[10px] font-normal text-slate-400">Must input card &amp; pay immediately</div>
-                  </td>
-                  <td className="p-5 text-rose-500 font-bold">
-                    <span>Removed</span>
-                    <div className="text-[10px] font-normal text-slate-400">Discontinued free dyno plans</div>
-                  </td>
-                  <td className="p-5 pr-6 sm:pr-8">
-                    <span className="font-semibold text-slate-700">12 Months Only</span>
-                    <div className="text-[10px] text-slate-400">Trial expires, then billed automatically</div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="mt-8 pt-4 border-t border-blue-100">
+              <Link
+                href="/signup"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-1.5 active:scale-95"
+              >
+                <span>Start Hosting Free</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
