@@ -49,10 +49,10 @@ export function MobileFloatingIsland({ isLoggedIn = false }: MobileFloatingIslan
 
           if (pricingEl && scrollPosition >= pricingEl.offsetTop) {
             setActiveTab('pricing');
-          } else if (featuresEl && scrollPosition >= featuresEl.offsetTop) {
-            setActiveTab('features');
           } else if (stacksEl && scrollPosition >= stacksEl.offsetTop) {
             setActiveTab('stacks');
+          } else if (featuresEl && scrollPosition >= featuresEl.offsetTop) {
+            setActiveTab('features');
           } else {
             setActiveTab('home');
           }
@@ -131,20 +131,6 @@ export function MobileFloatingIsland({ isLoggedIn = false }: MobileFloatingIslan
           title="Compatibility"
         >
           <Code2 size={17} />
-        </button>
-
-        {/* Features Tab */}
-        <button
-          onClick={() => scrollToSection('features', 'features')}
-          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-            activeTab === 'features'
-              ? 'bg-[#0F172A] text-white shadow-xs scale-102'
-              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-          aria-label="Features"
-          title="Features"
-        >
-          <Sparkles size={17} />
         </button>
 
         {/* Pricing Tab */}

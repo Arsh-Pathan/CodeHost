@@ -61,7 +61,7 @@ interface CertificateData {
 export default function CertificatePage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise);
   const [data, setData] = useState<CertificateData | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<{ id?: string; username?: string; name?: string | null; referralCode?: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -82,8 +82,8 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
         if (authRes?.user) {
           setCurrentUser(authRes.user);
         }
-      } catch (err: any) {
-        setError(err.message || 'Unable to verify certificate.');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Unable to verify certificate.');
       } finally {
         setLoading(false);
       }

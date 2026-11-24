@@ -86,7 +86,7 @@ app.get('/tiers', requireAuth, async (_req: AuthRequest, res) => {
 
 const handleCreateOrder = async (req: AuthRequest, res: any) => {
   try {
-    const { credits, amount: rawAmount, currency = 'INR', receipt: customReceipt } = req.body;
+    const { credits, amount: rawAmount, currency = 'INR', receipt: customReceipt, planType } = req.body;
     let amountInPaise = 0;
     const notes: Record<string, string> = {};
 
@@ -94,7 +94,11 @@ const handleCreateOrder = async (req: AuthRequest, res: any) => {
       notes.userId = req.user.id;
     }
 
-    if (credits !== undefined) {
+    if (planType === 'hackathon') {
+      amountInPaise = 4900;
+      notes.planType = 'hackathon';
+      notes.credits = '50';
+    } else if (credits !== undefined) {
       const parsedCredits = parseInt(String(credits), 10);
       if (isNaN(parsedCredits) || parsedCredits < 10) {
         return res.status(400).json({ error: 'Minimum purchase is 10 credits' });
@@ -114,7 +118,7 @@ const handleCreateOrder = async (req: AuthRequest, res: any) => {
       amountInPaise = Math.round(parsed);
       notes.credits = String(Math.floor(amountInPaise / (CREDIT_PRICE_INR * 100)));
     } else {
-      return res.status(400).json({ error: 'Amount or credits package is required' });
+      return res.status(400).json({ error: 'Amount, credits package, or planType is required' });
     }
 
     const receipt = customReceipt || `rcpt_${req.user?.id ? req.user.id.slice(0, 8) : 'guest'}_${Date.now()}`;
@@ -146,12 +150,15 @@ const handleVerifyPayment = async (req: AuthRequest, res: any) => {
     const orderId = req.body.razorpay_order_id || req.body.razorpayOrderId;
     const paymentId = req.body.razorpay_payment_id || req.body.razorpayPaymentId;
     const signature = req.body.razorpay_signature || req.body.razorpaySignature;
-    const credits = req.body.credits ? Number(req.body.credits) : undefined;
 
     if (!orderId || !paymentId || !signature) {
       return res.status(400).json({
         error: 'Missing required payment verification fields (order_id, payment_id, signature)',
       });
+    }
+
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const isValid = verifyRazorpayPaymentSignature({
@@ -166,73 +173,100 @@ const handleVerifyPayment = async (req: AuthRequest, res: any) => {
       });
     }
 
-    if (req.user?.id) {
-      const userId = req.user.id;
-      const existingTx = await prisma.transaction.findFirst({
-        where: { razorpayPaymentId: paymentId },
-      });
+    const userId = req.user.id;
+    const existingTx = await prisma.transaction.findFirst({
+      where: { razorpayPaymentId: paymentId },
+    });
 
-      if (existingTx) {
-        return res.json({
-          success: true,
-          message: 'Payment already processed',
-          credits: existingTx.amount,
-        });
-      }
-
-      let creditsToAdd = 0;
-      try {
-        const client = getRazorpayClient();
-        const orderData = await client.orders.fetch(orderId);
-        if (orderData && orderData.notes && orderData.notes.credits) {
-          creditsToAdd = parseInt(String(orderData.notes.credits), 10);
-        }
-      } catch (fetchErr) {
-        // Order notes fetch fallback
-      }
-
-      if (!creditsToAdd || isNaN(creditsToAdd)) {
-        creditsToAdd = credits ? Math.max(10, Number(credits)) : 100;
-      }
-
-      const result = await prisma.$transaction(async (tx: any) => {
-        let wallet = await tx.wallet.findUnique({ where: { userId } });
-        if (!wallet) {
-          wallet = await tx.wallet.create({ data: { userId } });
-        }
-
-        const updatedWallet = await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: { increment: creditsToAdd } },
-        });
-
-        const transaction = await tx.transaction.create({
-          data: {
-            walletId: wallet.id,
-            amount: creditsToAdd,
-            type: 'purchase',
-            description: `Purchased ${creditsToAdd} credits`,
-            razorpayOrderId: orderId,
-            razorpayPaymentId: paymentId,
-          },
-        });
-
-        return { wallet: updatedWallet, transaction };
-      });
-
+    if (existingTx) {
       return res.json({
         success: true,
-        message: 'Payment verified and credits added successfully',
-        balance: result.wallet.balance,
-        transaction: result.transaction,
+        message: 'Payment already processed',
+        credits: existingTx.amount,
       });
     }
 
+    let orderData: any;
+    try {
+      const client = getRazorpayClient();
+      orderData = await client.orders.fetch(orderId);
+    } catch (fetchErr) {
+      logger.error({ fetchErr, orderId }, 'Failed to fetch order from Razorpay during verification');
+      return res.status(502).json({ error: 'Failed to verify payment with Razorpay. Please retry in a few seconds.' });
+    }
+
+    const notes = orderData?.notes && typeof orderData.notes === 'object' ? orderData.notes : {};
+    if (notes.userId && String(notes.userId) !== userId) {
+      return res.status(403).json({ error: 'Order belongs to a different account' });
+    }
+
+    const orderAmountPaise = Number(orderData?.amount) || 0;
+    let isHackathon = false;
+    let creditsToAdd = 0;
+
+    if (notes.planType === 'hackathon' && orderAmountPaise >= 4900) {
+      isHackathon = true;
+      creditsToAdd = 50;
+    } else if (notes.credits !== undefined) {
+      const parsed = parseInt(String(notes.credits), 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        creditsToAdd = parsed;
+      }
+    }
+
+    if (!creditsToAdd || isNaN(creditsToAdd)) {
+      const paidInr = orderAmountPaise / 100;
+      creditsToAdd = Math.max(10, Math.floor(paidInr / CREDIT_PRICE_INR));
+    }
+
+    const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+    const proMaxProjects = RESOURCE_TIERS.pro?.maxProjects || 5;
+
+    const result = await prisma.$transaction(async (tx: any) => {
+      let wallet = await tx.wallet.findUnique({ where: { userId } });
+      if (!wallet) {
+        wallet = await tx.wallet.create({ data: { userId } });
+      }
+
+      const updatedWallet = await tx.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: creditsToAdd } },
+      });
+
+      if (isHackathon) {
+        const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { serverLimit: true } });
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            tier: 'pro',
+            tierExpiresAt: hackathonExpiresAt,
+            serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
+          },
+        });
+      }
+
+      const transaction = await tx.transaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: creditsToAdd,
+          type: 'purchase',
+          description: isHackathon ? 'Weekend Hackathon Pass (72h Pro Access)' : `Purchased ${creditsToAdd} credits`,
+          razorpayOrderId: orderId,
+          razorpayPaymentId: paymentId,
+        },
+      });
+
+      return { wallet: updatedWallet, transaction };
+    });
+
     return res.json({
       success: true,
-      message: 'Payment verified successfully',
-      orderId,
-      paymentId,
+      message: isHackathon
+        ? 'Weekend Hackathon Pass activated successfully! Pro features unlocked for 72 hours.'
+        : 'Payment verified and credits added successfully',
+      balance: result.wallet.balance,
+      transaction: result.transaction,
+      hackathon: isHackathon,
     });
   } catch (error: any) {
     logger.error({ error }, 'Payment verify error');
@@ -241,11 +275,11 @@ const handleVerifyPayment = async (req: AuthRequest, res: any) => {
 };
 
 app.post('/razorpay/create-order', requireAuth, handleCreateOrder);
-app.post('/create-order', handleCreateOrder);
+app.post('/create-order', requireAuth, handleCreateOrder);
 app.post('/purchase', requireAuth, handleCreateOrder);
 
 app.post('/razorpay/verify', requireAuth, handleVerifyPayment);
-app.post('/verify-payment', handleVerifyPayment);
+app.post('/verify-payment', requireAuth, handleVerifyPayment);
 app.post('/verify', requireAuth, handleVerifyPayment);
 
 // Webhook Handler

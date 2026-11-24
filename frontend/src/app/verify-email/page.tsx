@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { fetchApi } from "@/lib/api";
+import { useHasAuthToken } from "@/lib/client-hooks";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 type Status = "loading" | "success" | "error";
@@ -12,18 +13,12 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
-  const [status, setStatus] = useState<Status>("loading");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [hasToken, setHasToken] = useState(false);
+  const [status, setStatus] = useState<Status>(token ? "loading" : "error");
+  const [errorMessage, setErrorMessage] = useState(token ? "" : "No verification token provided.");
+  const hasToken = useHasAuthToken();
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setHasToken(Boolean(localStorage.getItem("token")));
-    }
-
     if (!token) {
-      setStatus("error");
-      setErrorMessage("No verification token provided.");
       return;
     }
 

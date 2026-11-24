@@ -30,6 +30,64 @@ export function resolvePackageAmountInr(credits: number, orderAmountPaise?: numb
   return Math.round(credits * CREDIT_PRICE_INR);
 }
 
+export interface VerifiedOrderGrant {
+  ok: boolean;
+  status?: number;
+  error?: string;
+  creditsToAdd: number;
+  orderAmountPaise: number;
+  isHackathon: boolean;
+}
+
+export function resolveVerifiedOrderGrant(
+  orderData: { amount?: number | string | null; notes?: Record<string, unknown> | null } | null | undefined,
+  requestingUserId: string
+): VerifiedOrderGrant {
+  if (!orderData) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Order not found in Razorpay',
+      creditsToAdd: 0,
+      orderAmountPaise: 0,
+      isHackathon: false,
+    };
+  }
+
+  const notes = orderData.notes && typeof orderData.notes === 'object' ? orderData.notes : {};
+  if (notes.userId && String(notes.userId) !== requestingUserId) {
+    return {
+      ok: false,
+      status: 403,
+      error: 'Order belongs to a different account',
+      creditsToAdd: 0,
+      orderAmountPaise: 0,
+      isHackathon: false,
+    };
+  }
+
+  const orderAmountPaise = Number(orderData.amount) || 0;
+  let isHackathon = false;
+  let creditsToAdd = 0;
+
+  if (notes.planType === 'hackathon' && orderAmountPaise >= 4900) {
+    isHackathon = true;
+    creditsToAdd = 50;
+  } else if (notes.credits !== undefined) {
+    const parsed = parseInt(String(notes.credits), 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      creditsToAdd = parsed;
+    }
+  }
+
+  if (!creditsToAdd || isNaN(creditsToAdd)) {
+    const paidInr = orderAmountPaise / 100;
+    creditsToAdd = Math.max(10, Math.floor(paidInr / CREDIT_PRICE_INR));
+  }
+
+  return { ok: true, creditsToAdd, orderAmountPaise, isHackathon };
+}
+
 // All routes except webhook require auth
 router.get('/wallet', requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -165,8 +223,6 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
     const orderId = req.body.razorpay_order_id || req.body.razorpayOrderId;
     const paymentId = req.body.razorpay_payment_id || req.body.razorpayPaymentId;
     const signature = req.body.razorpay_signature || req.body.razorpaySignature;
-    const credits = req.body.credits ? Number(req.body.credits) : undefined;
-    const requestedPlanType = req.body.planType;
 
     if (!orderId || !paymentId || !signature) {
       return res.status(400).json({
@@ -204,31 +260,20 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
       }
 
       // Securely read credits and planType strictly from verified Razorpay order
-      let creditsToAdd = 0;
-      let orderAmountPaise = 0;
-      let isHackathon = requestedPlanType === 'hackathon';
-
+      let orderData: any;
       try {
         const client = getRazorpayClient();
-        const orderData = await client.orders.fetch(orderId);
-        orderAmountPaise = Number(orderData?.amount) || 0;
-        if (orderData && orderData.notes) {
-          if (orderData.notes.planType === 'hackathon') {
-            isHackathon = true;
-            creditsToAdd = 50;
-          } else if (orderData.notes.credits) {
-            creditsToAdd = parseInt(String(orderData.notes.credits), 10);
-          }
-        }
-        // If credits were not in notes, derive strictly from order amount (in paise)
-        if (!creditsToAdd || isNaN(creditsToAdd)) {
-          const paidInr = orderAmountPaise / 100;
-          creditsToAdd = Math.max(10, Math.floor(paidInr / CREDIT_PRICE_INR));
-        }
+        orderData = await client.orders.fetch(orderId);
       } catch (fetchErr) {
         logger.error({ fetchErr, orderId }, 'Failed to fetch order from Razorpay during verification');
         return res.status(502).json({ error: 'Failed to verify payment with Razorpay. Please retry in a few seconds.' });
       }
+
+      const grant = resolveVerifiedOrderGrant(orderData, userId);
+      if (!grant.ok) {
+        return res.status(grant.status || 400).json({ error: grant.error });
+      }
+      const { creditsToAdd, orderAmountPaise, isHackathon } = grant;
 
       const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
       const proMaxProjects = RESOURCE_TIERS.pro?.maxProjects || 5;

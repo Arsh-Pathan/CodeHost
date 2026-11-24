@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useId } from "react";
+import React, { useId } from "react";
 import Link from "next/link";
+import { useHasAuthToken } from "@/lib/client-hooks";
 
 export const LogoSvg = ({ className = "w-9 h-9" }: { className?: string }) => {
     const rawId = useId();
@@ -72,18 +73,8 @@ export const LogoWithText = ({
     href,
     asLink = true
 }: LogoWithTextProps) => {
-    const [destination, setDestination] = useState<string>(href || "/");
-
-    useEffect(() => {
-        if (!href && typeof window !== "undefined") {
-            const token = localStorage.getItem("token");
-            if (token) {
-                setDestination("/dashboard");
-            } else {
-                setDestination("/");
-            }
-        }
-    }, [href]);
+    const hasAuthToken = useHasAuthToken();
+    const destination = href || (hasAuthToken ? "/dashboard" : "/");
 
     const inner = (
         <div className={`flex items-center gap-2.5 cursor-pointer transition-opacity hover:opacity-90 select-none ${className}`}>

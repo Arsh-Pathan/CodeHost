@@ -7,6 +7,7 @@ import { env } from '@codehost/config';
 import { io } from '../index.js';
 import { RESOURCE_TIERS } from '@codehost/config';
 import { sendServerStatusEmail } from '../lib/email.js';
+import { sanitizeUserEnvVars, validateCustomDomain } from '../lib/validation.js';
 
 export class RunnerService {
   private static activeLogStreams: Map<string, any> = new Map();
@@ -62,6 +63,15 @@ export class RunnerService {
       const projectSlug = project?.name.toLowerCase() || projectId;
       const domain = process.env.DOMAIN || 'code-host.online';
       const host = domain;
+      const customDomainCheck = validateCustomDomain(project?.customDomain, host);
+      const validCustomDomain =
+        customDomainCheck.valid && customDomainCheck.normalized && project?.tier && project.tier !== 'free'
+          ? customDomainCheck.normalized
+          : null;
+      const virtualHosts = `${projectSlug}.${host}${validCustomDomain ? `,${validCustomDomain}` : ''}`;
+      const userEnvEntries = Object.entries(sanitizeUserEnvVars(project?.envVars)).map(
+        ([k, v]) => `${k}=${v}`
+      );
 
       // Determine the port the app actually listens on.
       // Priority: Dockerfile EXPOSE → nginx.conf listen → image ExposedPorts → default 80
@@ -94,12 +104,12 @@ export class RunnerService {
         Image: imageName,
         name: containerName,
         Env: [
-          `VIRTUAL_HOST=${projectSlug}.${host}${project?.customDomain ? `,${project.customDomain}` : ''}`,
+          ...userEnvEntries,
+          `VIRTUAL_HOST=${virtualHosts}`,
           `VIRTUAL_PORT=${containerPort}`,
-          `LETSENCRYPT_HOST=${projectSlug}.${host}${project?.customDomain ? `,${project.customDomain}` : ''}`,
+          `LETSENCRYPT_HOST=${virtualHosts}`,
           `LETSENCRYPT_EMAIL=admin@${host}`,
           `VIRTUAL_NETWORK=proxy`,
-          ...Object.entries((project?.envVars as Record<string, string>) || {}).map(([k, v]) => `${k}=${v}`)
         ],
         HostConfig: hostConfig,
         Labels: {
@@ -153,12 +163,12 @@ export class RunnerService {
           Image: imageName,
           name: containerName,
           Env: [
-            `VIRTUAL_HOST=${projectSlug}.${host}${project?.customDomain ? `,${project.customDomain}` : ''}`,
+            ...userEnvEntries,
+            `VIRTUAL_HOST=${virtualHosts}`,
             `VIRTUAL_PORT=${actualPort}`,
-            `LETSENCRYPT_HOST=${projectSlug}.${host}${project?.customDomain ? `,${project.customDomain}` : ''}`,
+            `LETSENCRYPT_HOST=${virtualHosts}`,
             `LETSENCRYPT_EMAIL=admin@${host}`,
             `VIRTUAL_NETWORK=proxy`,
-            ...Object.entries((project?.envVars as Record<string, string>) || {}).map(([k, v]) => `${k}=${v}`)
           ],
           HostConfig: hostConfig,
           Labels: {

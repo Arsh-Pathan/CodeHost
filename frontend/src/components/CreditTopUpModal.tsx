@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Zap, 
-  Sparkles, 
   Check, 
   ShieldCheck, 
   Loader2, 
@@ -12,7 +11,13 @@ import {
   Flame,
   ArrowRight
 } from 'lucide-react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage } from '@/lib/api';
+import {
+  loadRazorpayScript,
+  type RazorpayFailureResponse,
+  type RazorpaySuccessResponse,
+  type RazorpayWindow,
+} from '@/lib/razorpay';
 
 export interface CreditTopUpModalProps {
   isOpen: boolean;
@@ -38,19 +43,13 @@ const DEFAULT_PRESET_PACKAGES: PackageItem[] = [
   { credits: 600, priceInr: 720, priceUsd: 9.00, label: 'Pro Scale', badge: '25% OFF', desc: 'Heavy production loads' },
 ];
 
-const loadRazorpayScript = (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined') return resolve(false);
-    if ((window as any).Razorpay) return resolve(true);
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-};
+interface CreditPackageApiItem {
+  credits: number;
+  priceInr: number;
+  priceUsd: number;
+  label?: string;
+  savings?: string | null;
+}
 
 export default function CreditTopUpModal({
   isOpen,
@@ -72,26 +71,32 @@ export default function CreditTopUpModal({
   const [user, setUser] = useState<{ email?: string; name?: string; username?: string } | null>(null);
 
   useEffect(() => {
-    if (!isOpen) {
-      setError(null);
-      setSuccess(null);
-      setLoading(false);
-      return;
-    }
-
-    loadRazorpayScript();
-
-    if (initialPlanType === 'hackathon') {
-      setMode('hackathon');
-    } else if (initialCredits) {
-      const match = packages.find(p => p.credits === initialCredits);
-      if (match) {
-        setSelectedCredits(initialCredits);
-        setMode('packages');
-      } else {
-        setCustomCredits(String(initialCredits));
-        setMode('custom');
+    const resetTimer = setTimeout(() => {
+      if (!isOpen) {
+        setError(null);
+        setSuccess(null);
+        setLoading(false);
+        return;
       }
+
+      void loadRazorpayScript();
+
+      if (initialPlanType === 'hackathon') {
+        setMode('hackathon');
+      } else if (initialCredits) {
+        const match = packages.find(p => p.credits === initialCredits);
+        if (match) {
+          setSelectedCredits(initialCredits);
+          setMode('packages');
+        } else {
+          setCustomCredits(String(initialCredits));
+          setMode('custom');
+        }
+      }
+    }, 0);
+
+    if (!isOpen) {
+      return () => clearTimeout(resetTimer);
     }
 
     // Fetch user and tiers for Razorpay key & authoritative credit packages
@@ -113,7 +118,7 @@ export default function CreditTopUpModal({
       }
       if (Array.isArray(tiersData?.creditPackages) && tiersData.creditPackages.length > 0) {
         setPackages(
-          tiersData.creditPackages.map((p: any) => {
+          (tiersData.creditPackages as CreditPackageApiItem[]).map((p) => {
             const fallback = DEFAULT_PRESET_PACKAGES.find(d => d.credits === p.credits);
             return {
               credits: p.credits,
@@ -127,6 +132,8 @@ export default function CreditTopUpModal({
         );
       }
     });
+
+    return () => clearTimeout(resetTimer);
   }, [isOpen, initialCredits, initialPlanType]);
 
   if (!isOpen) return null;
@@ -142,11 +149,12 @@ export default function CreditTopUpModal({
 
     try {
       const scriptReady = await loadRazorpayScript();
-      if (!scriptReady) {
+      const RazorpayCtor = (window as RazorpayWindow).Razorpay;
+      if (!scriptReady || !RazorpayCtor) {
         throw new Error('Could not load secure payment gateway. Please check your internet connection.');
       }
 
-      let orderPayload: any = { currency: 'INR' };
+      const orderPayload: { currency: string; planType?: string; credits?: number } = { currency: 'INR' };
       let purchaseLabel = '';
       let targetCredits = 0;
 
@@ -195,10 +203,16 @@ export default function CreditTopUpModal({
             setLoading(false);
           },
         },
-        handler: async function (response: any) {
+        handler: async function (response: RazorpaySuccessResponse) {
           try {
             // Step 3: Verify signature on backend
-            const verifyPayload: any = {
+            const verifyPayload: {
+              razorpay_order_id: string;
+              razorpay_payment_id: string;
+              razorpay_signature: string;
+              planType?: string;
+              credits?: number;
+            } = {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
@@ -238,22 +252,22 @@ export default function CreditTopUpModal({
             } else {
               setError(verifyRes.error || 'Payment verification failed. Please contact support.');
             }
-          } catch (verifyErr: any) {
-            setError(verifyErr.message || 'Payment verification failed.');
+          } catch (verifyErr: unknown) {
+            setError(getErrorMessage(verifyErr, 'Payment verification failed.'));
           } finally {
             setLoading(false);
           }
         },
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (resp: any) {
+      const rzp = new RazorpayCtor(options);
+      rzp.on('payment.failed', function (resp: RazorpayFailureResponse) {
         setError(`Payment failed: ${resp.error?.description || 'Transaction declined'}`);
         setLoading(false);
       });
       rzp.open();
-    } catch (err: any) {
-      setError(err.message || 'Failed to initiate purchase. Please try again.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to initiate purchase. Please try again.'));
       setLoading(false);
     }
   };

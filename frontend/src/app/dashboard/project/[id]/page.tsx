@@ -2,10 +2,8 @@
 
 import { useEffect, useState, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { fetchApi, API_URL } from '@/lib/api';
+import { fetchApi, API_URL, getErrorMessage } from '@/lib/api';
 import {
-  ArrowLeft,
   Box,
   Upload,
   Activity,
@@ -18,7 +16,6 @@ import {
   Network,
   Settings,
   Trash2,
-  Play,
   Square,
   ChevronRight,
   HardDrive,
@@ -30,7 +27,6 @@ import {
   RotateCcw,
   X,
   Check,
-  Award,
   Zap,
   Sparkles
 } from 'lucide-react';
@@ -146,7 +142,7 @@ interface Project {
   buildCommand?: string;
   startCommand?: string;
   dockerfileOverride?: string;
-  envVars?: any;
+  envVars?: Record<string, string>;
   repoUrl?: string;
   repoBranch?: string;
   repoSubdir?: string;
@@ -262,7 +258,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
             message: cleanLog(message),
             timestamp: new Date().toISOString(),
             type: 'run',
-          })).filter((l: any) => Boolean(l.message));
+          })).filter((l: { message: string }) => Boolean(l.message));
         if (parsedLines.length > 0) {
           setLogs((prev) => (prev.length === 0 ? parsedLines : prev));
         }
@@ -283,7 +279,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         setGithubSubdir(projRes.project.repoSubdir || '');
         setDeployMode('github');
       }
-    } catch (err) {
+    } catch {
       router.push('/dashboard');
     } finally {
       setLoading(false);
@@ -306,7 +302,10 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   const fetchProjectData = pollStatus;
 
   useEffect(() => {
-    fetchInitialData();
+    const timer = setTimeout(() => {
+      void fetchInitialData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [params.id, router]);
 
   useEffect(() => {
@@ -333,7 +332,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       }
     });
 
-    socket.on('stats', (data: any) => {
+    socket.on('stats', (data: { cpu: number; memory: { usage: number; limit: number; percent: number } }) => {
       setStats(data);
     });
 
@@ -363,8 +362,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         }
         await fetchProjectData();
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setActionLoading(null);
     }
@@ -437,8 +436,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       });
       await fetchProjectData();
       showSuccess('Settings saved. Redeploy or restart to apply updated environment variables.');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setActionLoading(null);
     }
@@ -487,8 +486,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       xhr.open('POST', `${API_URL}/deployments/${params.id}`);
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.send(formData);
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
       setUploading(false);
     }
   };
@@ -513,8 +512,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       });
       setActiveTab('console');
       await fetchProjectData();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setGithubDeploying(false);
     }
@@ -1103,8 +1102,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                             } else {
                               setError('');
                             }
-                          } catch (err: any) {
-                            setError(err.message);
+                          } catch (err: unknown) {
+                            setError(getErrorMessage(err));
                           } finally {
                             setActionLoading(null);
                           }
@@ -1213,8 +1212,8 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                           body: JSON.stringify({ tier: selectedTier }),
                         });
                         await fetchProjectData();
-                      } catch (err: any) {
-                        setError(err.message);
+                      } catch (err: unknown) {
+                        setError(getErrorMessage(err));
                       } finally {
                         setTierLoading(false);
                       }

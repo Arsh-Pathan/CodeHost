@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { fetchApi } from '@/lib/api';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { fetchApi, getErrorMessage, getErrorStatus } from '@/lib/api';
+import { STARTER_TEMPLATES_MAP } from '@/lib/starter-templates';
 import PanelLayout from '@/components/PanelLayout';
 import CreditTopUpModal from '@/components/CreditTopUpModal';
-import { Check, Code, Settings, Loader2, Cpu, HardDrive, Database, Layers, Zap, ArrowRight, Plus } from 'lucide-react';
+import { Check, Code, Settings, Loader2, Cpu, HardDrive, Database, Layers, Zap, ArrowRight, Plus, Sparkles, X } from 'lucide-react';
 
 interface TierInfo {
   id: string;
@@ -18,33 +19,32 @@ interface TierInfo {
   priceInr: number;
 }
 
-export default function NewProject() {
+function NewProjectContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTemplateParam = searchParams.get('template') || '';
+  const validInitialTemplate = STARTER_TEMPLATES_MAP[initialTemplateParam] ? initialTemplateParam : null;
+
   const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(() => validInitialTemplate);
+  const [name, setName] = useState(() => {
+    if (!validInitialTemplate) return '';
+    const suffix = Math.floor(100 + Math.random() * 900);
+    return `${validInitialTemplate}-app-${suffix}`;
+  });
   const [tier, setTier] = useState('free');
   const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
   const [error, setError] = useState('');
   const [user, setUser] = useState<{ email: string; username: string; role: string; emailVerified?: boolean } | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [tiers, setTiers] = useState<TierInfo[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const [topUpCredits, setTopUpCredits] = useState<number | undefined>(undefined);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const tpl = urlParams.get('template');
-      if (tpl) {
-        setSelectedTemplateId(tpl);
-        if (!name) {
-          const randomSuffix = Math.floor(100 + Math.random() * 900);
-          setName(`${tpl}-app-${randomSuffix}`);
-        }
-      }
-    }
+  const selectedTemplate = selectedTemplateId ? STARTER_TEMPLATES_MAP[selectedTemplateId] ?? null : null;
 
+  useEffect(() => {
     Promise.all([
       fetchApi('/auth/me'),
       fetchApi('/billing/tiers'),
@@ -55,7 +55,10 @@ export default function NewProject() {
         setTiers(tierRes.tiers);
         setWalletBalance(walletRes.wallet.balance);
       })
-      .catch((err: any) => { if (err.status === 401 || err.status === 403) router.push('/login') });
+      .catch((err: unknown) => {
+        const status = getErrorStatus(err);
+        if (status === 401 || status === 403) router.push('/login');
+      });
   }, [router]);
 
   const formatBytes = (bytes: number) => {
@@ -68,6 +71,7 @@ export default function NewProject() {
   const handleCreate = async (overrideTier?: string | React.MouseEvent) => {
     setLoading(true);
     setError('');
+    setStatusMessage('Creating project...');
 
     const targetTier = typeof overrideTier === 'string' ? overrideTier : (tier || 'free');
 
@@ -76,10 +80,28 @@ export default function NewProject() {
         method: 'POST',
         body: JSON.stringify({ name: name.toLowerCase(), tier: targetTier }),
       });
-      router.push(`/dashboard/project/${data.project.id}`);
-    } catch (err: any) {
-      setError(err.message);
+
+      const projectId = data.project.id as string;
+
+      if (selectedTemplate) {
+        setStatusMessage(`Provisioning ${selectedTemplate.name} files...`);
+        await Promise.all(
+          selectedTemplate.files.map((file) =>
+            fetchApi(`/files/${projectId}`, {
+              method: 'POST',
+              body: JSON.stringify({ filePath: file.path, content: file.content }),
+            })
+          )
+        );
+        setStatusMessage('Queueing initial deployment...');
+        await fetchApi(`/files/${projectId}/deploy`, { method: 'POST' }).catch(() => {});
+      }
+
+      router.push(`/dashboard/project/${projectId}`);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
       setLoading(false);
+      setStatusMessage('');
     }
   };
 
@@ -137,6 +159,35 @@ export default function NewProject() {
             </div>
 
             <div className="max-w-md mx-auto space-y-8">
+              {selectedTemplate && (
+                <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 flex items-start justify-between gap-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                      <Sparkles size={15} />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <p className="text-xs font-black text-slate-900">{selectedTemplate.name}</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                          {selectedTemplate.files.length} files
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                        {selectedTemplate.description}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTemplateId(null)}
+                    className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+                    title="Switch to blank project"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
               {error && (
                 <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold border border-red-100">
                   {error}
@@ -180,12 +231,12 @@ export default function NewProject() {
                   {loading ? (
                     <>
                       <Loader2 className="animate-spin" size={18} />
-                      <span>Deploying Project...</span>
+                      <span>{statusMessage || 'Deploying Project...'}</span>
                     </>
                   ) : (
                     <>
                       <Zap size={18} className="fill-current text-white" />
-                      <span>1-Click Deploy (Free Plan)</span>
+                      <span>{selectedTemplate ? `Deploy ${selectedTemplate.tag} Starter` : '1-Click Deploy (Free Plan)'}</span>
                     </>
                   )}
                 </button>
@@ -344,5 +395,19 @@ export default function NewProject() {
         initialCredits={topUpCredits}
       />
     </PanelLayout>
+  );
+}
+
+export default function NewProject() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      }
+    >
+      <NewProjectContent />
+    </Suspense>
   );
 }

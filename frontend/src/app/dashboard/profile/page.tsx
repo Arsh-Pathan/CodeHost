@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage, getErrorStatus } from '@/lib/api';
 import PanelLayout from '@/components/PanelLayout';
 import { 
   User, 
@@ -13,7 +13,6 @@ import {
   Loader2, 
   Key, 
   Github, 
-  CheckCircle2,
   Award,
   ExternalLink,
   Copy,
@@ -23,15 +22,36 @@ import {
 import UserAvatar, { GoogleIcon } from '@/components/UserAvatar';
 import McpSetupCard from '@/components/McpSetupCard';
 
+interface ProfileUser {
+  id: string;
+  email: string;
+  username: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+  provider?: string | null;
+  role: string;
+  tier?: string;
+  serverLimit?: number;
+  emailVerified?: boolean;
+  createdAt?: string;
+}
+
+interface CertificateSummary {
+  id: string;
+  certNumber?: string;
+  certUrl?: string;
+  issuedAt?: string;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<ProfileUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [certStatus, setCertStatus] = useState<{
     claimed: boolean;
     eligible: boolean;
-    certificate: any;
+    certificate: CertificateSummary | null;
     qualifyingProject?: string | null;
   } | null>(null);
   const [claimingCert, setClaimingCert] = useState(false);
@@ -48,8 +68,9 @@ export default function ProfilePage() {
           setCertStatus(certRes);
         }
       })
-      .catch((err) => {
-        if (err.status === 401 || err.status === 403) router.push('/login');
+      .catch((err: unknown) => {
+        const status = getErrorStatus(err);
+        if (status === 401 || status === 403) router.push('/login');
       })
       .finally(() => setLoading(false));
   }, [router]);
@@ -66,8 +87,8 @@ export default function ProfilePage() {
         });
         window.open(res.certificate.certUrl || `/certificate/${res.certificate.id}`, '_blank');
       }
-    } catch (err: any) {
-      alert(err.message || 'Failed to claim certificate');
+    } catch (err: unknown) {
+      alert(getErrorMessage(err, 'Failed to claim certificate'));
     } finally {
       setClaimingCert(false);
     }
@@ -189,7 +210,7 @@ export default function ProfilePage() {
                   </button>
 
                   <Link
-                    href={`/certificate/${certStatus.certificate.id}`}
+                    href={`/certificate/${certStatus.certificate?.id || ''}`}
                     target="_blank"
                     className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer active:scale-98"
                   >

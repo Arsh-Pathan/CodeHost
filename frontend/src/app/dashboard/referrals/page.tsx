@@ -11,12 +11,8 @@ import {
   Users, 
   Coins, 
   Sparkles, 
-  ExternalLink, 
-  ArrowRight,
-  ShieldCheck,
   CheckCircle2
 } from 'lucide-react';
-import UserAvatar from '@/components/UserAvatar';
 
 interface ReferralStats {
   referralCode: string;
@@ -37,8 +33,17 @@ interface ReferralStats {
   }>;
 }
 
+interface ReferralUser {
+  email: string;
+  username: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+  role: string;
+  tier?: string;
+}
+
 export default function ReferralsPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<ReferralUser | null>(null);
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);

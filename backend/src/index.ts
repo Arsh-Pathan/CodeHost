@@ -71,7 +71,7 @@ app.get('/health', async (req, res) => {
     res.json({ status: 'healthy', database: 'ok', redis: 'ok' });
   } catch (error) {
     logger.error({ error }, 'Health check failed');
-    res.status(500).json({ status: 'unhealthy', error: String(error) });
+    res.status(500).json({ status: 'unhealthy' });
   }
 });
 
@@ -131,32 +131,34 @@ io.on('connection', (socket) => {
   });
 });
 
-// Resource Monitoring Loop
-setInterval(async () => {
-  const rooms = io.sockets.adapter.rooms;
-  for (const [room, _] of rooms) {
-    if (room.startsWith('project:')) {
-      const projectId = room.split(':')[1];
-      try {
-        const stats = await RunnerService.getStats(projectId);
-        if (stats) {
-          io.to(room).emit('stats', stats);
-        }
-      } catch (err) {
-        // Silent
-      }
-    }
-  }
-}, 5000);
-
-// Start background lifecycle, idle hibernation, storage quota, and hourly billing jobs
-startLifecycleJobs();
-
 const PORT = env.PORT || 4000;
 
-httpServer.listen(PORT, () => {
-  logger.info(`API Service running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  // Resource Monitoring Loop
+  setInterval(async () => {
+    const rooms = io.sockets.adapter.rooms;
+    for (const [room, _] of rooms) {
+      if (room.startsWith('project:')) {
+        const projectId = room.split(':')[1];
+        try {
+          const stats = await RunnerService.getStats(projectId);
+          if (stats) {
+            io.to(room).emit('stats', stats);
+          }
+        } catch {
+          // Silent
+        }
+      }
+    }
+  }, 5000);
+
+  // Start background lifecycle, idle hibernation, storage quota, and hourly billing jobs
+  startLifecycleJobs();
+
+  httpServer.listen(PORT, () => {
+    logger.info(`API Service running on port ${PORT}`);
+  });
+}
 
 const shutdown = async (signal: string) => {
   logger.info(`Received ${signal}, shutting down gracefully...`);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorStatus } from '@/lib/api';
 import { 
   Plus, 
   Code, 
@@ -25,15 +25,14 @@ import {
   Orbit, 
   Radio, 
   Rocket,
-  Flame,
-  Coins
+  type LucideIcon
 } from 'lucide-react';
 
 import PanelLayout from '@/components/PanelLayout';
 import CreditTopUpModal from '@/components/CreditTopUpModal';
 
 interface IconLabItem {
-  icon: any;
+  icon: LucideIcon;
   bg: string;
 }
 
@@ -71,6 +70,7 @@ interface Project {
   id: string;
   name: string;
   status: string;
+  tier?: string;
   createdAt: string;
 }
 
@@ -86,26 +86,28 @@ export default function Dashboard() {
   const [topUpInitialPlanType, setTopUpInitialPlanType] = useState<'hackathon' | null>(null);
 
   useEffect(() => {
-    // 1. Instant cache hydration: Render dashboard in 0ms if visited before
-    if (typeof window !== 'undefined') {
-      try {
-        const cachedUser = localStorage.getItem('codehost_user_cache');
-        const cachedProjects = localStorage.getItem('codehost_projects_cache');
-        const cachedWallet = localStorage.getItem('codehost_wallet_cache');
-        if (cachedUser) {
-          setUser(JSON.parse(cachedUser));
-          setLoading(false);
+    // 1. Fast cache hydration scheduled asynchronously to prevent synchronous setState in effect
+    const cacheTimer = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        try {
+          const cachedUser = localStorage.getItem('codehost_user_cache');
+          const cachedProjects = localStorage.getItem('codehost_projects_cache');
+          const cachedWallet = localStorage.getItem('codehost_wallet_cache');
+          if (cachedUser) {
+            setUser(JSON.parse(cachedUser));
+            setLoading(false);
+          }
+          if (cachedProjects) {
+            setProjects(JSON.parse(cachedProjects));
+          }
+          if (cachedWallet) {
+            setWalletBalance(JSON.parse(cachedWallet)?.balance ?? 0);
+          }
+        } catch {
+          // Ignore JSON parse errors
         }
-        if (cachedProjects) {
-          setProjects(JSON.parse(cachedProjects));
-        }
-        if (cachedWallet) {
-          setWalletBalance(JSON.parse(cachedWallet)?.balance ?? 0);
-        }
-      } catch (e) {
-        // Ignore JSON parse errors
       }
-    }
+    }, 0);
 
     // 2. Fetch fresh user, projects, and wallet in the background
     const checkAuthAndFetchProjects = async () => {
@@ -129,8 +131,9 @@ export default function Dashboard() {
             localStorage.setItem('codehost_wallet_cache', JSON.stringify(walletData.wallet));
           }
         }
-      } catch (err: any) {
-        if (err.status === 401 || err.status === 403) {
+      } catch (err: unknown) {
+        const status = getErrorStatus(err);
+        if (status === 401 || status === 403) {
           localStorage.removeItem('token');
           localStorage.removeItem('codehost_user_cache');
           localStorage.removeItem('codehost_projects_cache');
@@ -142,7 +145,8 @@ export default function Dashboard() {
       }
     };
 
-    checkAuthAndFetchProjects();
+    void checkAuthAndFetchProjects();
+    return () => clearTimeout(cacheTimer);
   }, [router]);
 
   const getStatusConfig = (status: string) => {
@@ -360,7 +364,7 @@ export default function Dashboard() {
                           </div>
                           <div className="flex flex-col space-y-1 items-end">
                              <span>Plan</span>
-                             <span className="text-blue-600">{(project as any).tier?.toUpperCase() || 'FREE'}</span>
+                             <span className="text-blue-600">{project.tier?.toUpperCase() || 'FREE'}</span>
                           </div>
                         </div>
                       </div>

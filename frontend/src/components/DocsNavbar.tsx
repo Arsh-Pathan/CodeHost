@@ -1,18 +1,11 @@
 "use client";
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { LogoWithText } from '@/components/Logo';
+import { useHasAuthToken } from '@/lib/client-hooks';
 
 export function DocsNavbar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (token) setIsLoggedIn(true);
-    }
-  }, []);
+  const isLoggedIn = useHasAuthToken();
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-white/75 backdrop-blur-2xl px-6 sm:px-8 py-4 flex items-center justify-between border-b border-slate-100/80 transition-all">

@@ -10,6 +10,11 @@ import { BuilderService } from '../services/builder.js';
 import { RunnerService } from '../services/runner.js';
 import { acquireDeploySlot, releaseDeployLock } from '../services/deploy-lock.js';
 import { RESOURCE_TIERS } from '@codehost/config';
+import {
+  validateProjectName,
+  validateCustomDomain,
+  sanitizeUserEnvVars,
+} from '../lib/validation.js';
 
 const router = Router();
 
@@ -17,13 +22,18 @@ const router = Router();
 router.use(requireAuth);
 
 const createProjectSchema = z.object({
-  name: z.string().min(3).max(50).regex(/^[a-z0-9-]+$/, 'Name can only contain lowercase letters, numbers, and dashes'),
+  name: z.string().min(3).max(50),
   tier: z.enum(['free', 'basic', 'pro', 'business']).default('free'),
 });
 
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const { name, tier } = createProjectSchema.parse(req.body);
+    const { name: rawName, tier } = createProjectSchema.parse(req.body);
+    const nameCheck = validateProjectName(rawName);
+    if (!nameCheck.valid) {
+      return res.status(400).json({ error: nameCheck.error || 'Invalid project name' });
+    }
+    const name = nameCheck.normalized;
     const userId = req.user!.id;
     const tierConfig = RESOURCE_TIERS[tier];
 
@@ -327,11 +337,14 @@ router.get('/:id/logs', async (req: AuthRequest, res) => {
 
 router.get('/check-name/:name', async (req: AuthRequest, res) => {
   try {
-    const { name } = req.params;
+    const nameCheck = validateProjectName(req.params.name);
+    if (!nameCheck.valid) {
+      return res.json({ available: false, reason: nameCheck.error });
+    }
     const project = await prisma.project.findFirst({
-      where: { name: name.toLowerCase() }
+      where: { name: nameCheck.normalized }
     });
-    res.json({ available: !project });
+    res.json({ available: !project, ...(project ? { reason: 'Project name is already taken' } : {}) });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -349,17 +362,20 @@ router.put('/:id', async (req: AuthRequest, res) => {
 
     const { name, buildCommand, startCommand, dockerfileOverride, envVars, tier, customDomain } = req.body;
 
-    // Handle Rename (Subdomain Change) logic (omitted for brevity in search but included in replacement)
-    if (name && name.toLowerCase() !== project.name.toLowerCase()) {
-      const nameLower = name.toLowerCase().trim();
-      if (!/^[a-z0-9-]+$/.test(nameLower) || nameLower.length < 3 || nameLower.length > 50) {
-        return res.status(400).json({ error: 'Invalid name format' });
+    // Handle Rename (Subdomain Change) logic
+    let nextName = project.name;
+    if (name !== undefined && String(name).trim().toLowerCase() !== project.name.toLowerCase()) {
+      const nameCheck = validateProjectName(name);
+      if (!nameCheck.valid) {
+        return res.status(400).json({ error: nameCheck.error || 'Invalid name format' });
       }
-      const existingProject = await prisma.project.findFirst({ where: { name: nameLower } });
+      const existingProject = await prisma.project.findFirst({
+        where: { name: nameCheck.normalized, id: { not: project.id } }
+      });
       if (existingProject) {
         return res.status(400).json({ error: 'Subdomain already taken across the platform' });
       }
-      await prisma.project.update({ where: { id: project.id }, data: { name: nameLower } });
+      nextName = nameCheck.normalized;
     }
 
     // Handle tier change
@@ -401,29 +417,51 @@ router.put('/:id', async (req: AuthRequest, res) => {
       newTier = tier;
     }
 
-    // Require a paid plan for attaching a custom domain
-    if (customDomain && typeof customDomain === 'string' && customDomain.trim().length > 0 && newTier === 'free') {
-      return res.status(403).json({
-        error: 'Custom domains require a paid plan (Basic, Pro, or Business). Please upgrade to attach a custom domain.'
-      });
+    // Validate and check uniqueness for custom domain
+    let nextCustomDomain = project.customDomain;
+    if (customDomain !== undefined) {
+      const domainCheck = validateCustomDomain(customDomain);
+      if (!domainCheck.valid) {
+        return res.status(400).json({ error: domainCheck.error || 'Invalid custom domain' });
+      }
+      if (domainCheck.normalized) {
+        if (newTier === 'free') {
+          return res.status(403).json({
+            error: 'Custom domains require a paid plan (Basic, Pro, or Business). Please upgrade to attach a custom domain.'
+          });
+        }
+        const domainOwner = await prisma.project.findFirst({
+          where: { customDomain: domainCheck.normalized, id: { not: project.id } },
+        });
+        if (domainOwner) {
+          return res.status(400).json({
+            error: 'This custom domain is already attached to another project'
+          });
+        }
+      }
+      nextCustomDomain = domainCheck.normalized;
     }
+
+    const sanitizedEnvVars =
+      envVars !== undefined ? sanitizeUserEnvVars(envVars) : project.envVars;
 
     const updated = await prisma.project.update({
       where: { id: project.id },
       data: {
+        name: nextName,
         buildCommand: buildCommand ?? project.buildCommand,
         startCommand: startCommand ?? project.startCommand,
         dockerfileOverride: dockerfileOverride ?? project.dockerfileOverride,
-        envVars: envVars ?? project.envVars,
+        envVars: sanitizedEnvVars as any,
         tier: newTier,
-        customDomain: customDomain !== undefined ? customDomain : project.customDomain,
+        customDomain: nextCustomDomain,
       }
     });
 
     // Auto-restart if name, tier, or custom domain changed and project is running
-    const nameChanged = name && name.toLowerCase() !== project.name.toLowerCase();
+    const nameChanged = nextName !== project.name;
     const tierChanged = tier && tier !== project.tier;
-    const domainChanged = customDomain !== undefined && customDomain !== project.customDomain;
+    const domainChanged = nextCustomDomain !== project.customDomain;
 
     if ((nameChanged || tierChanged || domainChanged) && (project.status === 'running' || project.containerId)) {
       const lastDeployment = await prisma.deployment.findFirst({

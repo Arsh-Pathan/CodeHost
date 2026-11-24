@@ -47,7 +47,6 @@ interface BenchmarkResult {
 }
 
 export default function StatusPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [countdown, setCountdown] = useState(30);
@@ -74,19 +73,10 @@ export default function StatusPage() {
 
   const [webLatency, setWebLatency] = useState<number>(18);
   const [serverCount, setServerCount] = useState<number>(54);
-  const [serverUptimeHours, setServerUptimeHours] = useState<number>(744);
 
   // Benchmark state
   const [isBenchmarking, setIsBenchmarking] = useState(false);
   const [benchmarkResult, setBenchmarkResult] = useState<BenchmarkResult | null>(null);
-
-  // Check login state
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (token) setIsLoggedIn(true);
-    }
-  }, []);
 
   // Generate 90-day history for a service
   const generate90Days = useCallback((baseUptime: number, maintenanceDayOffsets: number[] = []) => {
@@ -246,15 +236,9 @@ export default function StatusPage() {
       // fallback
     }
 
-    // 4. Probe Next.js internal status endpoint for server process uptime
+    // 4. Probe Next.js internal status endpoint
     try {
-      const srvRes = await fetch('/api/status', { cache: 'no-store' });
-      if (srvRes.ok) {
-        const srvJson = await srvRes.json();
-        if (srvJson.server?.uptimeSeconds) {
-          setServerUptimeHours(Math.max(1, Math.round(srvJson.server.uptimeSeconds / 3600)));
-        }
-      }
+      await fetch('/api/status', { cache: 'no-store' });
     } catch {
       // fallback
     }
@@ -314,7 +298,10 @@ export default function StatusPage() {
   };
 
   useEffect(() => {
-    probeHealth();
+    const timer = setTimeout(() => {
+      void probeHealth();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [probeHealth]);
 
   // Real-time 30-second countdown loop

@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   File, 
-  Folder, 
   ChevronRight, 
   ChevronDown, 
   FileCode, 
@@ -41,7 +40,7 @@ export default function FileManager({ projectId }: FileManagerProps) {
   const [newItemName, setNewItemName] = useState('');
   const [targetPath, setTargetPath] = useState('');
 
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetchApi(`/files/${projectId}`);
@@ -51,19 +50,22 @@ export default function FileManager({ projectId }: FileManagerProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
-    fetchFiles();
-  }, [projectId]);
+    const timer = setTimeout(() => {
+      void fetchFiles();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchFiles]);
 
   const loadFileContent = async (path: string) => {
     try {
       setSelectedFile(path);
       setFileContent('Loading...');
-      const res = await fetchApi(`/files/${projectId}/content?filePath=${path}`);
+      const res = await fetchApi(`/files/${projectId}/content?filePath=${encodeURIComponent(path)}`);
       setFileContent(res.content);
-    } catch (err) {
+    } catch {
       setFileContent('Error loading file');
     }
   };
@@ -76,7 +78,7 @@ export default function FileManager({ projectId }: FileManagerProps) {
         method: 'POST',
         body: JSON.stringify({ filePath: selectedFile, content: fileContent })
       });
-    } catch (err) {
+    } catch {
       alert('Failed to save file');
     } finally {
       setSaving(false);
@@ -86,13 +88,13 @@ export default function FileManager({ projectId }: FileManagerProps) {
   const deleteFile = async (path: string) => {
     if (!confirm(`Delete ${path}?`)) return;
     try {
-      await fetchApi(`/files/${projectId}?filePath=${path}`, { method: 'DELETE' });
+      await fetchApi(`/files/${projectId}?filePath=${encodeURIComponent(path)}`, { method: 'DELETE' });
       if (selectedFile === path) {
         setSelectedFile(null);
         setFileContent('');
       }
-      fetchFiles();
-    } catch (err) {
+      void fetchFiles();
+    } catch {
       alert('Delete failed');
     }
   };
@@ -102,7 +104,7 @@ export default function FileManager({ projectId }: FileManagerProps) {
       setIsDeploying(true);
       await fetchApi(`/files/${projectId}/deploy`, { method: 'POST' });
       alert('Deployment queued!');
-    } catch (err) {
+    } catch {
       alert('Deploy failed');
     } finally {
       setIsDeploying(false);
@@ -140,7 +142,7 @@ export default function FileManager({ projectId }: FileManagerProps) {
       setShowCreateModal(null);
       setNewItemName('');
       await fetchFiles();
-    } catch (err) {
+    } catch {
       alert('Failed to create item');
     } finally {
       setSaving(false);

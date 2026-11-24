@@ -3,7 +3,13 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { fetchApi, API_URL } from '@/lib/api';
+import { fetchApi, getErrorMessage, getErrorStatus } from '@/lib/api';
+import {
+  loadRazorpayScript,
+  type RazorpayFailureResponse,
+  type RazorpaySuccessResponse,
+  type RazorpayWindow,
+} from '@/lib/razorpay';
 import PanelLayout from '@/components/PanelLayout';
 import { 
   CreditCard, 
@@ -19,13 +25,9 @@ import {
   Clock,
   Sparkles,
   FileText,
-  HelpCircle,
   CheckCircle2,
   AlertCircle,
-  Coins,
-  ChevronRight,
-  TrendingUp,
-  RefreshCw
+  ChevronRight
 } from 'lucide-react';
 
 interface WalletData {
@@ -49,20 +51,6 @@ interface CreditPackage {
   savings: string | null;
 }
 
-const loadRazorpayScript = (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined') return resolve(false);
-    if ((window as any).Razorpay) return resolve(true);
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-};
-
 function BillingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -75,7 +63,10 @@ function BillingContent() {
   const [packages, setPackages] = useState<CreditPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<number | null>(null);
-  const [customAmount, setCustomAmount] = useState<number | string>(initialCredits ? parseInt(initialCredits, 10) : 250);
+  const [customAmount, setCustomAmount] = useState<number | string>(() => {
+    const parsed = initialCredits ? parseInt(initialCredits, 10) : NaN;
+    return !isNaN(parsed) && parsed >= 10 ? parsed : 250;
+  });
   const [razorpayKeyId, setRazorpayKeyId] = useState<string>('');
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
@@ -86,17 +77,8 @@ function BillingContent() {
   const customPriceUsd = (!isNaN(parsedCustomCredits) && parsedCustomCredits > 0) ? (parsedCustomCredits * 0.02).toFixed(2) : '0.00';
 
   useEffect(() => {
-    loadRazorpayScript();
+    void loadRazorpayScript();
   }, []);
-
-  useEffect(() => {
-    if (initialCredits) {
-      const parsed = parseInt(initialCredits, 10);
-      if (!isNaN(parsed) && parsed >= 10) {
-        setCustomAmount(parsed);
-      }
-    }
-  }, [initialCredits]);
 
   useEffect(() => {
     Promise.all([
@@ -114,7 +96,10 @@ function BillingContent() {
           setRazorpayKeyId(tierRes.razorpayKeyId);
         }
       })
-      .catch((err: any) => { if (err.status === 401 || err.status === 403) router.push('/login') })
+      .catch((err: unknown) => {
+        const status = getErrorStatus(err);
+        if (status === 401 || status === 403) router.push('/login');
+      })
       .finally(() => setLoading(false));
   }, [router]);
 
@@ -125,7 +110,8 @@ function BillingContent() {
 
     try {
       const isScriptLoaded = await loadRazorpayScript();
-      if (!isScriptLoaded) {
+      const RazorpayCtor = (window as RazorpayWindow).Razorpay;
+      if (!isScriptLoaded || !RazorpayCtor) {
         throw new Error('Failed to load secure payment gateway. Please check your internet connection.');
       }
 
@@ -155,7 +141,7 @@ function BillingContent() {
             setPurchasing(null);
           },
         },
-        handler: async function (response: any) {
+        handler: async function (response: RazorpaySuccessResponse) {
           try {
             const verifyRes = await fetchApi('/billing/razorpay/verify', {
               method: 'POST',
@@ -178,22 +164,22 @@ function BillingContent() {
             } else {
               setPaymentError(verifyRes.error || 'Payment verification failed');
             }
-          } catch (verifyErr: any) {
-            setPaymentError(verifyErr.message || 'Payment verification failed');
+          } catch (verifyErr: unknown) {
+            setPaymentError(getErrorMessage(verifyErr, 'Payment verification failed'));
           } finally {
             setPurchasing(null);
           }
         },
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any) {
+      const rzp = new RazorpayCtor(options);
+      rzp.on('payment.failed', function (response: RazorpayFailureResponse) {
         setPaymentError(`Payment failed: ${response.error?.description || 'Transaction declined'}`);
         setPurchasing(null);
       });
       rzp.open();
-    } catch (err: any) {
-      setPaymentError(err.message || 'Failed to initiate payment');
+    } catch (err: unknown) {
+      setPaymentError(getErrorMessage(err, 'Failed to initiate payment'));
       setPurchasing(null);
     }
   };
@@ -210,7 +196,8 @@ function BillingContent() {
 
     try {
       const isScriptLoaded = await loadRazorpayScript();
-      if (!isScriptLoaded) {
+      const RazorpayCtor = (window as RazorpayWindow).Razorpay;
+      if (!isScriptLoaded || !RazorpayCtor) {
         throw new Error('Failed to load secure payment gateway. Please check your internet connection.');
       }
 
@@ -242,7 +229,7 @@ function BillingContent() {
             setPurchasing(null);
           },
         },
-        handler: async function (response: any) {
+        handler: async function (response: RazorpaySuccessResponse) {
           // Step 3: Verify payment signature on backend
           try {
             const verifyRes = await fetchApi('/billing/razorpay/verify', {
@@ -267,22 +254,22 @@ function BillingContent() {
             } else {
               setPaymentError(verifyRes.error || 'Payment verification failed');
             }
-          } catch (verifyErr: any) {
-            setPaymentError(verifyErr.message || 'Payment verification failed');
+          } catch (verifyErr: unknown) {
+            setPaymentError(getErrorMessage(verifyErr, 'Payment verification failed'));
           } finally {
             setPurchasing(null);
           }
         },
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any) {
+      const rzp = new RazorpayCtor(options);
+      rzp.on('payment.failed', function (response: RazorpayFailureResponse) {
         setPaymentError(`Payment failed: ${response.error?.description || 'Transaction declined'}`);
         setPurchasing(null);
       });
       rzp.open();
-    } catch (err: any) {
-      setPaymentError(err.message || 'Failed to initiate payment');
+    } catch (err: unknown) {
+      setPaymentError(getErrorMessage(err, 'Failed to initiate payment'));
       setPurchasing(null);
     }
   };
@@ -480,7 +467,7 @@ function BillingContent() {
                 <Flame size={13} className="text-amber-400" />
                 <span>High-Velocity Hackathon Pass</span>
               </div>
-              <h3 className="text-2xl sm:text-3xl font-black text-white">Weekend Hackathon Pass &mdash; &fnof;49 for 72 Hours</h3>
+              <h3 className="text-2xl sm:text-3xl font-black text-white">Weekend Hackathon Pass &mdash; ₹49 for 72 Hours</h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
                 Building at a hackathon this weekend? Unlock instant Turbo compute: 2 vCPUs, 512MB RAM, unlimited priority builds, and free SSL subdomains with zero recurring commitment.
               </p>

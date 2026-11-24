@@ -124,7 +124,7 @@ async function handleOAuthSuccess(res: any, user: any) {
     data: {
       userId: user.id,
       token: refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
     },
   });
 
@@ -196,9 +196,19 @@ router.get('/google/callback', async (req, res) => {
       Buffer.from(tokenData.id_token.split('.')[1], 'base64url').toString()
     );
 
-    const { email, name, sub, picture } = payload;
+    if (payload.aud && env.GOOGLE_CLIENT_ID && payload.aud !== env.GOOGLE_CLIENT_ID) {
+      logger.warn({ aud: payload.aud }, 'Google OAuth: audience mismatch');
+      return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
+    }
+
+    const { email, email_verified, name, sub, picture } = payload;
     if (!email) {
       return res.redirect(`${env.APP_URL}/login?error=oauth_no_email`);
+    }
+
+    if (email_verified !== true && email_verified !== 'true') {
+      logger.warn({ email }, 'Google OAuth: unverified email rejected');
+      return res.redirect(`${env.APP_URL}/login?error=oauth_unverified_email`);
     }
 
     const user = await findOrCreateOAuthUser('google', sub, email, name || null, picture || null, verification.ref);

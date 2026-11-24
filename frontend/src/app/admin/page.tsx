@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage, getErrorStatus } from '@/lib/api';
+import { useIsMounted } from '@/lib/client-hooks';
 import UserAvatar from '@/components/UserAvatar';
 import { Logo } from '@/components/Logo';
 import {
@@ -135,7 +136,19 @@ interface RevenueAnalytics {
     orders: number;
   }>;
   tierBreakdown: Record<string, { users: number; projects: number; revenueInr: number }>;
-  recentTransactions: any[];
+  recentTransactions: TransactionItem[];
+}
+
+interface AdminStats {
+  activeContainers?: number;
+  projects?: number;
+  users?: number;
+}
+
+interface AdminHealth {
+  database?: { status?: string; message?: string };
+  redis?: { status?: string; message?: string };
+  docker?: { status?: string; message?: string };
 }
 
 interface AdminUser {
@@ -202,13 +215,13 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useIsMounted();
 
   // Data states
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
   const [revenueData, setRevenueData] = useState<RevenueAnalytics | null>(null);
-  const [health, setHealth] = useState<any>(null);
+  const [health, setHealth] = useState<AdminHealth | null>(null);
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
 
@@ -252,11 +265,6 @@ export default function AdminPage() {
   const [txTotalPages, setTxTotalPages] = useState(1);
   const [txLoading, setTxLoading] = useState(false);
 
-  // Mount effect
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   // Show temporary toast
   const showToast = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
@@ -286,8 +294,9 @@ export default function AdminPage() {
       if (usersRes?.users) setUsers(usersRes.users);
       if (metricsRes) setSystemMetrics(metricsRes);
       if (revenueRes) setRevenueData(revenueRes);
-    } catch (err: any) {
-      if (err.status === 403 || err.status === 401) {
+    } catch (err: unknown) {
+      const status = getErrorStatus(err);
+      if (status === 403 || status === 401) {
         setIsAuthorized(false);
         router.replace('/dashboard');
         return;
@@ -328,7 +337,7 @@ export default function AdminPage() {
         setIsAuthorized(true);
         setIsCheckingAuth(false);
         fetchAllData();
-      } catch (err: any) {
+      } catch {
         if (!isCancelled) {
           setIsAuthorized(false);
           setIsCheckingAuth(false);
@@ -360,7 +369,7 @@ export default function AdminPage() {
         setTxPage(res.pagination?.page || 1);
         setTxTotalPages(res.pagination?.totalPages || 1);
       }
-    } catch (e: any) {
+    } catch {
       showToast('error', 'Failed to load transactions');
     } finally {
       setTxLoading(false);
@@ -382,7 +391,10 @@ export default function AdminPage() {
   // Load transactions when revenue tab opens
   useEffect(() => {
     if (activeTab === 'revenue' && isAuthorized) {
-      fetchTransactions(1);
+      const timer = setTimeout(() => {
+        void fetchTransactions(1);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [activeTab, txTypeFilter, isAuthorized]);
 
@@ -394,8 +406,8 @@ export default function AdminPage() {
     try {
       const data = await fetchApi(`/admin/projects/${project.id}/logs?tail=${logTail}`);
       setProjectLogs(data.logs || 'No log output captured.');
-    } catch (err: any) {
-      setProjectLogs(`Failed to fetch container logs: ${err.message || 'Unknown error'}`);
+    } catch (err: unknown) {
+      setProjectLogs(`Failed to fetch container logs: ${getErrorMessage(err, 'Unknown error')}`);
     } finally {
       setLogsLoading(false);
     }
@@ -408,8 +420,8 @@ export default function AdminPage() {
     try {
       const data = await fetchApi(`/admin/projects/${logModalProject.id}/logs?tail=${logTail}`);
       setProjectLogs(data.logs || 'No log output captured.');
-    } catch (err: any) {
-      setProjectLogs(`Error: ${err.message}`);
+    } catch (err: unknown) {
+      setProjectLogs(`Error: ${getErrorMessage(err)}`);
     } finally {
       setLogsLoading(false);
     }
@@ -422,8 +434,8 @@ export default function AdminPage() {
       await fetchApi(`/admin/projects/${id}/restart`, { method: 'POST' });
       showToast('success', `Restarted container for ${name}`);
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to restart container');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to restart container'));
     } finally {
       setActionLoading(null);
     }
@@ -435,8 +447,8 @@ export default function AdminPage() {
       await fetchApi(`/admin/projects/${id}/start`, { method: 'POST' });
       showToast('success', `Started container for ${name}`);
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to start container');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to start container'));
     } finally {
       setActionLoading(null);
     }
@@ -449,8 +461,8 @@ export default function AdminPage() {
       await fetchApi(`/admin/projects/${id}/kill`, { method: 'POST' });
       showToast('success', `Stopped container for ${name}`);
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to stop container');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to stop container'));
     } finally {
       setActionLoading(null);
     }
@@ -463,8 +475,8 @@ export default function AdminPage() {
       await fetchApi(`/admin/projects/${id}`, { method: 'DELETE' });
       showToast('success', `Project ${name} deleted`);
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to delete project');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to delete project'));
     } finally {
       setActionLoading(null);
     }
@@ -479,8 +491,8 @@ export default function AdminPage() {
       });
       showToast('success', `Project tier updated to ${tier.toUpperCase()}`);
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to update project tier');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to update project tier'));
     } finally {
       setActionLoading(null);
     }
@@ -499,8 +511,8 @@ export default function AdminPage() {
       setShowAddUserModal(false);
       setNewUser({ email: '', username: '', password: '', serverLimit: 1, role: 'USER' });
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to create user');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to create user'));
     } finally {
       setActionLoading(null);
     }
@@ -513,8 +525,8 @@ export default function AdminPage() {
       await fetchApi(`/admin/users/${id}`, { method: 'DELETE' });
       showToast('success', `User ${email} removed`);
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to delete user');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to delete user'));
     } finally {
       setActionLoading(null);
     }
@@ -531,8 +543,8 @@ export default function AdminPage() {
       showToast('success', `Updated ${tierModalUser.email} tier to ${selectedUserTier.toUpperCase()}`);
       setTierModalUser(null);
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to update tier');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to update tier'));
     } finally {
       setActionLoading(null);
     }
@@ -549,8 +561,8 @@ export default function AdminPage() {
       showToast('success', `Adjusted ${creditAmount > 0 ? '+' : ''}${creditAmount} credits for ${creditModalUser.email}`);
       setCreditModalUser(null);
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to adjust credits');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to adjust credits'));
     } finally {
       setActionLoading(null);
     }
@@ -572,8 +584,8 @@ export default function AdminPage() {
       });
       showToast('success', 'Server limit updated');
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to update limit');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to update limit'));
     } finally {
       setActionLoading(null);
     }
@@ -587,8 +599,8 @@ export default function AdminPage() {
       await fetchApi('/admin/system/prune', { method: 'POST' });
       showToast('success', 'Docker system prune executed successfully');
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'System prune failed');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'System prune failed'));
     } finally {
       setActionLoading(null);
     }
@@ -601,8 +613,8 @@ export default function AdminPage() {
       await fetchApi('/admin/system/flush-redis', { method: 'POST' });
       showToast('success', 'Redis cache flushed successfully');
       fetchAllData(true);
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to flush Redis');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to flush Redis'));
     } finally {
       setActionLoading(null);
     }
@@ -613,8 +625,8 @@ export default function AdminPage() {
     try {
       const res = await fetchApi('/admin/system/clear-sessions', { method: 'POST' });
       showToast('success', res.message || 'Expired sessions cleared');
-    } catch (e: any) {
-      showToast('error', e.message || 'Failed to clear sessions');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to clear sessions'));
     } finally {
       setActionLoading(null);
     }
@@ -972,7 +984,7 @@ export default function AdminPage() {
                         <YAxis stroke="#94a3b8" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 12, fontSize: 12, color: '#fff' }}
-                          formatter={(value: any) => [`${value}%`, 'CPU Usage']}
+                          formatter={(value) => [`${value ?? 0}%`, 'CPU Usage']}
                         />
                         <Area
                           type="monotone"
@@ -1017,7 +1029,7 @@ export default function AdminPage() {
                         <YAxis stroke="#94a3b8" domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 12, fontSize: 12, color: '#fff' }}
-                          formatter={(value: any) => [`${value}%`, 'Memory Usage']}
+                          formatter={(value) => [`${value ?? 0}%`, 'Memory Usage']}
                         />
                         <Area
                           type="monotone"
@@ -1475,7 +1487,7 @@ export default function AdminPage() {
                         <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 12, fontSize: 12, color: '#fff' }}
-                          formatter={(val: any) => [`₹${val}`, 'Revenue']}
+                          formatter={(val) => [`₹${val ?? 0}`, 'Revenue']}
                         />
                         <Area
                           type="monotone"

@@ -47,6 +47,7 @@ import {
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { fetchApi } from '@/lib/api';
+import { useHasAuthToken } from '@/lib/client-hooks';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { MobileFloatingIsland } from '@/components/MobileFloatingIsland';
 import {
@@ -78,7 +79,7 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
-const TechSymbol = ({ children, className, style }: any) => (
+const TechSymbol = ({ children, className, style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) => (
   <div className={`absolute select-none pointer-events-none text-slate-200/40 font-mono text-4xl font-bold floating-symbol ${className}`} style={style}>
     {children}
   </div>
@@ -443,7 +444,7 @@ const TECH_STACKS = [
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [serverCount, setServerCount] = React.useState(0);
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+  const isLoggedIn = useHasAuthToken();
   const [openFaq, setOpenFaq] = React.useState<number | null>(0);
   const [calcCredits, setCalcCredits] = React.useState<number>(250);
   const [tplCategory, setTplCategory] = React.useState<'all' | 'fullstack' | 'backend' | 'ai'>('all');
@@ -482,17 +483,12 @@ export default function Home() {
   const filteredStacks = stackCategory === 'all' ? TECH_STACKS : TECH_STACKS.filter(s => s.category === stackCategory);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (token) setIsLoggedIn(true);
-    }
-
     const fetchStats = async () => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/stats/public`);
         const data = await response.json();
         setServerCount(data.runningServers || 48);
-      } catch (err) {
+      } catch {
         setServerCount(48);
       }
     };
@@ -792,7 +788,7 @@ export default function Home() {
             </div>
             <h3 className="text-xl font-black text-slate-900 mb-3">Auto-Detect & Build</h3>
             <p className="text-sm text-slate-500 font-medium leading-relaxed">
-              Our intelligent builder automatically detects whether you're using Next.js, Python, Go, or a custom Dockerfile, installs dependencies, and compiles the container.
+              Our intelligent builder automatically detects whether you&apos;re using Next.js, Python, Go, or a custom Dockerfile, installs dependencies, and compiles the container.
             </p>
           </div>
 
@@ -828,11 +824,11 @@ export default function Home() {
               { id: 'all', label: 'All Templates' },
               { id: 'fullstack', label: 'Fullstack & Web' },
               { id: 'backend', label: 'Backend & APIs' },
-              { id: 'ai', label: 'AI & Python' },
+              { id: 'ai' as const, label: 'AI & Python' },
             ].map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => setTplCategory(cat.id as any)}
+                onClick={() => setTplCategory(cat.id as 'all' | 'fullstack' | 'backend' | 'ai')}
                 className={`px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer ${
                   tplCategory === cat.id
                     ? 'bg-[#0F172A] text-white shadow-lg shadow-slate-900/20 scale-105'
@@ -1279,7 +1275,7 @@ export default function Home() {
               <DockerIcon size={28} />
             </div>
             <div>
-              <h4 className="text-sm sm:text-base font-black text-white">Don't see your favorite framework or runtime?</h4>
+              <h4 className="text-sm sm:text-base font-black text-white">Don&apos;t see your favorite framework or runtime?</h4>
               <p className="text-xs text-slate-400 mt-0.5">Bring any standard Dockerfile or container image. CodeHost executes custom build arguments with persistent volume support.</p>
             </div>
           </div>

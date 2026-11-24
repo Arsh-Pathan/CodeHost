@@ -1,9 +1,8 @@
-const getApiUrl = () => {
+export const getApiUrl = (): string => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
   if (typeof window !== 'undefined') {
-    // If we're on code-host.online, the API is at api.code-host.online
     if (window.location.hostname.endsWith('code-host.online')) {
-      return `https://api.code-host.online`;
+      return 'https://api.code-host.online';
     }
   }
   return 'http://localhost:4000';
@@ -11,34 +10,117 @@ const getApiUrl = () => {
 
 export const API_URL = getApiUrl();
 
-export async function fetchApi(endpoint: string, options: RequestInit = {}) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
-  };
+export class ApiError extends Error {
+  status?: number;
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+export function getErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === 'string' && err) return err;
+  return fallback;
+}
+
+export function getErrorStatus(err: unknown): number | undefined {
+  if (err && typeof err === 'object' && 'status' in err) {
+    const status = (err as { status?: unknown }).status;
+    return typeof status === 'number' ? status : undefined;
+  }
+  return undefined;
+}
+
+let inflightRefresh: Promise<string | null> | null = null;
+
+async function refreshAccessToken(baseUrl: string): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return null;
+
+  if (!inflightRefresh) {
+    inflightRefresh = (async () => {
+      try {
+        const res = await fetch(`${baseUrl}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!res.ok) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          return null;
+        }
+        const data = (await res.json()) as { accessToken?: string; refreshToken?: string };
+        if (data.accessToken) {
+          localStorage.setItem('token', data.accessToken);
+        }
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+        }
+        return data.accessToken || null;
+      } catch {
+        return null;
+      } finally {
+        inflightRefresh = null;
+      }
+    })();
   }
 
-  const res = await fetch(`${API_URL}${endpoint}`, {
+  return inflightRefresh;
+}
+
+export async function fetchApi(endpoint: string, options: RequestInit = {}) {
+  const baseUrl = getApiUrl();
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+
+  const buildHeaders = (authToken: string | null): Record<string, string> => {
+    const headers: Record<string, string> = {};
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+    if (options.headers) {
+      Object.assign(headers, options.headers as Record<string, string>);
+    }
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    return headers;
+  };
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  let res = await fetch(`${baseUrl}${endpoint}`, {
     ...options,
-    headers,
+    headers: buildHeaders(token),
   });
+
+  const isAuthEndpoint =
+    endpoint.startsWith('/auth/login') ||
+    endpoint.startsWith('/auth/register') ||
+    endpoint.startsWith('/auth/refresh');
+
+  if (res.status === 401 && !isAuthEndpoint && typeof window !== 'undefined') {
+    const refreshedToken = await refreshAccessToken(baseUrl);
+    if (refreshedToken) {
+      res = await fetch(`${baseUrl}${endpoint}`, {
+        ...options,
+        headers: buildHeaders(refreshedToken),
+      });
+    }
+  }
 
   if (!res.ok) {
     let errorMessage = 'Something went wrong';
     try {
-      const errorData = await res.json();
+      const errorData = (await res.json()) as { error?: string };
       errorMessage = errorData.error || errorMessage;
-    } catch (e) {
+    } catch {
       // Not JSON
     }
-    const error: any = new Error(errorMessage);
-    error.status = res.status;
-    throw error;
+    throw new ApiError(errorMessage, res.status);
   }
 
   return res.json();

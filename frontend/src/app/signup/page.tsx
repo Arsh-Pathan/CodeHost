@@ -3,15 +3,20 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage } from '@/lib/api';
 import OAuthButtons from '@/components/oauth-buttons';
 import { LogoWithText } from '@/components/Logo';
-import { Gift, CheckCircle2, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { Gift, CheckCircle2, Tag, ChevronDown } from 'lucide-react';
 
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialRef = searchParams.get('ref') || '';
+  const templateParam = searchParams.get('template') || '';
+
+  const nextDestination = templateParam
+    ? `/dashboard/new?template=${encodeURIComponent(templateParam)}`
+    : '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,14 +39,13 @@ function SignupForm() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('token')) {
-      router.push('/dashboard');
+      router.push(nextDestination);
     }
-  }, [router]);
+  }, [router, nextDestination]);
 
   // Validate referral code whenever it is populated or altered
   useEffect(() => {
     if (!referralCode.trim()) {
-      setReferrerDetails(null);
       return;
     }
 
@@ -53,13 +57,15 @@ function SignupForm() {
         } else {
           setReferrerDetails({ valid: false });
         }
-      } catch (err) {
+      } catch {
         setReferrerDetails(null);
       }
     }, 400);
 
     return () => clearTimeout(timer);
   }, [referralCode]);
+
+  const activeReferrerDetails = referralCode.trim() ? referrerDetails : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,9 +103,9 @@ function SignupForm() {
 
       localStorage.setItem('token', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message);
+      router.push(nextDestination);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -117,24 +123,27 @@ function SignupForm() {
           </h2>
           <p className="mt-2 text-center text-sm text-slate-500 font-medium">
             Already have an account?{' '}
-            <Link href="/login" className="font-bold text-[#2563EB] hover:text-blue-500">
+            <Link
+              href={templateParam ? `/login?template=${encodeURIComponent(templateParam)}` : '/login'}
+              className="font-bold text-[#2563EB] hover:text-blue-500"
+            >
               Sign in
             </Link>
           </p>
         </div>
 
         {/* Referral Welcome Notification Banner */}
-        {referrerDetails?.valid && (
+        {activeReferrerDetails?.valid && (
           <div className="p-4 bg-emerald-50 border border-emerald-200/80 rounded-xl flex items-start gap-3">
             <div className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg shrink-0 mt-0.5">
               <Gift size={18} />
             </div>
             <div className="text-xs text-emerald-900">
               <p className="font-bold text-sm text-emerald-950">
-                You were invited by @{referrerDetails.referrerUsername || referrerDetails.referrerName}!
+                You were invited by @{activeReferrerDetails.referrerUsername || activeReferrerDetails.referrerName}!
               </p>
               <p className="mt-0.5 text-emerald-700 font-medium">
-                <span className="font-bold text-emerald-900">+{referrerDetails.bonusCredits || 25} free credits</span> will be automatically added to your wallet upon signup.
+                <span className="font-bold text-emerald-900">+{activeReferrerDetails.bonusCredits || 25} free credits</span> will be automatically added to your wallet upon signup.
               </p>
             </div>
           </div>
@@ -251,13 +260,13 @@ function SignupForm() {
                     value={referralCode}
                     onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                   />
-                  {referrerDetails?.valid && (
+                  {activeReferrerDetails?.valid && (
                     <div className="absolute right-2.5 top-2.5 text-emerald-600">
                       <CheckCircle2 size={16} />
                     </div>
                   )}
                 </div>
-                {referrerDetails?.valid === false && referralCode.trim() !== '' && (
+                {activeReferrerDetails?.valid === false && referralCode.trim() !== '' && (
                   <p className="text-[11px] font-medium text-red-500">
                     Invalid or inactive referral code
                   </p>
@@ -277,7 +286,7 @@ function SignupForm() {
                 className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#2563EB] focus:ring-blue-500 cursor-pointer"
               />
               <span className="text-xs text-slate-600 leading-snug">
-                I agree to CodeHost's{' '}
+                I agree to CodeHost&apos;s{' '}
                 <Link href="/terms" target="_blank" className="font-semibold text-[#2563EB] hover:underline">
                   Terms of Service
                 </Link>{' '}

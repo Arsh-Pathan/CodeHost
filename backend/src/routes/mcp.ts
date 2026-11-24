@@ -15,6 +15,7 @@ import {
   CREDIT_PRICE_USD,
 } from '@codehost/config';
 import { generateTokens } from './auth.js';
+import { validateProjectName, sanitizeUserEnvVars } from '../lib/validation.js';
 
 const router = Router();
 
@@ -478,7 +479,13 @@ async function executeToolCall(name: string, args: Record<string, any>, authHead
       if (!parsed.success) {
         return toolResult({ error: parsed.error.errors[0]?.message || 'Invalid project arguments' }, true);
       }
-      const { name: projName, tier, buildCommand, startCommand, envVars } = parsed.data;
+      const { name: rawProjName, tier, buildCommand, startCommand, envVars } = parsed.data;
+      const nameCheck = validateProjectName(rawProjName);
+      if (!nameCheck.valid) {
+        return toolResult({ error: nameCheck.error || 'Invalid project name' }, true);
+      }
+      const projName = nameCheck.normalized;
+      const cleanEnvVars = sanitizeUserEnvVars(envVars);
       const tierConfig = RESOURCE_TIERS[tier];
 
       const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
@@ -534,7 +541,7 @@ async function executeToolCall(name: string, args: Record<string, any>, authHead
               tier,
               buildCommand: buildCommand ?? '',
               startCommand: startCommand ?? '',
-              envVars: envVars ?? {},
+              envVars: cleanEnvVars,
             },
           });
         });

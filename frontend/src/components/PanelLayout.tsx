@@ -17,7 +17,8 @@ import {
   Gift,
   Coins,
   Plus,
-  ExternalLink
+  ExternalLink,
+  type LucideIcon
 } from 'lucide-react';
 import UserAvatar from './UserAvatar';
 import CreditTopUpModal from './CreditTopUpModal';
@@ -69,11 +70,7 @@ export default function PanelLayout({
     };
   }, [isProfileMenuOpen]);
 
-  useEffect(() => {
-    if (walletBalance !== undefined) {
-      setBalance(walletBalance);
-    }
-  }, [walletBalance]);
+  const displayBalance = walletBalance !== undefined ? walletBalance : balance;
 
   useEffect(() => {
     if (user && walletBalance === undefined) {
@@ -101,7 +98,7 @@ export default function PanelLayout({
     router.push('/');
   };
 
-  const navItems: Array<{ name: string; icon: any; href: string; badge?: string; disabled?: boolean }> = [
+  const navItems: Array<{ name: string; icon: LucideIcon; href: string; badge?: string; disabled?: boolean }> = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
     { name: 'New Server', icon: Plus, href: '/dashboard/new' },
     { name: 'Billing', icon: CreditCard, href: '/dashboard/billing' },
@@ -184,11 +181,11 @@ export default function PanelLayout({
                   </span>
                   <div className="flex items-center space-x-1 text-slate-700 font-black text-xs">
                     <Coins size={12} className="text-amber-500 fill-amber-500 shrink-0" />
-                    <span>{balance ?? 0}</span>
+                    <span>{displayBalance ?? 0}</span>
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-500 font-medium mb-2.5">
-                  {balance === 0 ? '0 credits remaining. Top up to keep services running.' : `${balance} compute credits available.`}
+                  {displayBalance === 0 ? '0 credits remaining. Top up to keep services running.' : `${displayBalance} compute credits available.`}
                 </p>
                 <button
                   type="button"
@@ -337,7 +334,7 @@ export default function PanelLayout({
             <div className="flex items-center space-x-1.5 bg-slate-50 border border-slate-200/90 hover:border-slate-300 px-2.5 sm:px-3 py-1.5 rounded-xl transition-all shadow-2xs">
               <Coins size={14} className="text-amber-500 fill-amber-500 shrink-0" />
               <span className="text-xs font-black text-slate-800 tabular-nums">
-                {balance ?? 0}
+                {displayBalance ?? 0}
               </span>
               <span className="text-[10px] font-bold text-slate-400 hidden sm:inline">credits</span>
               <button

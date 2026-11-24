@@ -1,20 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useClientPathname } from '@/lib/client-hooks';
 import { 
-  ArrowLeft, 
   Home, 
   LayoutDashboard, 
   BookOpen, 
-  Terminal, 
   PlusCircle, 
   Activity, 
   Copy, 
   Check, 
   Search, 
-  ArrowRight,
-  ExternalLink,
   RefreshCw,
   Cpu,
   ShieldAlert,
@@ -23,16 +20,10 @@ import {
 
 export default function NotFound() {
   const [copied, setCopied] = useState(false);
-  const [currentPath, setCurrentPath] = useState<string>('/requested-route');
+  const currentPath = useClientPathname('/requested-route');
   const [isPinging, setIsPinging] = useState(false);
   const [pingResult, setPingResult] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCurrentPath(window.location.pathname || '/requested-route');
-    }
-  }, []);
 
   const copyDiagnostic = () => {
     const diagnosticText = `CodeHost Edge Routing Report:

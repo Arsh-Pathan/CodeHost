@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage } from '@/lib/api';
 import OAuthButtons from '@/components/oauth-buttons';
 import { LogoWithText } from '@/components/Logo';
 import { Loader2 } from 'lucide-react';
@@ -13,17 +13,22 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const verified = searchParams.get('verified') === 'true';
   const oauthError = searchParams.get('error');
+  const templateParam = searchParams.get('template') || '';
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(oauthError ? 'OAuth sign-in failed. Please try again.' : '');
   const [loading, setLoading] = useState(false);
 
+  const nextDestination = templateParam
+    ? `/dashboard/new?template=${encodeURIComponent(templateParam)}`
+    : '/dashboard';
+
   useEffect(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('token')) {
-      router.push('/dashboard');
+      router.push(nextDestination);
     }
-  }, [router]);
+  }, [router, nextDestination]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,9 +43,9 @@ function LoginForm() {
 
       localStorage.setItem('token', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message);
+      router.push(nextDestination);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -58,7 +63,10 @@ function LoginForm() {
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600">
             Or{' '}
-            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link
+              href={templateParam ? `/signup?template=${encodeURIComponent(templateParam)}` : '/signup'}
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               create a new account
             </Link>
           </p>

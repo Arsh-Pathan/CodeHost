@@ -5,7 +5,7 @@ export const revalidate = 0;
 
 export async function GET() {
   const startTime = Date.now();
-  let apiStatus: any = { status: 'unknown' };
+  let apiStatus: { status: string; database?: string; redis?: string; error?: string } = { status: 'unknown' };
   let apiLatency = 0;
 
   try {

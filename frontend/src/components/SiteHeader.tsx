@@ -1,26 +1,19 @@
 "use client";
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowRight, MessageSquare } from 'lucide-react';
 import { LogoWithText } from '@/components/Logo';
+import { useHasAuthToken } from '@/lib/client-hooks';
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const isLoggedIn = useHasAuthToken();
 
   const isHiddenRoute =
     pathname?.startsWith('/dashboard') ||
     pathname?.startsWith('/admin') ||
     pathname?.startsWith('/auth/callback');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      setIsLoggedIn(Boolean(token));
-    }
-  }, [pathname]);
 
   if (isHiddenRoute) return null;
 

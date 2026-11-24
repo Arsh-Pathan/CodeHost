@@ -89,7 +89,9 @@ router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) 
         
         await RunnerService.startContainer(projectId, deployment.id, imageName);
       } catch (err) {
-        logger.error(`Pipeline failed for ${deployment.id}`);
+        logger.error({ err }, `Pipeline failed for ${deployment.id}`);
+        await prisma.deployment.update({ where: { id: deployment.id }, data: { status: 'failed' } }).catch(() => {});
+        await prisma.project.update({ where: { id: projectId }, data: { status: 'failed' } }).catch(() => {});
       } finally {
         await releaseDeployLock(projectId);
         // Cleanup uploaded zip
@@ -165,7 +167,9 @@ router.post('/:projectId/github', async (req: AuthRequest, res) => {
         );
         await RunnerService.startContainer(projectId, deployment.id, imageName);
       } catch (err) {
-        logger.error(`GitHub pipeline failed for ${deployment.id}`);
+        logger.error({ err }, `GitHub pipeline failed for ${deployment.id}`);
+        await prisma.deployment.update({ where: { id: deployment.id }, data: { status: 'failed' } }).catch(() => {});
+        await prisma.project.update({ where: { id: projectId }, data: { status: 'failed' } }).catch(() => {});
       } finally {
         await releaseDeployLock(projectId);
       }
