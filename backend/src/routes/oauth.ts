@@ -5,7 +5,11 @@ import { prisma } from '@codehost/database';
 import { env } from '@codehost/config';
 import { logger } from '@codehost/logger';
 import { generateTokens } from './auth.js';
-import { generateUniqueReferralCode, processReferralReward } from '../services/referral.js';
+import {
+  generateUniqueReferralCode,
+  isConfiguredAdminEmail,
+  processReferralReward,
+} from '../services/referral.js';
 
 const router = Router();
 
@@ -54,11 +58,13 @@ async function generateUniqueUsername(email: string, name: string | null): Promi
 async function findOrCreateOAuthUser(
   provider: string,
   providerId: string,
-  email: string,
+  rawEmail: string,
   name: string | null,
   avatarUrl: string | null = null,
   referralCode: string | null = null
 ) {
+  const email = rawEmail.trim().toLowerCase();
+
   // 1. Look up by provider + providerId
   let user = await prisma.user.findFirst({
     where: { provider, providerId },
@@ -73,26 +79,37 @@ async function findOrCreateOAuthUser(
     return user;
   }
 
-  // 2. Look up by email (auto-link)
-  user = await prisma.user.findUnique({ where: { email } });
+  // 2. Look up by verified email (case-insensitive to guard pre-account takeover)
+  user = await prisma.user.findFirst({
+    where: { email: { equals: email, mode: 'insensitive' } },
+  });
   if (user) {
+    const wasUnverified = !user.emailVerified;
     user = await prisma.user.update({
       where: { id: user.id },
-      data: { 
-        provider, 
-        providerId, 
+      data: {
+        email,
+        provider,
+        providerId,
         emailVerified: true,
-        ...(avatarUrl ? { avatarUrl } : {})
+        verificationToken: null,
+        verificationTokenExpiry: null,
+        // Prevent pre-account takeover where an attacker pre-registered an unverified password account
+        ...(wasUnverified ? { password: null } : {}),
+        ...(avatarUrl ? { avatarUrl } : {}),
       },
     });
+    if (wasUnverified) {
+      await prisma.session.deleteMany({ where: { userId: user.id } });
+    }
     return user;
   }
 
   // 3. Create new user
   const username = await generateUniqueUsername(email, name);
-  const isAdmin = email.toLowerCase() === 'mail.arsh.pathan@gmail.com';
+  const isAdmin = isConfiguredAdminEmail(email);
   const myReferralCode = await generateUniqueReferralCode(username);
-  
+
   user = await prisma.user.create({
     data: {
       email,
@@ -128,8 +145,9 @@ async function handleOAuthSuccess(res: any, user: any) {
     },
   });
 
+  // Pass tokens in URL hash fragment so they are never sent in HTTP Referer headers or access logs
   const params = new URLSearchParams({ accessToken, refreshToken });
-  res.redirect(`${env.APP_URL}/auth/callback?${params.toString()}`);
+  res.redirect(`${env.APP_URL}/auth/callback#${params.toString()}`);
 }
 
 // --- Google OAuth ---
@@ -186,18 +204,28 @@ router.get('/google/callback', async (req, res) => {
     });
 
     const tokenData = await tokenRes.json();
-    if (!tokenData.id_token) {
-      logger.error({ tokenData }, 'Google OAuth: no id_token');
+    if (!tokenRes.ok || !tokenData.id_token) {
+      logger.error({ status: tokenRes.status, tokenData }, 'Google OAuth: no id_token');
       return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
     }
 
-    // Decode id_token (JWT payload is base64url-encoded)
+    // Decode id_token (returned directly over TLS from https://oauth2.googleapis.com/token)
     const payload = JSON.parse(
       Buffer.from(tokenData.id_token.split('.')[1], 'base64url').toString()
     );
 
-    if (payload.aud && env.GOOGLE_CLIENT_ID && payload.aud !== env.GOOGLE_CLIENT_ID) {
-      logger.warn({ aud: payload.aud }, 'Google OAuth: audience mismatch');
+    if (payload.iss && payload.iss !== 'https://accounts.google.com' && payload.iss !== 'accounts.google.com') {
+      logger.warn({ iss: payload.iss }, 'Google OAuth: issuer mismatch');
+      return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
+    }
+
+    if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now() - 60_000) {
+      logger.warn({ exp: payload.exp }, 'Google OAuth: expired id_token');
+      return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
+    }
+
+    if (!payload.sub || (env.GOOGLE_CLIENT_ID && payload.aud !== env.GOOGLE_CLIENT_ID)) {
+      logger.warn({ aud: payload.aud }, 'Google OAuth: audience or sub mismatch');
       return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
     }
 
@@ -291,15 +319,20 @@ router.get('/github/callback', async (req, res) => {
 
     const profile: any = await profileRes.json();
     const emailsRaw: any = await emailsRes.json();
+    if (!profileRes.ok || !emailsRes.ok) {
+      logger.error({ profileStatus: profileRes.status, emailsStatus: emailsRes.status }, 'GitHub OAuth profile/emails fetch failed');
+      return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
+    }
+
     const emails: { email: string; primary: boolean; verified: boolean }[] = Array.isArray(emailsRaw) ? emailsRaw : [];
 
+    // Only trust GitHub-verified email addresses to prevent unverified email takeover
     const primaryEmail =
       emails.find((e) => e.primary && e.verified)?.email ||
-      emails.find((e) => e.verified)?.email ||
-      (typeof profile?.email === 'string' ? profile.email : undefined);
+      emails.find((e) => e.verified)?.email;
 
     if (!primaryEmail || !profile?.id) {
-      return res.redirect(`${env.APP_URL}/login?error=oauth_no_email`);
+      return res.redirect(`${env.APP_URL}/login?error=oauth_unverified_email`);
     }
 
     const user = await findOrCreateOAuthUser(

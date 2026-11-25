@@ -2,13 +2,17 @@ import { Router } from 'express';
 import fs from 'fs-extra';
 import path from 'path';
 import { prisma } from '@codehost/database';
-import { docker } from '@codehost/docker';
+import { docker, demuxDockerLogBuffer } from '@codehost/docker';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { logger } from '@codehost/logger';
 import { z } from 'zod';
 import { BuilderService } from '../services/builder.js';
 import { RunnerService } from '../services/runner.js';
 import { acquireDeploySlot, releaseDeployLock } from '../services/deploy-lock.js';
+import {
+  ensureProjectBillingCurrent,
+  recalculateUserServerLimit,
+} from '../services/billing-guard.js';
 import { RESOURCE_TIERS } from '@codehost/config';
 import {
   validateProjectName,
@@ -39,55 +43,32 @@ router.post('/', async (req: AuthRequest, res) => {
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
-
-    const projectCount = await prisma.project.count({
-      where: { userId }
-    });
-
-    if (projectCount >= user.serverLimit) {
-      return res.status(403).json({ error: `Server limit reached (${user.serverLimit} server${user.serverLimit === 1 ? '' : 's'}). Unlock an additional server slot with credits from your dashboard.` });
+    if (!user.emailVerified) {
+      return res.status(403).json({ error: 'Please verify your email address before creating a project.' });
     }
 
-    // Check if name is taken
-    const existingProject = await prisma.project.findFirst({
-      where: { name }
-    });
-
+    // Check if name is taken fast before transaction
+    const existingProject = await prisma.project.findFirst({ where: { name } });
     if (existingProject) {
       return res.status(400).json({ error: 'Project name already taken across the platform' });
     }
 
-    // Atomically check wallet, deduct credits, and create project
+    // Atomically lock User row, check serverLimit, create project, and deduct credits
     const project = await prisma.$transaction(async (tx) => {
-      if (tier !== 'free' && tierConfig.creditsPerMonth > 0) {
-        const wallet = await tx.wallet.findUnique({ where: { userId } });
-        if (!wallet || wallet.balance < tierConfig.creditsPerMonth) {
-          throw new Error(`INSUFFICIENT_CREDITS:${tierConfig.label} tier requires ${tierConfig.creditsPerMonth} credits/month. Please top up your wallet.`);
-        }
-
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: { decrement: tierConfig.creditsPerMonth } },
-        });
-
-        await tx.transaction.create({
-          data: {
-            walletId: wallet.id,
-            amount: -tierConfig.creditsPerMonth,
-            type: 'tier_charge',
-            description: `Initial charge for ${name} (${tierConfig.label} tier)`,
-          },
-        });
-
-        if (tierConfig.maxProjects > user.serverLimit) {
-          await tx.user.update({
-            where: { id: userId },
-            data: { serverLimit: tierConfig.maxProjects },
-          });
-        }
+      const lockedUsers = await tx.$queryRaw<Array<{ id: string; serverLimit: number }>>`
+        SELECT "id", "serverLimit" FROM "User" WHERE "id" = ${userId} FOR UPDATE
+      `;
+      const lockedUser = lockedUsers[0];
+      if (!lockedUser) {
+        throw new Error('USER_NOT_FOUND');
       }
 
-      return await tx.project.create({
+      const projectCount = await tx.project.count({ where: { userId } });
+      if (projectCount >= lockedUser.serverLimit) {
+        throw new Error(`SERVER_LIMIT:${lockedUser.serverLimit}`);
+      }
+
+      const created = await tx.project.create({
         data: {
           name,
           userId,
@@ -95,6 +76,35 @@ router.post('/', async (req: AuthRequest, res) => {
           tier,
         },
       });
+
+      if (tier !== 'free' && tierConfig.creditsPerMonth > 0) {
+        const wallet = await tx.wallet.findUnique({ where: { userId } });
+        if (!wallet) {
+          throw new Error(`INSUFFICIENT_CREDITS:${tierConfig.label} tier requires ${tierConfig.creditsPerMonth} credits/month. Please top up your wallet.`);
+        }
+
+        const debited = await tx.wallet.updateMany({
+          where: { id: wallet.id, balance: { gte: tierConfig.creditsPerMonth } },
+          data: { balance: { decrement: tierConfig.creditsPerMonth } },
+        });
+        if (debited.count === 0) {
+          throw new Error(`INSUFFICIENT_CREDITS:${tierConfig.label} tier requires ${tierConfig.creditsPerMonth} credits/month. Please top up your wallet.`);
+        }
+
+        await tx.transaction.create({
+          data: {
+            walletId: wallet.id,
+            amount: -tierConfig.creditsPerMonth,
+            type: 'tier_charge',
+            projectId: created.id,
+            description: `Initial charge for ${name} (${tierConfig.label} tier)`,
+          },
+        });
+
+        await recalculateUserServerLimit(tx, userId);
+      }
+
+      return created;
     });
 
     logger.info(`Project created: ${project.id} by user ${userId}`);
@@ -105,6 +115,15 @@ router.post('/', async (req: AuthRequest, res) => {
     }
     if (error.message?.startsWith('INSUFFICIENT_CREDITS:')) {
       return res.status(402).json({ error: error.message.replace('INSUFFICIENT_CREDITS:', '') });
+    }
+    if (error.message?.startsWith('SERVER_LIMIT:')) {
+      const lim = Number(error.message.split(':')[1] || 1);
+      return res.status(403).json({
+        error: `Server limit reached (${lim} server${lim === 1 ? '' : 's'}). Unlock an additional server slot with credits from your dashboard.`,
+      });
+    }
+    if (error?.code === 'P2002') {
+      return res.status(400).json({ error: 'Project name already taken across the platform' });
     }
     logger.error({ error }, 'Create project error');
     res.status(500).json({ error: 'Internal server error' });
@@ -168,6 +187,11 @@ router.delete('/:id', async (req: AuthRequest, res) => {
       logger.warn(`Failed to stop container for deleted project ${project.id}`);
     }
 
+    const projectDeployments = await prisma.deployment.findMany({
+      where: { projectId: project.id },
+      select: { id: true },
+    });
+
     await prisma.deployment.deleteMany({
       where: { projectId: project.id }
     });
@@ -176,7 +200,14 @@ router.delete('/:id', async (req: AuthRequest, res) => {
       where: { id: project.id }
     });
 
+    await recalculateUserServerLimit(prisma, project.userId).catch(() => {});
+
     await fs.remove(path.join(process.cwd(), 'storage', 'projects', project.id)).catch(() => {});
+    await Promise.allSettled(
+      projectDeployments.map((d) =>
+        docker.getImage(`codehost-project-${project.id.toLowerCase()}:${d.id}`).remove({ force: true })
+      )
+    );
 
     logger.info(`Project deleted: ${project.id}`);
     res.json({ success: true });
@@ -202,14 +233,14 @@ router.post('/:id/restart', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'No successful deployment to restart' });
     }
 
-    const imageName = `codehost-project-${project.id}:${lastDeployment.id}`;
-    
+    const billingCheck = await ensureProjectBillingCurrent(project.id, req.user!.id);
+    if (!billingCheck.ok) {
+      return res.status(billingCheck.status).json({ error: billingCheck.error });
+    }
+
+    const imageName = `codehost-project-${project.id.toLowerCase()}:${lastDeployment.id}`;
+
     await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
-    
-    await prisma.project.update({
-      where: { id: project.id },
-      data: { status: 'running' }
-    });
 
     res.json({ success: true });
   } catch (error) {
@@ -232,7 +263,7 @@ router.post('/:id/stop', async (req: AuthRequest, res) => {
 
     await prisma.project.update({
       where: { id: project.id },
-      data: { status: 'stopped' }
+      data: { status: 'stopped', containerId: null }
     });
 
     res.json({ success: true });
@@ -244,6 +275,8 @@ router.post('/:id/stop', async (req: AuthRequest, res) => {
 
 // Redeploy - rebuild from existing source (or re-clone from GitHub)
 router.post('/:id/redeploy', async (req: AuthRequest, res) => {
+  let lockToken: string | undefined;
+  let lockedProjectId: string | undefined;
   try {
     const project = await prisma.project.findUnique({
       where: { id: req.params.id }
@@ -257,10 +290,17 @@ router.post('/:id/redeploy', async (req: AuthRequest, res) => {
       return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
     }
 
-    const slot = await acquireDeploySlot(project.id, project.tier || 'free');
+    const billingCheck = await ensureProjectBillingCurrent(project.id, req.user!.id);
+    if (!billingCheck.ok) {
+      return res.status(billingCheck.status).json({ error: billingCheck.error });
+    }
+
+    const slot = await acquireDeploySlot(project.id, project.tier || 'free', req.user!.id);
     if (!slot.ok) {
       return res.status(slot.status).json({ error: slot.error });
     }
+    lockToken = (slot as any).lockToken;
+    lockedProjectId = project.id;
 
     const deployment = await prisma.deployment.create({
       data: {
@@ -287,16 +327,21 @@ router.post('/:id/redeploy', async (req: AuthRequest, res) => {
         );
         await RunnerService.startContainer(project.id, deployment.id, imageName);
       } catch (err) {
-        logger.error(`Redeploy pipeline failed for ${deployment.id}`);
+        logger.error({ err }, `Redeploy pipeline failed for ${deployment.id}`);
         await prisma.deployment.update({ where: { id: deployment.id }, data: { status: 'failed' } }).catch(() => {});
         await prisma.project.update({ where: { id: project.id }, data: { status: 'failed' } }).catch(() => {});
       } finally {
-        await releaseDeployLock(project.id);
+        await releaseDeployLock(project.id, lockToken);
       }
     })();
   } catch (error) {
+    if (lockedProjectId && lockToken) {
+      await releaseDeployLock(lockedProjectId, lockToken).catch(() => {});
+    }
     logger.error({ error }, 'Redeploy error');
-    res.status(500).json({ error: 'Failed to queue redeploy' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to queue redeploy' });
+    }
   }
 });
 
@@ -323,9 +368,7 @@ router.get('/:id/logs', async (req: AuthRequest, res) => {
         tail: 200,
         timestamps: true,
       });
-      // Docker logs come with a header per line, strip the 8-byte prefix
-      const logText = logBuffer.toString('utf8').replace(/[\x00-\x08]/g, '');
-      res.json({ logs: logText });
+      res.json({ logs: demuxDockerLogBuffer(logBuffer) });
     } catch {
       res.json({ logs: 'Container not running.' });
     }
@@ -362,7 +405,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
 
     const { name, buildCommand, startCommand, dockerfileOverride, envVars, tier, customDomain } = req.body;
 
-    // Handle Rename (Subdomain Change) logic
+    // 1. Validate EVERY field BEFORE performing any credit charge or DB write
     let nextName = project.name;
     if (name !== undefined && String(name).trim().toLowerCase() !== project.name.toLowerCase()) {
       const nameCheck = validateProjectName(name);
@@ -378,46 +421,17 @@ router.put('/:id', async (req: AuthRequest, res) => {
       nextName = nameCheck.normalized;
     }
 
-    // Handle tier change
-    let newTier = project.tier;
-    if (tier && tier !== project.tier && RESOURCE_TIERS[tier]) {
-      const newTierConfig = RESOURCE_TIERS[tier];
-      const oldTierConfig = RESOURCE_TIERS[project.tier] || RESOURCE_TIERS['free'];
-
-      if (tier !== 'free' && newTierConfig.creditsPerMonth > oldTierConfig.creditsPerMonth) {
-        const diff = newTierConfig.creditsPerMonth - oldTierConfig.creditsPerMonth;
-        const wallet = await prisma.wallet.findUnique({ where: { userId: req.user!.id } });
-        if (!wallet || wallet.balance < diff) {
-          return res.status(402).json({ error: `Insufficient credits. Upgrade requires ${diff} additional credits.` });
-        }
-
-        await prisma.$transaction(async (tx) => {
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { decrement: diff } },
-          });
-          await tx.transaction.create({
-            data: {
-              walletId: wallet.id,
-              amount: -diff,
-              type: 'tier_charge',
-              description: `Tier upgrade for ${project.name}: ${oldTierConfig.label} → ${newTierConfig.label}`,
-              projectId: project.id,
-            },
-          });
-          const owner = await tx.user.findUnique({ where: { id: req.user!.id }, select: { serverLimit: true } });
-          if (owner && newTierConfig.maxProjects > owner.serverLimit) {
-            await tx.user.update({
-              where: { id: req.user!.id },
-              data: { serverLimit: newTierConfig.maxProjects },
-            });
-          }
-        });
-      }
-      newTier = tier;
+    if (tier !== undefined && (!RESOURCE_TIERS[tier])) {
+      return res.status(400).json({ error: 'Invalid tier' });
     }
+    const newTier = tier && RESOURCE_TIERS[tier] ? tier : project.tier;
+    const newTierConfig = RESOURCE_TIERS[newTier] || RESOURCE_TIERS['free'];
+    const oldTierConfig = RESOURCE_TIERS[project.tier] || RESOURCE_TIERS['free'];
+    const upgradeDiff =
+      newTier !== 'free' && newTierConfig.creditsPerMonth > oldTierConfig.creditsPerMonth
+        ? newTierConfig.creditsPerMonth - oldTierConfig.creditsPerMonth
+        : 0;
 
-    // Validate and check uniqueness for custom domain
     let nextCustomDomain = project.customDomain;
     if (customDomain !== undefined) {
       const domainCheck = validateCustomDomain(customDomain);
@@ -440,27 +454,62 @@ router.put('/:id', async (req: AuthRequest, res) => {
         }
       }
       nextCustomDomain = domainCheck.normalized;
+    } else if (newTier === 'free' && project.customDomain) {
+      // Clear custom domain automatically when downgrading to Free
+      nextCustomDomain = null;
     }
 
     const sanitizedEnvVars =
       envVars !== undefined ? sanitizeUserEnvVars(envVars) : project.envVars;
 
-    const updated = await prisma.project.update({
-      where: { id: project.id },
-      data: {
-        name: nextName,
-        buildCommand: buildCommand ?? project.buildCommand,
-        startCommand: startCommand ?? project.startCommand,
-        dockerfileOverride: dockerfileOverride ?? project.dockerfileOverride,
-        envVars: sanitizedEnvVars as any,
-        tier: newTier,
-        customDomain: nextCustomDomain,
+    // 2. Execute credit debit (if upgrading), project update, and serverLimit recalculation inside ONE atomic transaction
+    const updated = await prisma.$transaction(async (tx) => {
+      if (upgradeDiff > 0) {
+        const wallet = await tx.wallet.findUnique({ where: { userId: req.user!.id } });
+        if (!wallet) {
+          throw new Error(`INSUFFICIENT_CREDITS:Insufficient credits. Upgrade requires ${upgradeDiff} additional credits.`);
+        }
+        const debited = await tx.wallet.updateMany({
+          where: { id: wallet.id, balance: { gte: upgradeDiff } },
+          data: { balance: { decrement: upgradeDiff } },
+        });
+        if (debited.count === 0) {
+          throw new Error(`INSUFFICIENT_CREDITS:Insufficient credits. Upgrade requires ${upgradeDiff} additional credits.`);
+        }
+        await tx.transaction.create({
+          data: {
+            walletId: wallet.id,
+            amount: -upgradeDiff,
+            type: 'tier_charge',
+            description: `Tier upgrade for ${nextName}: ${oldTierConfig.label} → ${newTierConfig.label}`,
+            projectId: project.id,
+          },
+        });
       }
+
+      const nextProject = await tx.project.update({
+        where: { id: project.id },
+        data: {
+          name: nextName,
+          buildCommand: buildCommand !== undefined ? String(buildCommand) : project.buildCommand,
+          startCommand: startCommand !== undefined ? String(startCommand) : project.startCommand,
+          dockerfileOverride: dockerfileOverride !== undefined ? String(dockerfileOverride) : project.dockerfileOverride,
+          envVars: sanitizedEnvVars as any,
+          tier: newTier,
+          customDomain: nextCustomDomain,
+        },
+      });
+
+      if (newTier !== project.tier) {
+        await recalculateUserServerLimit(tx, req.user!.id);
+      }
+
+      return nextProject;
     });
 
-    // Auto-restart if name, tier, or custom domain changed and project is running
+    // 3. Auto-restart running container if hostname, tier, or custom domain changed
     const nameChanged = nextName !== project.name;
-    const tierChanged = tier && tier !== project.tier;
+    const tierChanged = newTier !== project.tier;
     const domainChanged = nextCustomDomain !== project.customDomain;
 
     if ((nameChanged || tierChanged || domainChanged) && (project.status === 'running' || project.containerId)) {
@@ -470,7 +519,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
       });
 
       if (lastDeployment) {
-        const imageName = `codehost-project-${project.id}:${lastDeployment.id}`;
+        const imageName = `codehost-project-${project.id.toLowerCase()}:${lastDeployment.id}`;
         void (async () => {
           try {
             await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
@@ -482,11 +531,17 @@ router.put('/:id', async (req: AuthRequest, res) => {
       }
     }
 
-    res.json({ 
-      project: updated, 
-      restarting: !!((nameChanged || tierChanged || domainChanged) && (project.status === 'running' || project.containerId)) 
+    res.json({
+      project: updated,
+      restarting: !!((nameChanged || tierChanged || domainChanged) && (project.status === 'running' || project.containerId))
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message?.startsWith('INSUFFICIENT_CREDITS:')) {
+      return res.status(402).json({ error: error.message.replace('INSUFFICIENT_CREDITS:', '') });
+    }
+    if (error?.code === 'P2002') {
+      return res.status(400).json({ error: 'Project name or custom domain is already in use' });
+    }
     logger.error({ error }, 'Update project error');
     res.status(500).json({ error: 'Failed to update project settings' });
   }

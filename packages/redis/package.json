@@ -8,6 +8,8 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@codehost/config": "*",
+    "@codehost/logger": "*",
     "ioredis": "^5.4.0"
   },
   "devDependencies": {

@@ -12,12 +12,39 @@ import {
 } from './services/razorpay.js';
 
 const app = express();
-app.use(cors({ origin: '*' }));
+const domainHost = env.DOMAIN || 'code-host.online';
+const allowedOrigins = new Set<string>(
+  [env.APP_URL, `https://${domainHost}`, `https://www.${domainHost}`, 'http://localhost:3000']
+    .filter(Boolean)
+    .map((o) => String(o).replace(/\/$/, ''))
+);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const clean = origin.replace(/\/$/, '');
+      if (allowedOrigins.has(clean) || clean.endsWith(`.${domainHost}`)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({
+  limit: '1mb',
   verify: (req: any, _res, buf) => {
     req.rawBody = buf;
   }
 }));
+
+app.get('/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'healthy', service: 'billing' });
+  } catch {
+    res.status(500).json({ status: 'unhealthy', service: 'billing' });
+  }
+});
 
 // All routes except webhook require auth
 app.get('/wallet', requireAuth, async (req: AuthRequest, res) => {
@@ -37,12 +64,12 @@ app.get('/wallet', requireAuth, async (req: AuthRequest, res) => {
 app.get('/transactions', requireAuth, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.id;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
 
     const wallet = await prisma.wallet.findUnique({ where: { userId } });
     if (!wallet) {
-      return res.json({ transactions: [], total: 0 });
+      return res.json({ transactions: [], total: 0, page, limit });
     }
 
     const [transactions, total] = await Promise.all([
@@ -84,6 +111,57 @@ app.get('/tiers', requireAuth, async (_req: AuthRequest, res) => {
   });
 });
 
+function resolveOrderGrant(
+  orderData: { amount?: number | string | null; notes?: Record<string, unknown> | null } | null | undefined,
+  requestingUserId: string
+) {
+  if (!orderData) {
+    return { ok: false, status: 400, error: 'Order not found', creditsToAdd: 0, orderAmountPaise: 0, isHackathon: false };
+  }
+  const notes = orderData.notes && typeof orderData.notes === 'object' ? orderData.notes : {};
+  if (notes.userId && String(notes.userId) !== requestingUserId) {
+    return { ok: false, status: 403, error: 'Order belongs to a different account', creditsToAdd: 0, orderAmountPaise: 0, isHackathon: false };
+  }
+
+  const orderAmountPaise = Number(orderData.amount) || 0;
+  let isHackathon = false;
+  let creditsToAdd = 0;
+
+  if (notes.planType === 'hackathon' && orderAmountPaise >= 4900) {
+    isHackathon = true;
+    creditsToAdd = 50;
+  } else {
+    const amountBasedCredits = Math.floor(orderAmountPaise / (CREDIT_PRICE_INR * 100));
+    const eligiblePackageCredits = CREDIT_PACKAGES.filter(
+      (pkg) => orderAmountPaise >= Math.round(pkg.priceInr * 100)
+    ).reduce((best, pkg) => Math.max(best, pkg.credits), 0);
+    const maxAllowedCredits = Math.max(amountBasedCredits, eligiblePackageCredits);
+
+    if (maxAllowedCredits < 10) {
+      return {
+        ok: false,
+        status: 400,
+        error: `Paid amount is below minimum purchase (${Math.round(10 * CREDIT_PRICE_INR)} INR for 10 credits)`,
+        creditsToAdd: 0,
+        orderAmountPaise,
+        isHackathon: false,
+      };
+    }
+
+    if (notes.credits !== undefined) {
+      const parsed = parseInt(String(notes.credits), 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        creditsToAdd = Math.max(10, Math.min(parsed, maxAllowedCredits));
+      }
+    }
+    if (!creditsToAdd || isNaN(creditsToAdd)) {
+      creditsToAdd = maxAllowedCredits;
+    }
+  }
+
+  return { ok: true, creditsToAdd, orderAmountPaise, isHackathon };
+}
+
 const handleCreateOrder = async (req: AuthRequest, res: any) => {
   try {
     const { credits, amount: rawAmount, currency = 'INR', receipt: customReceipt, planType } = req.body;
@@ -112,8 +190,9 @@ const handleCreateOrder = async (req: AuthRequest, res: any) => {
       notes.credits = String(parsedCredits);
     } else if (rawAmount !== undefined) {
       const parsed = Number(rawAmount);
-      if (isNaN(parsed) || parsed < 100) {
-        return res.status(400).json({ error: 'Minimum amount is 100 paise (1 INR)' });
+      const minPaise = Math.round(10 * CREDIT_PRICE_INR * 100);
+      if (isNaN(parsed) || parsed < minPaise) {
+        return res.status(400).json({ error: `Minimum amount is ${minPaise} paise (INR ${Math.round(minPaise / 100)} for 10 credits)` });
       }
       amountInPaise = Math.round(parsed);
       notes.credits = String(Math.floor(amountInPaise / (CREDIT_PRICE_INR * 100)));
@@ -195,69 +274,82 @@ const handleVerifyPayment = async (req: AuthRequest, res: any) => {
       return res.status(502).json({ error: 'Failed to verify payment with Razorpay. Please retry in a few seconds.' });
     }
 
-    const notes = orderData?.notes && typeof orderData.notes === 'object' ? orderData.notes : {};
-    if (notes.userId && String(notes.userId) !== userId) {
-      return res.status(403).json({ error: 'Order belongs to a different account' });
+    const grant = resolveOrderGrant(orderData, userId);
+    if (!grant.ok) {
+      return res.status(grant.status || 400).json({ error: grant.error });
     }
-
-    const orderAmountPaise = Number(orderData?.amount) || 0;
-    let isHackathon = false;
-    let creditsToAdd = 0;
-
-    if (notes.planType === 'hackathon' && orderAmountPaise >= 4900) {
-      isHackathon = true;
-      creditsToAdd = 50;
-    } else if (notes.credits !== undefined) {
-      const parsed = parseInt(String(notes.credits), 10);
-      if (!isNaN(parsed) && parsed > 0) {
-        creditsToAdd = parsed;
-      }
-    }
-
-    if (!creditsToAdd || isNaN(creditsToAdd)) {
-      const paidInr = orderAmountPaise / 100;
-      creditsToAdd = Math.max(10, Math.floor(paidInr / CREDIT_PRICE_INR));
-    }
+    const { creditsToAdd, isHackathon } = grant;
 
     const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
     const proMaxProjects = RESOURCE_TIERS.pro?.maxProjects || 5;
 
-    const result = await prisma.$transaction(async (tx: any) => {
-      let wallet = await tx.wallet.findUnique({ where: { userId } });
-      if (!wallet) {
-        wallet = await tx.wallet.create({ data: { userId } });
-      }
+    let result: { wallet: any; transaction: any; duplicate?: boolean };
+    try {
+      result = await prisma.$transaction(async (tx: any) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${String(paymentId)}))`;
 
-      const updatedWallet = await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: { increment: creditsToAdd } },
-      });
+        const alreadyProcessed = await tx.transaction.findFirst({
+          where: { razorpayPaymentId: paymentId },
+        });
+        if (alreadyProcessed) {
+          const w = await tx.wallet.findUnique({ where: { id: alreadyProcessed.walletId } });
+          return { wallet: w, transaction: alreadyProcessed, duplicate: true };
+        }
 
-      if (isHackathon) {
-        const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { serverLimit: true } });
-        await tx.user.update({
-          where: { id: userId },
+        let wallet = await tx.wallet.findUnique({ where: { userId } });
+        if (!wallet) {
+          wallet = await tx.wallet.create({ data: { userId } });
+        }
+
+        const updatedWallet = await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { increment: creditsToAdd } },
+        });
+
+        if (isHackathon) {
+          const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { serverLimit: true } });
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              tier: 'pro',
+              tierExpiresAt: hackathonExpiresAt,
+              serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
+            },
+          });
+        }
+
+        const transaction = await tx.transaction.create({
           data: {
-            tier: 'pro',
-            tierExpiresAt: hackathonExpiresAt,
-            serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
+            walletId: wallet.id,
+            amount: creditsToAdd,
+            type: 'purchase',
+            description: isHackathon ? 'Weekend Hackathon Pass (72h Pro Access)' : `Purchased ${creditsToAdd} credits`,
+            razorpayOrderId: orderId,
+            razorpayPaymentId: paymentId,
           },
         });
-      }
 
-      const transaction = await tx.transaction.create({
-        data: {
-          walletId: wallet.id,
-          amount: creditsToAdd,
-          type: 'purchase',
-          description: isHackathon ? 'Weekend Hackathon Pass (72h Pro Access)' : `Purchased ${creditsToAdd} credits`,
-          razorpayOrderId: orderId,
-          razorpayPaymentId: paymentId,
-        },
+        return { wallet: updatedWallet, transaction, duplicate: false };
       });
+    } catch (txErr: any) {
+      if (txErr?.code === 'P2002') {
+        const dup = await prisma.transaction.findFirst({ where: { razorpayPaymentId: paymentId } });
+        return res.json({
+          success: true,
+          message: 'Payment already processed',
+          credits: dup?.amount ?? creditsToAdd,
+        });
+      }
+      throw txErr;
+    }
 
-      return { wallet: updatedWallet, transaction };
-    });
+    if (result.duplicate) {
+      return res.json({
+        success: true,
+        message: 'Payment already processed',
+        credits: result.transaction.amount,
+      });
+    }
 
     return res.json({
       success: true,
@@ -300,17 +392,36 @@ app.post('/webhook', async (req: any, res: any) => {
       const order = event.payload?.order?.entity;
       const paymentId = payment?.id;
       const orderId = payment?.order_id || order?.id;
-      const notes = payment?.notes || order?.notes || {};
-      const userId = notes.userId;
-      const credits = parseInt(notes.credits) || 0;
+      const webhookAmountPaise = Number(payment?.amount ?? order?.amount) || 0;
+      const notes = order?.notes || payment?.notes || {};
+      const userId = notes.userId ? String(notes.userId) : '';
 
-      if (userId && credits && paymentId) {
-        const existing = await prisma.transaction.findFirst({
-          where: { razorpayPaymentId: paymentId },
-        });
+      if (userId && paymentId) {
+        let verifiedOrder: any = { amount: webhookAmountPaise, notes };
+        if (orderId) {
+          try {
+            const fetched = await getRazorpayClient().orders.fetch(orderId);
+            if (fetched) verifiedOrder = fetched;
+          } catch {}
+        }
 
-        if (!existing) {
+        const grant = resolveOrderGrant(verifiedOrder, userId);
+        if (!grant.ok) {
+          return res.json({ status: 'ignored' });
+        }
+        const { creditsToAdd: credits, isHackathon } = grant;
+        const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+        const proMaxProjects = RESOURCE_TIERS.pro?.maxProjects || 5;
+
+        try {
           await prisma.$transaction(async (tx: any) => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${String(paymentId)}))`;
+
+            const existing = await tx.transaction.findFirst({
+              where: { razorpayPaymentId: paymentId },
+            });
+            if (existing) return;
+
             let wallet = await tx.wallet.findUnique({ where: { userId } });
             if (!wallet) {
               wallet = await tx.wallet.create({ data: { userId } });
@@ -321,18 +432,31 @@ app.post('/webhook', async (req: any, res: any) => {
               data: { balance: { increment: credits } },
             });
 
+            if (isHackathon) {
+              const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { serverLimit: true } });
+              await tx.user.update({
+                where: { id: userId },
+                data: {
+                  tier: 'pro',
+                  tierExpiresAt: hackathonExpiresAt,
+                  serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
+                },
+              });
+            }
+
             await tx.transaction.create({
               data: {
                 walletId: wallet.id,
                 amount: credits,
                 type: 'purchase',
-                description: `Purchased ${credits} credits`,
+                description: isHackathon ? 'Weekend Hackathon Pass (72h Pro Access)' : `Purchased ${credits} credits`,
                 razorpayOrderId: orderId,
                 razorpayPaymentId: paymentId,
               },
             });
           });
-          logger.info(`Webhook: ${credits} credits added for user ${userId}`);
+        } catch (txErr: any) {
+          if (txErr?.code !== 'P2002') throw txErr;
         }
       }
     }
@@ -341,6 +465,82 @@ app.post('/webhook', async (req: any, res: any) => {
   } catch (error) {
     logger.error({ error }, 'Webhook error');
     res.status(500).json({ error: 'Webhook processing failed' });
+  }
+});
+
+const SLOT_UNLOCK_COST = 25;
+
+app.post('/unlock-slot', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+    const result = await prisma.$transaction(async (tx: any) => {
+      const wallet = await tx.wallet.findUnique({ where: { userId } });
+      if (!wallet) {
+        const err: any = new Error(`Insufficient credits. Unlocking +1 server slot requires ${SLOT_UNLOCK_COST} credits.`);
+        err.statusCode = 402;
+        err.balance = 0;
+        throw err;
+      }
+
+      const debit = await tx.wallet.updateMany({
+        where: { id: wallet.id, balance: { gte: SLOT_UNLOCK_COST } },
+        data: { balance: { decrement: SLOT_UNLOCK_COST } },
+      });
+      if (debit.count === 0) {
+        const err: any = new Error(`Insufficient credits. Unlocking +1 server slot requires ${SLOT_UNLOCK_COST} credits.`);
+        err.statusCode = 402;
+        err.balance = wallet.balance;
+        throw err;
+      }
+
+      const updatedWallet = await tx.wallet.findUnique({ where: { id: wallet.id } });
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { serverLimit: { increment: 1 } },
+        select: { serverLimit: true },
+      });
+
+      await tx.transaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: -SLOT_UNLOCK_COST,
+          type: 'slot_unlock',
+          description: `Unlocked +1 server slot (new limit: ${updatedUser.serverLimit})`,
+        },
+      });
+
+      return { serverLimit: updatedUser.serverLimit, balance: updatedWallet.balance };
+    });
+
+    res.json(result);
+  } catch (error: any) {
+    if (error.statusCode === 402) {
+      return res.status(402).json({
+        error: error.message,
+        required: SLOT_UNLOCK_COST,
+        balance: error.balance ?? 0,
+      });
+    }
+    logger.error({ error }, 'Unlock server slot error');
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/transactions/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: req.params.id },
+      include: { wallet: { include: { user: { select: { email: true, name: true, username: true } } } } },
+    });
+
+    if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
+    if (transaction.wallet.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
+
+    res.json({ transaction });
+  } catch (error) {
+    logger.error({ error }, 'Get transaction error');
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

@@ -53,7 +53,10 @@ export function verifyRazorpayPaymentSignature(params: {
     .update(`${params.orderId}|${params.paymentId}`)
     .digest('hex');
 
-  return generatedSignature === params.signature;
+  const expected = Buffer.from(generatedSignature, 'utf8');
+  const actual = Buffer.from(params.signature || '', 'utf8');
+  if (expected.length !== actual.length) return false;
+  return crypto.timingSafeEqual(expected, actual);
 }
 
 export function verifyRazorpayWebhookSignature(
@@ -70,5 +73,8 @@ export function verifyRazorpayWebhookSignature(
     .update(rawBody)
     .digest('hex');
 
-  return generatedSignature === signature;
+  const expected = Buffer.from(generatedSignature, 'utf8');
+  const actual = Buffer.from(signature || '', 'utf8');
+  if (expected.length !== actual.length) return false;
+  return crypto.timingSafeEqual(expected, actual);
 }

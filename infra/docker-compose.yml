@@ -6,8 +6,8 @@ services:
     image: postgres:15-alpine
     container_name: codehost-db
     environment:
-      POSTGRES_USER: ${DB_USER:-user}
-      POSTGRES_PASSWORD: ${DB_PASS:-pass}
+      POSTGRES_USER: ${DB_USER:-codehost}
+      POSTGRES_PASSWORD: ${DB_PASS:-securepass}
       POSTGRES_DB: ${DB_NAME:-codehost}
     volumes:
       - ../data/postgres:/var/lib/postgresql/data

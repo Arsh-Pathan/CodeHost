@@ -69,6 +69,11 @@ function NewProjectContent() {
   const selectedTier = tiers.find(t => t.id === tier);
 
   const handleCreate = async (overrideTier?: string | React.MouseEvent) => {
+    if (user && user.emailVerified === false) {
+      setError('Please verify your email address before creating and deploying a project.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setStatusMessage('Creating project...');
@@ -280,59 +285,62 @@ function NewProjectContent() {
                 const isSelected = tier === t.id;
                 const canAfford = t.creditsPerMonth === 0 || walletBalance >= t.creditsPerMonth;
                 return (
-                  <button
+                  <div
                     key={t.id}
-                    onClick={() => setTier(t.id)}
-                    className={`relative p-6 rounded-2xl border-2 text-left transition-all ${
+                    className={`relative rounded-2xl border-2 text-left transition-all flex flex-col justify-between ${
                       isSelected
                         ? 'border-blue-600 bg-blue-50/50 shadow-lg shadow-blue-500/10'
                         : 'border-slate-100 hover:border-slate-300 bg-white'
-                    } ${!canAfford ? 'opacity-50' : ''}`}
+                    } ${!canAfford ? 'opacity-75' : ''}`}
                   >
-                    {isSelected && (
-                      <div className="absolute top-3 right-3 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                        <Check size={14} className="text-white" />
-                      </div>
-                    )}
-                    <h3 className="text-lg font-black text-slate-900 mb-1">{t.label}</h3>
-                    <div className="text-2xl font-black text-slate-900 mb-4">
-                      {t.creditsPerMonth === 0 ? (
-                        <span className="text-emerald-600">Free</span>
-                      ) : (
-                        <>
-                          {t.creditsPerMonth} <span className="text-sm font-bold text-slate-400">credits/mo</span>
-                        </>
+                    <button
+                      type="button"
+                      onClick={() => setTier(t.id)}
+                      className="w-full p-6 text-left cursor-pointer rounded-2xl focus:outline-none"
+                    >
+                      {isSelected && (
+                        <div className="absolute top-3 right-3 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                          <Check size={14} className="text-white" />
+                        </div>
                       )}
-                    </div>
-                    <div className="space-y-2 text-xs text-slate-500">
-                      <div className="flex items-center space-x-2">
-                        <HardDrive size={12} className="text-blue-500" />
-                        <span>{formatBytes(t.memory)} RAM</span>
+                      <h3 className="text-lg font-black text-slate-900 mb-1">{t.label}</h3>
+                      <div className="text-2xl font-black text-slate-900 mb-4">
+                        {t.creditsPerMonth === 0 ? (
+                          <span className="text-emerald-600">Free</span>
+                        ) : (
+                          <>
+                            {t.creditsPerMonth} <span className="text-sm font-bold text-slate-400">credits/mo</span>
+                          </>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Cpu size={12} className="text-purple-500" />
-                        <span>{t.cpus} {t.cpus === 1 ? 'core' : 'cores'}</span>
+                      <div className="space-y-2 text-xs text-slate-500">
+                        <div className="flex items-center space-x-2">
+                          <HardDrive size={12} className="text-blue-500" />
+                          <span>{formatBytes(t.memory)} RAM</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Cpu size={12} className="text-purple-500" />
+                          <span>{t.cpus} {t.cpus === 1 ? 'core' : 'cores'}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Database size={12} className="text-emerald-500" />
+                          <span>{formatBytes(t.storage)} storage</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Layers size={12} className="text-orange-500" />
+                          <span>Max {t.maxProjects} project{t.maxProjects > 1 ? 's' : ''}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Database size={12} className="text-emerald-500" />
-                        <span>{formatBytes(t.storage)} storage</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Layers size={12} className="text-orange-500" />
-                        <span>Max {t.maxProjects} project{t.maxProjects > 1 ? 's' : ''}</span>
-                      </div>
-                    </div>
-                    {t.priceInr > 0 && (
-                      <p className="mt-3 text-[10px] font-bold text-slate-400">≈ ₹{t.priceInr}/month</p>
-                    )}
+                      {t.priceInr > 0 && (
+                        <p className="mt-3 text-[10px] font-bold text-slate-400">≈ ₹{t.priceInr}/month</p>
+                      )}
+                    </button>
                     {!canAfford && t.creditsPerMonth > 0 && (
-                      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <div className="mx-6 mb-5 pt-2 border-t border-slate-100 flex items-center justify-between">
                         <span className="text-[10px] font-bold text-red-500">Insufficient credits</span>
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            e.stopPropagation();
+                        <button
+                          type="button"
+                          onClick={() => {
                             setTopUpCredits(t.creditsPerMonth - walletBalance);
                             setIsTopUpOpen(true);
                           }}
@@ -340,10 +348,10 @@ function NewProjectContent() {
                         >
                           <Plus size={10} />
                           <span>Top Up</span>
-                        </span>
+                        </button>
                       </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>

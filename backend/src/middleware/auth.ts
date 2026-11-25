@@ -9,6 +9,8 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     role: string;
+    emailVerified?: boolean;
+    scope?: string;
   };
   file?: any;
 }
@@ -21,15 +23,35 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
     }
 
     const token = authHeader.split(' ')[1];
-    
-    // Cryptographically verify the JWT token
-    const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; email: string; role: string };
-    
-    if (!decoded || !decoded.id) {
-       return res.status(401).json({ error: 'Invalid token' });
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    req.user = decoded;
+    // Cryptographically verify the JWT token
+    const decoded = jwt.verify(token, env.JWT_SECRET) as {
+      id: string;
+      email: string;
+      role: string;
+      emailVerified?: boolean;
+      scope?: string;
+    };
+
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Long-lived MCP integration tokens are strictly scoped to /mcp and must not authorize REST API routes
+    if (decoded.scope === 'mcp' && req.baseUrl !== '/mcp') {
+      return res.status(401).json({ error: 'MCP tokens are restricted to MCP endpoints' });
+    }
+
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      role: decoded.role,
+      emailVerified: Boolean(decoded.emailVerified),
+      scope: decoded.scope,
+    };
     next();
   } catch (error) {
     logger.error({ error }, 'Auth middleware error');

@@ -89,7 +89,15 @@ export default function PanelLayout({
     onBalanceUpdate?.(newBalance);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (token && refreshToken) {
+      await fetchApi('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken }),
+      }).catch(() => {});
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('codehost_user_cache');
@@ -292,6 +300,7 @@ export default function PanelLayout({
           <div className={`mt-4 pt-3 border-t border-slate-100 flex flex-col items-center justify-center space-y-1.5 opacity-60 hover:opacity-100 transition-opacity ${!isSidebarOpen && 'md:hidden'}`}>
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Core hosted powered by</span>
             <div className="flex items-center space-x-1.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/csky-logo.png" alt="CSky Developments" className="h-3.5 w-auto object-contain" />
               <span className="text-[10px] font-black text-slate-500 tracking-tight">CSky Developments</span>
             </div>
@@ -374,7 +383,7 @@ export default function PanelLayout({
         {[
           { name: 'Console', icon: LayoutDashboard, href: '/dashboard' },
           { name: 'Billing', icon: CreditCard, href: '/dashboard/billing' },
-          { name: 'Refer & Earn', icon: Gift, href: '/dashboard/referrals', badge: '+100' },
+          { name: 'Refer & Earn', icon: Gift, href: '/dashboard/referrals', badge: '+50' },
           { name: 'Profile', icon: Settings, href: '/dashboard/profile' },
         ].map((tab) => {
           const isActive = pathname === tab.href;

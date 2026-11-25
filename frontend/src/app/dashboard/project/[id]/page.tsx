@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, use } from 'react';
+import { useCallback, useEffect, useState, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchApi, API_URL, getErrorMessage } from '@/lib/api';
 import {
@@ -232,7 +232,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
     return () => clearTimeout(timer);
   }, [newName, project?.name]);
 
-  const fetchInitialData = async () => {
+  const fetchInitialData = useCallback(async () => {
     try {
       const [meRes, projRes, depRes, tierRes, logsRes] = await Promise.all([
         fetchApi('/auth/me'),
@@ -246,7 +246,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       setProject(projRes.project);
       setDeployments(depRes.deployments);
       setTiers(tierRes.tiers);
-      if (!selectedTier) setSelectedTier(projRes.project.tier || 'free');
+      setSelectedTier((prev) => prev || projRes.project.tier || 'free');
 
       if (logsRes?.logs && typeof logsRes.logs === 'string' && logsRes.logs !== 'Container not running.') {
         const parsedLines = logsRes.logs
@@ -284,9 +284,9 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id, router]);
 
-  const pollStatus = async () => {
+  const pollStatus = useCallback(async () => {
     // Skip polling if tab is backgrounded
     if (typeof document !== 'undefined' && document.hidden) return;
     try {
@@ -297,7 +297,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       setProject(projRes.project);
       setDeployments(depRes.deployments);
     } catch {}
-  };
+  }, [params.id]);
 
   const fetchProjectData = pollStatus;
 
@@ -306,19 +306,21 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       void fetchInitialData();
     }, 0);
     return () => clearTimeout(timer);
-  }, [params.id, router]);
+  }, [fetchInitialData]);
 
   useEffect(() => {
     const isBuilding = project?.status === 'building' || project?.status === 'queued';
     const pollInterval = isBuilding ? 3000 : 10000;
     const interval = setInterval(pollStatus, pollInterval);
     return () => clearInterval(interval);
-  }, [params.id, project?.status]);
+  }, [pollStatus, project?.status]);
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     const socket = io(API_URL, {
-      auth: { token },
+      auth: (cb) => {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        cb({ token });
+      },
     });
 
     socket.on('connect', () => {
@@ -481,7 +483,20 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
           }
           setUploading(false);
           setUploadProgress(0);
+          if (fileInputRef.current) fileInputRef.current.value = '';
         }
+      });
+      xhr.addEventListener('error', () => {
+        setError('Network error during ZIP upload. Please check your connection and retry.');
+        setUploading(false);
+        setUploadProgress(0);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      });
+      xhr.addEventListener('abort', () => {
+        setError('ZIP upload was cancelled.');
+        setUploading(false);
+        setUploadProgress(0);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       });
       xhr.open('POST', `${API_URL}/deployments/${params.id}`);
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
@@ -1364,22 +1379,19 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                          className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                          value={typeof settings.envVars === 'string' ? settings.envVars : JSON.stringify(settings.envVars, null, 2)}
                          onChange={(e) => {
-                           try {
-                             const val = e.target.value;
-                             if (!val) setSettings({ ...settings, envVars: {} });
-                             else {
-                               setSettings({ ...settings, envVars: val });
-                             }
-                           } catch(e) {}
+                           const val = e.target.value;
+                           setSettings({ ...settings, envVars: val || {} });
                          }}
                          onBlur={() => {
-                           try {
-                             if (typeof settings.envVars === 'string') {
-                                const parsed = JSON.parse(settings.envVars);
-                                setSettings({ ...settings, envVars: parsed });
+                           if (typeof settings.envVars === 'string') {
+                             try {
+                               const parsed = JSON.parse(settings.envVars);
+                               if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                                 setSettings({ ...settings, envVars: parsed });
+                               }
+                             } catch {
+                               // Validated inline when clicking Save Build Settings (supports JSON or KEY=VALUE)
                              }
-                           } catch(e) {
-                             alert('Invalid JSON in Environment Variables');
                            }
                          }}
                       />

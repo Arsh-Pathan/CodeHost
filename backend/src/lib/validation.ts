@@ -1,3 +1,6 @@
+import fs from 'fs-extra';
+import path from 'path';
+
 export const RESERVED_PROJECT_NAMES = new Set<string>([
   'admin',
   'api',
@@ -194,4 +197,57 @@ export function sanitizeUserEnvVars(envVars: unknown): Record<string, string> {
   }
 
   return sanitized;
+}
+
+/**
+ * Resolve a relative path inside a project workspace directory securely.
+ * Rejects path traversal, absolute/drive paths, null bytes, existing symlinks,
+ * symlinked ancestor directories, and dangling symlinks (preventing write-through escapes).
+ */
+export async function resolveSafeProjectPath(baseDir: string, relativePath: string): Promise<string> {
+  if (!relativePath || typeof relativePath !== 'string' || relativePath.includes('\0')) {
+    throw new Error('Invalid file path');
+  }
+
+  if (/^[A-Za-z]:/.test(relativePath)) {
+    throw new Error('Forbidden path: traversal outside project directory');
+  }
+
+  const normalizedRel = relativePath.replace(/^[/\\]+/, '');
+  if (!normalizedRel) {
+    throw new Error('File path cannot be empty');
+  }
+
+  const resolvedBase = path.resolve(baseDir);
+  const resolvedPath = path.resolve(resolvedBase, normalizedRel);
+
+  if (!resolvedPath.startsWith(resolvedBase + path.sep) && resolvedPath !== resolvedBase) {
+    throw new Error('Forbidden path: traversal outside project directory');
+  }
+
+  const realBase = await fs.realpath(resolvedBase).catch(() => resolvedBase);
+  const relativeFromBase = path.relative(resolvedBase, resolvedPath);
+  const segments = relativeFromBase.split(path.sep).filter(Boolean);
+
+  let currentPath = resolvedBase;
+  for (const segment of segments) {
+    currentPath = path.join(currentPath, segment);
+    try {
+      const lstats = await fs.lstat(currentPath);
+      if (lstats.isSymbolicLink()) {
+        throw new Error('Forbidden path: symlink escapes project root');
+      }
+      const realCurrent = await fs.realpath(currentPath);
+      if (!realCurrent.startsWith(realBase + path.sep) && realCurrent !== realBase) {
+        throw new Error('Forbidden path: symlink escapes project root');
+      }
+    } catch (err: any) {
+      if (err?.code === 'ENOENT') {
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  return resolvedPath;
 }

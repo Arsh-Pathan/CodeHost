@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchApi, getErrorMessage, getErrorStatus } from '@/lib/api';
 import { useIsMounted } from '@/lib/client-hooks';
@@ -8,29 +8,22 @@ import UserAvatar from '@/components/UserAvatar';
 import { Logo } from '@/components/Logo';
 import {
   Users,
-  Layout,
   Activity,
   Database,
   ArrowLeft,
   ShieldAlert,
   Trash2,
   Power,
-  Shield,
-  UserX,
   Loader2,
   CheckCircle2,
-  XCircle,
   RefreshCw,
   Search,
   Settings,
   Terminal,
   Cpu,
   HardDrive,
-  Globe,
-  Bell,
   Server,
   Box,
-  Check,
   X,
   DollarSign,
   TrendingUp,
@@ -43,22 +36,14 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
-  FileText,
-  Clock,
   Zap,
   Radio,
-  Lock,
   Plus
 } from 'lucide-react';
 import Link from 'next/link';
 import {
   AreaChart,
   Area,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -143,6 +128,7 @@ interface AdminStats {
   activeContainers?: number;
   projects?: number;
   users?: number;
+  maintenanceMode?: boolean;
 }
 
 interface AdminHealth {
@@ -219,6 +205,7 @@ export default function AdminPage() {
 
   // Data states
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
   const [revenueData, setRevenueData] = useState<RevenueAnalytics | null>(null);
   const [health, setHealth] = useState<AdminHealth | null>(null);
@@ -266,20 +253,20 @@ export default function AdminPage() {
   const [txLoading, setTxLoading] = useState(false);
 
   // Show temporary toast
-  const showToast = (type: 'success' | 'error', message: string) => {
+  const showToast = useCallback((type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => {
       setNotification((curr) => (curr?.message === message ? null : curr));
     }, 4000);
-  };
+  }, []);
 
   // Main data fetch
-  const fetchAllData = async (isBackground = false) => {
+  const fetchAllData = useCallback(async (isBackground = false) => {
     if (!isBackground) setRefreshing(true);
     try {
       // Must succeed; if non-admin or unauthorized, will throw 401/403
       const statsRes = await fetchApi('/admin/stats');
-      
+
       const [healthRes, projectsRes, usersRes, metricsRes, revenueRes] = await Promise.all([
         fetchApi('/admin/health').catch(() => null),
         fetchApi('/admin/projects').catch(() => ({ projects: [] })),
@@ -288,7 +275,12 @@ export default function AdminPage() {
         fetchApi('/admin/revenue/analytics').catch(() => null),
       ]);
 
-      if (statsRes) setStats(statsRes);
+      if (statsRes) {
+        setStats(statsRes);
+        if (typeof statsRes.maintenanceMode === 'boolean') {
+          setMaintenanceMode(statsRes.maintenanceMode);
+        }
+      }
       if (healthRes?.health) setHealth(healthRes.health);
       if (projectsRes?.projects) setProjects(projectsRes.projects);
       if (usersRes?.users) setUsers(usersRes.users);
@@ -308,7 +300,7 @@ export default function AdminPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [router, showToast]);
 
   // Strict Admin Authorization Verification
   useEffect(() => {
@@ -336,7 +328,7 @@ export default function AdminPage() {
         // Verified ADMIN
         setIsAuthorized(true);
         setIsCheckingAuth(false);
-        fetchAllData();
+        void fetchAllData();
       } catch {
         if (!isCancelled) {
           setIsAuthorized(false);
@@ -346,15 +338,15 @@ export default function AdminPage() {
       }
     };
 
-    verifyAdminAccess();
+    void verifyAdminAccess();
 
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [fetchAllData, router]);
 
   // Fetch transactions ledger
-  const fetchTransactions = async (page = 1) => {
+  const fetchTransactions = useCallback(async (page = 1) => {
     setTxLoading(true);
     try {
       const query = new URLSearchParams();
@@ -374,19 +366,19 @@ export default function AdminPage() {
     } finally {
       setTxLoading(false);
     }
-  };
+  }, [txSearch, txTypeFilter, showToast]);
 
   // Auto-refresh interval (10s)
   useEffect(() => {
     if (!autoRefresh || !isAuthorized) return;
     const interval = setInterval(() => {
-      fetchAllData(true);
+      void fetchAllData(true);
       if (activeTab === 'revenue') {
-        fetchTransactions(txPage);
+        void fetchTransactions(txPage);
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [autoRefresh, activeTab, txPage, isAuthorized]);
+  }, [autoRefresh, activeTab, txPage, isAuthorized, fetchAllData, fetchTransactions]);
 
   // Load transactions when revenue tab opens
   useEffect(() => {
@@ -396,7 +388,7 @@ export default function AdminPage() {
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [activeTab, txTypeFilter, isAuthorized]);
+  }, [activeTab, txTypeFilter, isAuthorized, fetchTransactions]);
 
   // Open Log Viewer
   const handleOpenLogs = async (project: AdminProject) => {
@@ -627,6 +619,24 @@ export default function AdminPage() {
       showToast('success', res.message || 'Expired sessions cleared');
     } catch (e: unknown) {
       showToast('error', getErrorMessage(e, 'Failed to clear sessions'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleToggleMaintenance = async () => {
+    const nextState = !maintenanceMode;
+    if (nextState && !confirm('Enable Maintenance Mode? Non-admin API write operations and deployments will be temporarily paused.')) return;
+    setActionLoading('maintenance');
+    try {
+      await fetchApi('/admin/system/maintenance', {
+        method: 'POST',
+        body: JSON.stringify({ enabled: nextState }),
+      });
+      setMaintenanceMode(nextState);
+      showToast('success', nextState ? 'Maintenance mode enabled' : 'Maintenance mode disabled');
+    } catch (e: unknown) {
+      showToast('error', getErrorMessage(e, 'Failed to toggle maintenance mode'));
     } finally {
       setActionLoading(null);
     }
@@ -1164,6 +1174,19 @@ export default function AdminPage() {
                     {actionLoading === 'clear-sessions' ? <Loader2 size={14} className="animate-spin text-blue-500" /> : <ShieldAlert size={14} className="text-blue-500" />}
                     <span>Purge Expired Sessions</span>
                   </button>
+
+                  <button
+                    onClick={handleToggleMaintenance}
+                    disabled={actionLoading === 'maintenance'}
+                    className={`flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all disabled:opacity-50 ${
+                      maintenanceMode
+                        ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    {actionLoading === 'maintenance' ? <Loader2 size={14} className="animate-spin text-amber-600" /> : <Power size={14} className={maintenanceMode ? 'text-amber-600' : 'text-slate-500'} />}
+                    <span>{maintenanceMode ? 'Disable Maintenance Mode' : 'Enable Maintenance Mode'}</span>
+                  </button>
                 </div>
               </div>
 
@@ -1512,10 +1535,10 @@ export default function AdminPage() {
 
                 <div className="space-y-3">
                   {[
-                    { key: 'free', label: 'Free Tier', price: '₹0', color: 'text-slate-600 bg-slate-50' },
-                    { key: 'basic', label: 'Basic Plan', price: '₹249/mo', color: 'text-blue-700 bg-blue-50' },
-                    { key: 'pro', label: 'Pro Plan', price: '₹499/mo', color: 'text-purple-700 bg-purple-50' },
-                    { key: 'business', label: 'Business Plan', price: '₹999/mo', color: 'text-emerald-700 bg-emerald-50' },
+                    { key: 'free', label: 'Free Tier (128MB)', price: '₹0', color: 'text-slate-600 bg-slate-50' },
+                    { key: 'basic', label: 'Basic Plan (256MB)', price: '₹80/mo', color: 'text-blue-700 bg-blue-50' },
+                    { key: 'pro', label: 'Pro Plan (512MB)', price: '₹240/mo', color: 'text-purple-700 bg-purple-50' },
+                    { key: 'business', label: 'Business Plan (1GB)', price: '₹640/mo', color: 'text-emerald-700 bg-emerald-50' },
                   ].map((t) => {
                     const data = revenueData?.tierBreakdown?.[t.key] || { users: 0, projects: 0, revenueInr: 0 };
                     return (
@@ -1569,8 +1592,9 @@ export default function AdminPage() {
                   >
                     <option value="">All Types</option>
                     <option value="purchase">Purchase</option>
+                    <option value="tier_charge">Tier Charge</option>
+                    <option value="slot_unlock">Slot Unlock</option>
                     <option value="referral_bonus">Referral Bonus</option>
-                    <option value="usage">Usage</option>
                     <option value="admin_grant">Admin Grant</option>
                   </select>
                 </div>
@@ -2182,9 +2206,9 @@ export default function AdminPage() {
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-500"
                 >
                   <option value="free">Free Tier</option>
-                  <option value="basic">Basic (₹249/mo)</option>
-                  <option value="pro">Pro (₹499/mo)</option>
-                  <option value="business">Business (₹999/mo)</option>
+                  <option value="basic">Basic (₹80/mo)</option>
+                  <option value="pro">Pro (₹240/mo)</option>
+                  <option value="business">Business (₹640/mo)</option>
                 </select>
               </div>
 

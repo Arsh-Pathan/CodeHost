@@ -3,8 +3,11 @@ node_modules
 data
 infra/data
 .next
-dist
+**/dist
+**/*.tsbuildinfo
+backend/uploads
 *.log
 .env
 .env.*
 .turbo
+scratch

@@ -8,26 +8,49 @@ import { env } from '@codehost/config';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { logger } from '@codehost/logger';
 import { sendVerificationEmail, sendWelcomeEmail } from '../lib/email.js';
-import { generateUniqueReferralCode, processReferralReward } from '../services/referral.js';
+import {
+  completePendingReferral,
+  generateUniqueReferralCode,
+  isConfiguredAdminEmail,
+  recordPendingReferral,
+} from '../services/referral.js';
 
 const router = Router();
 
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: 15,
   message: { error: 'Too many requests, please try again later.' },
+});
+
+const tokenLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { error: 'Too many token requests, please try again later.' },
+});
+
+const resendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Please wait before requesting another verification email.' },
 });
 
 export const generateTokens = (user: { id: string; email: string; role: string; emailVerified?: boolean }) => {
   const accessToken = jwt.sign(
-    { id: user.id, email: user.email, role: user.role, emailVerified: user.emailVerified ?? false },
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      emailVerified: user.emailVerified ?? false,
+      jti: crypto.randomUUID(),
+    },
     env.JWT_SECRET,
     { expiresIn: '30d' }
   );
 
   const refreshToken = jwt.sign(
-    { id: user.id },
+    { id: user.id, jti: crypto.randomUUID() },
     env.JWT_REFRESH_SECRET,
     { expiresIn: '60d' }
   );
@@ -37,7 +60,14 @@ export const generateTokens = (user: { id: string; email: string; role: string; 
 
 export const generateMcpToken = (user: { id: string; email: string; role: string; emailVerified?: boolean }) => {
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role, emailVerified: user.emailVerified ?? false, scope: 'mcp' },
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      emailVerified: user.emailVerified ?? false,
+      scope: 'mcp',
+      jti: crypto.randomUUID(),
+    },
     env.JWT_SECRET,
     { expiresIn: '90d' }
   );
@@ -45,25 +75,31 @@ export const generateMcpToken = (user: { id: string; email: string; role: string
 
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { email, password, username, name, phoneNumber, referralCode, acceptedTos, marketingEmails } = req.body;
+    const { email: rawEmail, password, username, name, phoneNumber, referralCode, acceptedTos, marketingEmails } = req.body;
 
-    if (!email || !password || !username) {
+    if (!rawEmail || !password || !username) {
       return res.status(400).json({ error: 'Email, password and username are required' });
+    }
+
+    if (typeof rawEmail !== 'string' || typeof password !== 'string' || typeof username !== 'string') {
+      return res.status(400).json({ error: 'Invalid registration input types' });
     }
 
     if (acceptedTos === false || acceptedTos === 'false') {
       return res.status(400).json({ error: 'You must agree to the Terms of Service and Privacy Policy.' });
     }
 
+    const email = rawEmail.trim().toLowerCase();
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email) || email.length > 254) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    // Validate password length
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    // Validate password length (6..128 avoids weak passwords and bcrypt 72-byte DoS)
+    if (password.length < 6 || password.length > 128) {
+      return res.status(400).json({ error: 'Password must be between 6 and 128 characters' });
     }
 
     // Sanitize username
@@ -72,7 +108,9 @@ router.post('/register', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Username must be at least 2 characters (letters, numbers, underscore, hyphen)' });
     }
 
-    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    const existingEmail = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
     if (existingEmail) {
       return res.status(400).json({ error: 'Email already exists' });
     }
@@ -84,30 +122,30 @@ router.post('/register', authLimiter, async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
-    const isAdmin = email.toLowerCase() === 'mail.arsh.pathan@gmail.com';
     const myReferralCode = await generateUniqueReferralCode(sanitizedUsername);
 
+    // Never grant ADMIN role before email ownership is verified via verification link
     const user = await prisma.user.create({
       data: {
         email,
         username: sanitizedUsername,
-        name,
-        phoneNumber,
+        name: typeof name === 'string' ? name.trim().slice(0, 80) : undefined,
+        phoneNumber: typeof phoneNumber === 'string' ? phoneNumber.trim().slice(0, 30) : undefined,
         password: hashedPassword,
         emailVerified: false,
         verificationToken,
         verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
-        role: isAdmin ? 'ADMIN' : 'USER',
-        serverLimit: isAdmin ? 100 : 1,
+        role: 'USER',
+        serverLimit: 1,
         referralCode: myReferralCode,
         acceptedTos: acceptedTos !== false && acceptedTos !== 'false',
-        marketingEmails: marketingEmails === true || marketingEmails === 'true' || marketingEmails === undefined,
+        marketingEmails: !(marketingEmails === false || marketingEmails === 'false'),
       },
     });
 
-    // If registered via a referral code, credit both users
-    if (referralCode) {
-      await processReferralReward(user.id, referralCode);
+    // Record referral as pending until referee verifies their email
+    if (typeof referralCode === 'string' && referralCode.trim()) {
+      await recordPendingReferral(user.id, referralCode);
     }
 
     // Send verification email (non-blocking)
@@ -140,17 +178,23 @@ router.post('/register', authLimiter, async (req, res) => {
 router.post('/login', authLimiter, async (req, res) => {
   try {
     const { identifier, email, password } = req.body;
-    const loginId = identifier || email; // backward compat: accept either
+    const rawLoginId = identifier || email; // backward compat: accept either
 
-    if (!loginId || !password) {
+    if (!rawLoginId || !password || typeof rawLoginId !== 'string' || typeof password !== 'string') {
       return res.status(400).json({ error: 'Email/username and password are required' });
     }
+
+    if (password.length > 128) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const loginId = rawLoginId.trim().toLowerCase();
 
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: loginId },
-          { username: loginId.toLowerCase() },
+          { email: { equals: loginId, mode: 'insensitive' } },
+          { username: loginId },
         ],
       },
     });
@@ -167,6 +211,11 @@ router.post('/login', authLimiter, async (req, res) => {
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    // Lazily prune expired sessions for this user
+    await prisma.session.deleteMany({
+      where: { userId: user.id, expiresAt: { lt: new Date() } },
+    }).catch(() => {});
 
     const { accessToken, refreshToken } = generateTokens(user);
 
@@ -189,11 +238,11 @@ router.post('/login', authLimiter, async (req, res) => {
   }
 });
 
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', tokenLimiter, async (req, res) => {
   try {
     const { refreshToken } = req.body;
 
-    if (!refreshToken) {
+    if (!refreshToken || typeof refreshToken !== 'string') {
       return res.status(400).json({ error: 'Refresh token required' });
     }
 
@@ -202,16 +251,21 @@ router.post('/refresh', async (req, res) => {
       include: { user: true }
     });
 
-    if (!session || session.expiresAt < new Date()) {
+    if (!session) {
       return res.status(401).json({ error: 'Invalid or expired refresh token' });
     }
 
-    // Verify token structure
+    if (session.expiresAt < new Date()) {
+      await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
+      return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+
+    // Verify token signature & structure
     jwt.verify(refreshToken, env.JWT_REFRESH_SECRET);
 
     const tokens = generateTokens(session.user);
 
-    // Update session
+    // Update session with freshly rotated refresh token
     await prisma.session.update({
       where: { id: session.id },
       data: {
@@ -228,7 +282,7 @@ router.post('/refresh', async (req, res) => {
 });
 
 // Email verification - clicked from email link
-router.get('/verify-email', async (req, res) => {
+router.get('/verify-email', tokenLimiter, async (req, res) => {
   try {
     const { token } = req.query;
 
@@ -248,13 +302,21 @@ router.get('/verify-email', async (req, res) => {
       return res.status(400).json({ error: 'Verification token has expired. Please request a new one.' });
     }
 
+    const shouldBeAdmin = isConfiguredAdminEmail(user.email);
+
     await prisma.user.update({
       where: { id: user.id },
       data: {
         emailVerified: true,
         verificationToken: null,
         verificationTokenExpiry: null,
+        ...(shouldBeAdmin ? { role: 'ADMIN', serverLimit: Math.max(user.serverLimit, 100) } : {}),
       },
+    });
+
+    // Release any pending referral rewards now that email ownership is verified
+    await completePendingReferral(user.id).catch((err) => {
+      logger.error({ err, userId: user.id }, 'Failed to complete pending referral');
     });
 
     // Send welcome email upon successful verification
@@ -270,7 +332,7 @@ router.get('/verify-email', async (req, res) => {
 });
 
 // Resend verification email (authenticated)
-router.post('/resend-verification', requireAuth, async (req: AuthRequest, res) => {
+router.post('/resend-verification', requireAuth, resendLimiter, async (req: AuthRequest, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
 
@@ -330,7 +392,27 @@ router.patch('/profile', requireAuth, async (req: AuthRequest, res) => {
         const { name, avatarUrl } = req.body;
         const updateData: any = {};
         if (typeof name === 'string') updateData.name = name.trim().slice(0, 50);
-        if (typeof avatarUrl === 'string') updateData.avatarUrl = avatarUrl.trim().slice(0, 500);
+        if (typeof avatarUrl === 'string') {
+            const trimmedAvatar = avatarUrl.trim().slice(0, 500);
+            if (trimmedAvatar === '') {
+                updateData.avatarUrl = null;
+            } else {
+                const isRelativeSafe = trimmedAvatar.startsWith('/') && !trimmedAvatar.startsWith('//');
+                let isValidHttpUrl = false;
+                if (!isRelativeSafe) {
+                    try {
+                        const parsed = new URL(trimmedAvatar);
+                        isValidHttpUrl = parsed.protocol === 'https:' || parsed.protocol === 'http:';
+                    } catch {
+                        isValidHttpUrl = false;
+                    }
+                }
+                if (!isRelativeSafe && !isValidHttpUrl) {
+                    return res.status(400).json({ error: 'Avatar URL must use http(s) or a site-relative path' });
+                }
+                updateData.avatarUrl = trimmedAvatar;
+            }
+        }
 
         const user = await prisma.user.update({
             where: { id: req.user!.id },
@@ -383,9 +465,9 @@ router.post('/mcp-token', requireAuth, async (req: AuthRequest, res) => {
 router.post('/logout', requireAuth, async (req: AuthRequest, res) => {
     try {
         const { refreshToken } = req.body;
-        if (refreshToken) {
+        if (refreshToken && typeof refreshToken === 'string') {
             await prisma.session.deleteMany({
-                where: { token: refreshToken }
+                where: { token: refreshToken, userId: req.user!.id }
             });
         }
         res.json({ success: true, message: 'Logged out successfully' });

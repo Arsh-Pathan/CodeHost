@@ -91,7 +91,7 @@ export default function TermsPage() {
               CodeHost operates on a prepaid credit model (&quot;Credits&quot;). By using paid resource tiers, you agree to the following:
             </p>
             <ul className="list-disc pl-6 space-y-2">
-              <li><strong>Credit Value:</strong> 1 Credit is currently valued at ₹2 INR. This value is subject to change with 30 days&apos; notice.</li>
+              <li><strong>Credit Value:</strong> 1 Credit is currently valued at ₹1.60 INR. This value is subject to change with 30 days&apos; notice.</li>
               <li><strong>Resource Tiers:</strong> Each project is assigned a tier (Free, Basic, Pro, or Business). Paid tiers trigger a monthly deduction from your wallet balance.</li>
               <li><strong>Initial Charge:</strong> When you create a project on a paid tier or upgrade an existing project, the first month&apos;s credits are deducted immediately.</li>
               <li><strong>Recurring Charges:</strong> A recurring monthly charge is applied exactly 30 days after the last successful charge for each project.</li>

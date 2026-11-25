@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   File, 
@@ -31,6 +33,8 @@ export default function FileManager({ projectId }: FileManagerProps) {
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [fileLoadError, setFileLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['']));
   const [isDeploying, setIsDeploying] = useState(false);
@@ -62,16 +66,20 @@ export default function FileManager({ projectId }: FileManagerProps) {
   const loadFileContent = async (path: string) => {
     try {
       setSelectedFile(path);
-      setFileContent('Loading...');
+      setIsLoadingFile(true);
+      setFileLoadError(null);
+      setFileContent('');
       const res = await fetchApi(`/files/${projectId}/content?filePath=${encodeURIComponent(path)}`);
       setFileContent(res.content);
-    } catch {
-      setFileContent('Error loading file');
+    } catch (err: unknown) {
+      setFileLoadError(err instanceof Error ? err.message : 'Failed to load file');
+    } finally {
+      setIsLoadingFile(false);
     }
   };
 
   const saveFile = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || isLoadingFile || fileLoadError) return;
     try {
       setSaving(true);
       await fetchApi(`/files/${projectId}`, {
@@ -232,7 +240,7 @@ export default function FileManager({ projectId }: FileManagerProps) {
               <div className="flex items-center space-x-2">
                  <button 
                   onClick={saveFile}
-                  disabled={saving}
+                  disabled={saving || isLoadingFile || Boolean(fileLoadError)}
                   className="flex items-center space-x-2 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-500 disabled:opacity-50 transition-all shadow-sm"
                  >
                    {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
@@ -250,7 +258,8 @@ export default function FileManager({ projectId }: FileManagerProps) {
             </div>
             <div className="flex-1 relative">
               <textarea 
-                value={fileContent}
+                value={isLoadingFile ? 'Loading...' : fileLoadError ? `Error: ${fileLoadError}` : fileContent}
+                readOnly={isLoadingFile || Boolean(fileLoadError)}
                 onChange={(e) => setFileContent(e.target.value)}
                 className="absolute inset-0 w-full h-full p-8 font-mono text-sm bg-transparent outline-none resize-none text-slate-700 leading-relaxed"
                 spellCheck={false}

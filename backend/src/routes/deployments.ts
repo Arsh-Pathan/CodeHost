@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { BuilderService } from '../services/builder.js';
 import { RunnerService } from '../services/runner.js';
 import { acquireDeploySlot, releaseDeployLock } from '../services/deploy-lock.js';
+import { ensureProjectBillingCurrent } from '../services/billing-guard.js';
 
 export { acquireDeploySlot, releaseDeployLock };
 
@@ -31,7 +32,11 @@ const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/zip' || file.mimetype === 'application/x-zip-compressed' || file.originalname.endsWith('.zip')) {
+    if (
+      file.mimetype === 'application/zip' ||
+      file.mimetype === 'application/x-zip-compressed' ||
+      file.originalname.toLowerCase().endsWith('.zip')
+    ) {
       cb(null, true);
     } else {
       cb(new Error('Only .zip files are allowed'));
@@ -40,8 +45,9 @@ const upload = multer({
 });
 
 router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) => {
+  let lockToken: string | undefined;
+  const projectId = req.params.projectId;
   try {
-    const projectId = req.params.projectId;
     const userId = req.user!.id;
 
     if (!req.file) {
@@ -59,11 +65,18 @@ router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) 
       return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
     }
 
-    const slot = await acquireDeploySlot(projectId, project.tier || 'free');
+    const billingCheck = await ensureProjectBillingCurrent(projectId, userId);
+    if (!billingCheck.ok) {
+      await fs.remove(req.file.path).catch(() => {});
+      return res.status(billingCheck.status).json({ error: billingCheck.error });
+    }
+
+    const slot = await acquireDeploySlot(projectId, project.tier || 'free', userId);
     if (!slot.ok) {
       await fs.remove(req.file.path).catch(() => {});
       return res.status(slot.status).json({ error: slot.error });
     }
+    lockToken = (slot as any).lockToken;
 
     // 1. Create Deployment Record
     const deployment = await prisma.deployment.create({
@@ -73,35 +86,43 @@ router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) 
       }
     });
 
-    res.status(202).json({ 
-      message: 'Deployment queued', 
-      deploymentId: deployment.id 
+    res.status(202).json({
+      message: 'Deployment queued',
+      deploymentId: deployment.id
     });
 
     // 2. Fire and forget the pipeline (Background Process)
     void (async () => {
       try {
         const imageName = await BuilderService.buildProject(
-          deployment.id, 
-          projectId, 
+          deployment.id,
+          projectId,
           req.file!.path
         );
-        
+
         await RunnerService.startContainer(projectId, deployment.id, imageName);
       } catch (err) {
         logger.error({ err }, `Pipeline failed for ${deployment.id}`);
         await prisma.deployment.update({ where: { id: deployment.id }, data: { status: 'failed' } }).catch(() => {});
         await prisma.project.update({ where: { id: projectId }, data: { status: 'failed' } }).catch(() => {});
       } finally {
-        await releaseDeployLock(projectId);
+        await releaseDeployLock(projectId, lockToken);
         // Cleanup uploaded zip
         await fs.remove(req.file!.path).catch(() => {});
       }
     })();
 
   } catch (error: any) {
+    if (lockToken) {
+      await releaseDeployLock(projectId, lockToken).catch(() => {});
+    }
+    if (req.file?.path) {
+      await fs.remove(req.file.path).catch(() => {});
+    }
     logger.error('Upload error', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || 'Internal server error' });
+    }
   }
 });
 
@@ -116,8 +137,9 @@ const githubDeploySchema = z.object({
 });
 
 router.post('/:projectId/github', async (req: AuthRequest, res) => {
+  let lockToken: string | undefined;
+  const projectId = req.params.projectId;
   try {
-    const projectId = req.params.projectId;
     const userId = req.user!.id;
 
     const { repoUrl, branch, subdir } = githubDeploySchema.parse(req.body);
@@ -131,10 +153,16 @@ router.post('/:projectId/github', async (req: AuthRequest, res) => {
       return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
     }
 
-    const slot = await acquireDeploySlot(projectId, project.tier || 'free');
+    const billingCheck = await ensureProjectBillingCurrent(projectId, userId);
+    if (!billingCheck.ok) {
+      return res.status(billingCheck.status).json({ error: billingCheck.error });
+    }
+
+    const slot = await acquireDeploySlot(projectId, project.tier || 'free', userId);
     if (!slot.ok) {
       return res.status(slot.status).json({ error: slot.error });
     }
+    lockToken = (slot as any).lockToken;
 
     // Save repo info on the project
     await prisma.project.update({
@@ -171,15 +199,20 @@ router.post('/:projectId/github', async (req: AuthRequest, res) => {
         await prisma.deployment.update({ where: { id: deployment.id }, data: { status: 'failed' } }).catch(() => {});
         await prisma.project.update({ where: { id: projectId }, data: { status: 'failed' } }).catch(() => {});
       } finally {
-        await releaseDeployLock(projectId);
+        await releaseDeployLock(projectId, lockToken);
       }
     })();
   } catch (error: any) {
+    if (lockToken) {
+      await releaseDeployLock(projectId, lockToken).catch(() => {});
+    }
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
     logger.error('GitHub deploy error', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || 'Internal server error' });
+    }
   }
 });
 

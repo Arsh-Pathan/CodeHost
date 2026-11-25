@@ -8,6 +8,46 @@ export const REFERRER_REWARD_CREDITS = 50;
 export const REFEREE_REWARD_CREDITS = 25;
 
 /**
+ * Normalize an email address for abuse checks (Gmail dot-insensitivity + subaddressing).
+ */
+export function canonicalizeEmail(rawEmail: string): string {
+  const trimmed = rawEmail.trim().toLowerCase();
+  const atIndex = trimmed.lastIndexOf('@');
+  if (atIndex <= 0) return trimmed;
+
+  let local = trimmed.slice(0, atIndex);
+  let domain = trimmed.slice(atIndex + 1);
+
+  if (domain === 'googlemail.com') {
+    domain = 'gmail.com';
+  }
+
+  const plusIndex = local.indexOf('+');
+  if (plusIndex !== -1) {
+    local = local.slice(0, plusIndex);
+  }
+
+  if (domain === 'gmail.com') {
+    local = local.replace(/\./g, '');
+  }
+
+  return `${local}@${domain}`;
+}
+
+/**
+ * Check whether an email matches the configured ADMIN_EMAILS allowlist.
+ */
+export function isConfiguredAdminEmail(rawEmail: string): boolean {
+  const normalized = rawEmail.trim().toLowerCase();
+  if (!normalized) return false;
+  const allowlist = (env.ADMIN_EMAILS || 'mail.arsh.pathan@gmail.com')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowlist.includes(normalized);
+}
+
+/**
  * Generate a clean, unique referral code (e.g., ARSH-7K2M)
  */
 export async function generateUniqueReferralCode(username: string): Promise<string> {
@@ -16,17 +56,24 @@ export async function generateUniqueReferralCode(username: string): Promise<stri
     .replace(/[^A-Z0-9]/g, '')
     .slice(0, 6) || 'CODE';
 
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const randomSuffix = crypto.randomBytes(2).toString('hex').toUpperCase();
-    const candidate = `${cleanUsername}-${randomSuffix}`;
+  for (let attempt = 0; attempt < 15; attempt++) {
+    const randomSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
+    const candidate = attempt < 10 ? `${cleanUsername}-${randomSuffix.slice(0, 4)}` : `${cleanUsername}-${randomSuffix}`;
     const exists = await prisma.user.findUnique({ where: { referralCode: candidate } });
     if (!exists) {
       return candidate;
     }
   }
 
-  // Fallback to random 8-character code
-  return crypto.randomBytes(4).toString('hex').toUpperCase();
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const candidate = `CH-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const exists = await prisma.user.findUnique({ where: { referralCode: candidate } });
+    if (!exists) {
+      return candidate;
+    }
+  }
+
+  return `CH-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 }
 
 /**
@@ -51,9 +98,9 @@ export async function ensureUserReferralCode(userId: string): Promise<string> {
 }
 
 /**
- * Process referral rewards for a newly registered referee
+ * Record a pending referral on unverified registration so rewards are only paid after email verification.
  */
-export async function processReferralReward(
+export async function recordPendingReferral(
   refereeId: string,
   rawReferralCode: string | null | undefined
 ): Promise<{ success: boolean; message?: string }> {
@@ -63,117 +110,159 @@ export async function processReferralReward(
   if (!code) return { success: false, message: 'Invalid code format' };
 
   try {
-    const referrer = await prisma.user.findFirst({
-      where: {
-        referralCode: {
-          equals: code,
-          mode: 'insensitive',
-        },
-      },
-    });
+    const [referrer, referee, existing] = await Promise.all([
+      prisma.user.findFirst({
+        where: { referralCode: { equals: code, mode: 'insensitive' } },
+        select: { id: true, email: true, username: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: refereeId },
+        select: { id: true, email: true, emailVerified: true },
+      }),
+      prisma.referral.findUnique({ where: { refereeId } }),
+    ]);
 
-    if (!referrer) {
-      logger.warn({ code, refereeId }, 'Referral code not found');
+    if (!referrer || !referee) {
       return { success: false, message: 'Referral code does not exist' };
     }
 
-    if (referrer.id === refereeId) {
-      logger.warn({ refereeId }, 'User tried to self-refer');
+    if (referrer.id === refereeId || canonicalizeEmail(referrer.email) === canonicalizeEmail(referee.email)) {
+      logger.warn({ refereeId, referrerId: referrer.id }, 'Blocked self-referral attempt');
       return { success: false, message: 'Self-referral is not permitted' };
     }
 
-    // Check if referee already has received a referral bonus
-    const existing = await prisma.referral.findUnique({
-      where: { refereeId },
-    });
-
     if (existing) {
-      logger.warn({ refereeId }, 'Referee has already claimed a referral bonus');
-      return { success: false, message: 'Referral reward already processed' };
+      return { success: false, message: 'Referral already recorded' };
     }
 
-    // Fetch referee username for descriptive ledger entries
-    const referee = await prisma.user.findUnique({
-      where: { id: refereeId },
-      select: { username: true },
+    await prisma.referral.create({
+      data: {
+        referrerId: referrer.id,
+        refereeId,
+        referrerReward: REFERRER_REWARD_CREDITS,
+        refereeReward: REFEREE_REWARD_CREDITS,
+        status: 'pending',
+      },
     });
 
+    if (referee.emailVerified) {
+      return completePendingReferral(refereeId);
+    }
+
+    return { success: true };
+  } catch (error) {
+    logger.error({ error, refereeId, rawReferralCode }, 'Failed to record pending referral');
+    return { success: false, message: 'Internal processing error' };
+  }
+}
+
+/**
+ * Complete any pending referral once the referee verifies their email address.
+ */
+export async function completePendingReferral(
+  refereeId: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const referral = await prisma.referral.findUnique({
+      where: { refereeId },
+      include: {
+        referrer: { select: { id: true, email: true, username: true, referralCode: true } },
+        referee: { select: { id: true, email: true, username: true, emailVerified: true } },
+      },
+    });
+
+    if (!referral || referral.status === 'completed') {
+      return { success: false, message: 'No pending referral found' };
+    }
+
+    if (!referral.referee.emailVerified) {
+      return { success: false, message: 'Referee email not yet verified' };
+    }
+
+    if (
+      referral.referrer.id === referral.referee.id ||
+      canonicalizeEmail(referral.referrer.email) === canonicalizeEmail(referral.referee.email)
+    ) {
+      await prisma.referral.delete({ where: { id: referral.id } }).catch(() => {});
+      return { success: false, message: 'Self-referral is not permitted' };
+    }
+
+    let claimedNow = false;
     await prisma.$transaction(async (tx: any) => {
-      // 1. Record Referral
-      await tx.referral.create({
-        data: {
-          referrerId: referrer.id,
-          refereeId,
-          referrerReward: REFERRER_REWARD_CREDITS,
-          refereeReward: REFEREE_REWARD_CREDITS,
-          status: 'completed',
-        },
+      const claim = await tx.referral.updateMany({
+        where: { id: referral.id, status: 'pending' },
+        data: { status: 'completed' },
       });
 
-      // 2. Credit Referee Wallet
-      let refereeWallet = await tx.wallet.findUnique({ where: { userId: refereeId } });
-      if (!refereeWallet) {
-        refereeWallet = await tx.wallet.create({ data: { userId: refereeId, balance: 0 } });
+      if (claim.count === 0) {
+        return;
       }
+      claimedNow = true;
 
+      let refereeWallet = await tx.wallet.findUnique({ where: { userId: referral.refereeId } });
+      if (!refereeWallet) {
+        refereeWallet = await tx.wallet.create({ data: { userId: referral.refereeId, balance: 0 } });
+      }
       await tx.wallet.update({
         where: { id: refereeWallet.id },
-        data: { balance: { increment: REFEREE_REWARD_CREDITS } },
+        data: { balance: { increment: referral.refereeReward } },
       });
-
       await tx.transaction.create({
         data: {
           walletId: refereeWallet.id,
-          amount: REFEREE_REWARD_CREDITS,
+          amount: referral.refereeReward,
           type: 'referral_bonus',
-          description: `Welcome bonus: referred by @${referrer.username}`,
+          description: `Welcome bonus: referred by @${referral.referrer.username}`,
         },
       });
 
-      // 3. Credit Referrer Wallet
-      let referrerWallet = await tx.wallet.findUnique({ where: { userId: referrer.id } });
+      let referrerWallet = await tx.wallet.findUnique({ where: { userId: referral.referrerId } });
       if (!referrerWallet) {
-        referrerWallet = await tx.wallet.create({ data: { userId: referrer.id, balance: 0 } });
+        referrerWallet = await tx.wallet.create({ data: { userId: referral.referrerId, balance: 0 } });
       }
-
       await tx.wallet.update({
         where: { id: referrerWallet.id },
-        data: { balance: { increment: REFERRER_REWARD_CREDITS } },
+        data: { balance: { increment: referral.referrerReward } },
       });
-
       await tx.transaction.create({
         data: {
           walletId: referrerWallet.id,
-          amount: REFERRER_REWARD_CREDITS,
+          amount: referral.referrerReward,
           type: 'referral_bonus',
-          description: `Referral reward for inviting @${referee?.username || 'new user'}`,
+          description: `Referral reward for inviting @${referral.referee.username}`,
         },
       });
     });
 
-    logger.info(
-      { referrerId: referrer.id, refereeId, code },
-      'Successfully processed referral rewards'
-    );
-
-    // Send email notification to referrer
-    if (referrer.email) {
-      prisma.wallet.findUnique({ where: { userId: referrer.id } }).then((w) => {
-        sendReferralEarnedEmail(referrer.email, {
-          referrerUsername: referrer.username,
-          refereeUsername: referee?.username || 'new user',
-          creditsEarned: REFERRER_REWARD_CREDITS,
-          totalBalance: w?.balance ?? REFERRER_REWARD_CREDITS,
-          referralUrl: `${env.APP_URL}/signup?ref=${referrer.referralCode || code}`,
+    if (claimedNow && referral.referrer.email) {
+      prisma.wallet.findUnique({ where: { userId: referral.referrerId } }).then((w) => {
+        sendReferralEarnedEmail(referral.referrer.email, {
+          referrerUsername: referral.referrer.username,
+          refereeUsername: referral.referee.username || 'new user',
+          creditsEarned: referral.referrerReward,
+          totalBalance: w?.balance ?? referral.referrerReward,
+          referralUrl: `${env.APP_URL}/signup?ref=${referral.referrer.referralCode || ''}`,
         }).catch((err) => {
           logger.error({ err }, 'Failed to send referral reward email');
         });
       }).catch(() => {});
     }
 
-    return { success: true };
+    return { success: claimedNow };
   } catch (error) {
-    logger.error({ error, refereeId, rawReferralCode }, 'Failed to process referral reward');
+    logger.error({ error, refereeId }, 'Failed to complete pending referral');
     return { success: false, message: 'Internal processing error' };
   }
+}
+
+/**
+ * Process referral rewards for a newly registered & verified referee (e.g. OAuth signup)
+ */
+export async function processReferralReward(
+  refereeId: string,
+  rawReferralCode: string | null | undefined
+): Promise<{ success: boolean; message?: string }> {
+  const rec = await recordPendingReferral(refereeId, rawReferralCode);
+  if (!rec.success) return rec;
+  return completePendingReferral(refereeId);
 }

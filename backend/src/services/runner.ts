@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { docker } from '@codehost/docker';
+import { docker, demuxDockerLogBuffer } from '@codehost/docker';
 import { logger } from '@codehost/logger';
 import { prisma } from '@codehost/database';
 import { env } from '@codehost/config';
@@ -54,22 +54,36 @@ export class RunnerService {
       emitLog('> Preparing your app...');
 
       // Retrieve the running project and user for the routing path
-      const project = await prisma.project.findUnique({ 
+      const project = await prisma.project.findUnique({
         where: { id: projectId },
         include: { user: true }
       });
-      
-      const username = project?.user?.username || project?.user?.email?.split('@')[0].toLowerCase() || 'user';
-      const projectSlug = project?.name.toLowerCase() || projectId;
-      const domain = process.env.DOMAIN || 'code-host.online';
+
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      const projectSlug = project.name.toLowerCase();
+      const domain = env.DOMAIN || 'code-host.online';
       const host = domain;
-      const customDomainCheck = validateCustomDomain(project?.customDomain, host);
+
+      // Support temporary timed tier upgrades (e.g. Weekend Hackathon Pass unlocking Pro resources)
+      const hasActiveTimedTier = Boolean(
+        project.user?.tier &&
+        project.user.tier !== 'free' &&
+        project.user.tierExpiresAt &&
+        project.user.tierExpiresAt > new Date()
+      );
+      const effectiveTier =
+        project.tier === 'free' && hasActiveTimedTier ? project.user!.tier : project.tier || 'free';
+
+      const customDomainCheck = validateCustomDomain(project.customDomain, host);
       const validCustomDomain =
-        customDomainCheck.valid && customDomainCheck.normalized && project?.tier && project.tier !== 'free'
+        customDomainCheck.valid && customDomainCheck.normalized && effectiveTier !== 'free'
           ? customDomainCheck.normalized
           : null;
       const virtualHosts = `${projectSlug}.${host}${validCustomDomain ? `,${validCustomDomain}` : ''}`;
-      const userEnvEntries = Object.entries(sanitizeUserEnvVars(project?.envVars)).map(
+      const userEnvEntries = Object.entries(sanitizeUserEnvVars(project.envVars)).map(
         ([k, v]) => `${k}=${v}`
       );
 
@@ -78,7 +92,7 @@ export class RunnerService {
       const containerPort = await this.detectPort(projectId, imageName);
 
       // Look up tier-based resource limits
-      const tierConfig = RESOURCE_TIERS[project?.tier || 'free'] || RESOURCE_TIERS['free'];
+      const tierConfig = RESOURCE_TIERS[effectiveTier] || RESOURCE_TIERS['free'];
       const memoryLimit = tierConfig.memory;
       const nanoCpus = tierConfig.cpus * 1e9;
 
@@ -88,6 +102,8 @@ export class RunnerService {
         MemorySwap: memoryLimit,
         NanoCpus: nanoCpus,
         PidsLimit: 128,
+        CapDrop: ['ALL'],
+        CapAdd: ['CHOWN', 'DAC_OVERRIDE', 'FOWNER', 'SETGID', 'SETUID', 'NET_BIND_SERVICE'],
         SecurityOpt: ['no-new-privileges:true'],
         NetworkMode: 'proxy', // Connect to the proxy network
         RestartPolicy: { Name: 'on-failure', MaximumRetryCount: 3 },
@@ -132,17 +148,18 @@ export class RunnerService {
         });
         const stream = await exec.start({ hijack: true, stdin: false });
         const output = await new Promise<string>((resolve) => {
-          let data = '';
-          stream.on('data', (chunk: Buffer) => { data += chunk.toString(); });
-          stream.on('end', () => resolve(data));
-          setTimeout(() => resolve(data), 3000);
+          const chunks: Buffer[] = [];
+          stream.on('data', (chunk: Buffer) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+          stream.on('end', () => resolve(demuxDockerLogBuffer(Buffer.concat(chunks))));
+          setTimeout(() => resolve(demuxDockerLogBuffer(Buffer.concat(chunks))), 3000);
         });
-        // Parse listening ports (skip DNS resolver on 127.0.0.11)
-        const portMatches = output.match(/(?:0\.0\.0\.0|:::)[:.](\d+)/g);
+        // Parse listening ports across netstat/ss address formats (0.0.0.0:3000, :::3000, *:3000, [::]:3000)
+        const portMatches = output.match(/(?:0\.0\.0\.0|\*|:::|\[::\])[:.](\d+)/g);
         if (portMatches) {
           for (const match of portMatches) {
             const p = match.match(/(\d+)$/)?.[1];
-            if (p && p !== '53') { // skip DNS
+            const parsedPort = p ? parseInt(p, 10) : 0;
+            if (p && parsedPort > 0 && parsedPort <= 65535 && p !== '53') { // skip DNS & port 0
               actualPort = p;
               break;
             }
@@ -155,8 +172,10 @@ export class RunnerService {
         logger.info(`Port mismatch: proxy port=${containerPort}, actual=${actualPort}. Recreating container...`);
         emitLog(`> Detected app listening on port ${actualPort}, reconfiguring...`);
 
-        await container.stop();
-        await container.remove();
+        await container.stop().catch((err: any) => {
+          if (err?.statusCode !== 304 && err?.statusCode !== 404) throw err;
+        });
+        await container.remove({ force: true });
 
         // Recreate with correct port
         const fixedContainer = await docker.createContainer({
@@ -177,11 +196,25 @@ export class RunnerService {
           }
         });
         await fixedContainer.start();
+        await new Promise(r => setTimeout(r, 1500));
         // Replace reference so the rest of the code uses the new container
         container = fixedContainer;
       }
 
       const containerInfo = await container.inspect();
+      if (!containerInfo.State?.Running) {
+        let crashOutput = '';
+        try {
+          const logsBuf = await container.logs({ stdout: true, stderr: true, tail: 50 });
+          crashOutput = demuxDockerLogBuffer(logsBuf).trim();
+        } catch {}
+        if (crashOutput) {
+          emitLog(crashOutput);
+        }
+        throw new Error(
+          `Container exited during startup (exit code ${containerInfo.State?.ExitCode ?? 'unknown'}). Check runtime logs for errors.`
+        );
+      }
 
       let mappedPort: number | null = null;
       if (containerInfo.NetworkSettings.Ports) {
@@ -215,6 +248,15 @@ export class RunnerService {
       });
 
       this.activeLogStreams.set(projectId, logStream);
+
+      const cleanupStreamRef = () => {
+        if (this.activeLogStreams.get(projectId) === logStream) {
+          this.activeLogStreams.delete(projectId);
+        }
+      };
+      (logStream as any).on?.('end', cleanupStreamRef);
+      (logStream as any).on?.('close', cleanupStreamRef);
+      (logStream as any).on?.('error', cleanupStreamRef);
 
       docker.modem.demuxStream(logStream,
         { write: (chunk: any) => { emitLog(chunk.toString()); return true; } } as any,
@@ -286,6 +328,11 @@ export class RunnerService {
    */
   private static async detectPort(projectId: string, imageName: string): Promise<string> {
     const sourceDir = path.join(process.cwd(), 'storage', 'projects', projectId, 'source');
+    const isValidPort = (p?: string | null): p is string => {
+      if (!p) return false;
+      const n = parseInt(p, 10);
+      return Number.isInteger(n) && n > 0 && n <= 65535;
+    };
 
     // 1. Check Dockerfile for explicit EXPOSE (last one wins in multi-stage)
     try {
@@ -294,7 +341,7 @@ export class RunnerService {
       if (exposeMatches && exposeMatches.length > 0) {
         const lastExpose = exposeMatches[exposeMatches.length - 1];
         const port = lastExpose.match(/\d+/)?.[0];
-        if (port) {
+        if (isValidPort(port)) {
           logger.info(`Port ${port} from Dockerfile EXPOSE`);
           return port;
         }
@@ -308,7 +355,7 @@ export class RunnerService {
         if (file.includes('nginx') && file.endsWith('.conf')) {
           const content = await fs.readFile(path.join(sourceDir, file), 'utf8');
           const listenMatch = content.match(/listen\s+(\d+)/);
-          if (listenMatch && listenMatch[1] !== '80') {
+          if (listenMatch && isValidPort(listenMatch[1]) && listenMatch[1] !== '80') {
             logger.info(`Port ${listenMatch[1]} from ${file} listen directive`);
             return listenMatch[1];
           }
@@ -316,11 +363,11 @@ export class RunnerService {
       }
     } catch {}
 
-    // 3. Check ENV PORT in Dockerfile (e.g. ENV PORT=3000)
+    // 3. Check ENV PORT in Dockerfile (e.g. ENV PORT=3000 or ENV PORT="3000")
     try {
       const dockerfile = await fs.readFile(path.join(sourceDir, 'Dockerfile'), 'utf8');
-      const envPortMatch = dockerfile.match(/ENV\s+PORT[=\s]+(\d+)/);
-      if (envPortMatch) {
+      const envPortMatch = dockerfile.match(/ENV\s+PORT[=\s]+["']?(\d+)["']?/i);
+      if (envPortMatch && isValidPort(envPortMatch[1])) {
         logger.info(`Port ${envPortMatch[1]} from Dockerfile ENV PORT`);
         return envPortMatch[1];
       }
@@ -332,8 +379,10 @@ export class RunnerService {
       const exposedPorts = Object.keys(imageDetail.Config?.ExposedPorts || {});
       if (exposedPorts.length > 0) {
         const port = exposedPorts[0].split('/')[0];
-        logger.info(`Port ${port} from image ExposedPorts`);
-        return port;
+        if (isValidPort(port)) {
+          logger.info(`Port ${port} from image ExposedPorts`);
+          return port;
+        }
       }
     } catch {}
 
@@ -359,8 +408,13 @@ export class RunnerService {
         cpuPercent = (cpuDelta / systemDelta) * onlineCpus * 100.0;
       }
 
-      // Memory usage
-      const memUsage = stats.memory_stats?.usage || 0;
+      // Memory usage (subtract reclaimable page cache on cgroup v2 / v1)
+      const totalMemUsage = stats.memory_stats?.usage || 0;
+      const cacheBytes =
+        stats.memory_stats?.stats?.inactive_file ??
+        stats.memory_stats?.stats?.cache ??
+        0;
+      const memUsage = Math.max(0, totalMemUsage - cacheBytes);
       const memLimit = stats.memory_stats?.limit || 0;
       const memPercent = memLimit > 0 ? (memUsage / memLimit) * 100.0 : 0;
 
@@ -391,8 +445,21 @@ export class RunnerService {
     try {
       const containerName = `codehost-run-${projectId}`;
       const container = docker.getContainer(containerName);
-      await container.stop();
-      await container.remove();
+      try {
+        await container.stop();
+      } catch (stopErr: any) {
+        // HTTP 304 means container already stopped; 404 means container absent
+        if (stopErr?.statusCode !== 304 && stopErr?.statusCode !== 404) {
+          throw stopErr;
+        }
+      }
+      try {
+        await container.remove({ force: true });
+      } catch (rmErr: any) {
+        if (rmErr?.statusCode !== 404) {
+          throw rmErr;
+        }
+      }
       logger.info(`Stopped and removed container ${containerName}`);
     } catch (e: any) {
       logger.warn(`Could not stop container for ${projectId}: ${e.message}`);
@@ -441,7 +508,7 @@ export class RunnerService {
         tail,
         timestamps: true,
       });
-      return logsBuffer.toString('utf8');
+      return demuxDockerLogBuffer(logsBuffer);
     } catch (e: any) {
       return `[System] Could not retrieve container logs: ${e.message}`;
     }

@@ -517,7 +517,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
               </h3>
               <p className="text-sm text-blue-100 max-w-xl">
                 Deploy your Node.js, Python, or Docker app in 60 seconds with instant HTTPS. Join with 
-                <strong> {data.recipientName}</strong>&apos;s invite and get <strong>+50 free credits</strong> immediately!
+                <strong> {data.recipientName}</strong>&apos;s invite and get <strong>+25 free credits</strong> immediately!
               </p>
             </div>
 
@@ -525,7 +525,7 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
               href={referralSignupUrl}
               className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white hover:bg-slate-100 text-[#2563EB] font-black text-sm rounded-xl shadow-sm transition transform active:scale-98 shrink-0 cursor-pointer"
             >
-              <span>Deploy Free &amp; Claim 50 Credits</span>
+              <span>Deploy Free &amp; Claim 25 Credits</span>
               <ArrowRight size={16} />
             </Link>
           </div>

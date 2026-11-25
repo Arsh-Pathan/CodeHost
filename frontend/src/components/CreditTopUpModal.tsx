@@ -65,6 +65,10 @@ export default function CreditTopUpModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [packages, setPackages] = useState<PackageItem[]>(DEFAULT_PRESET_PACKAGES);
+  const packagesRef = React.useRef<PackageItem[]>(DEFAULT_PRESET_PACKAGES);
+  useEffect(() => {
+    packagesRef.current = packages;
+  }, [packages]);
   const [creditPriceInr, setCreditPriceInr] = useState<number>(1.60);
   const [creditPriceUsd, setCreditPriceUsd] = useState<number>(0.02);
   const [razorpayKeyId, setRazorpayKeyId] = useState<string>('');
@@ -84,7 +88,7 @@ export default function CreditTopUpModal({
       if (initialPlanType === 'hackathon') {
         setMode('hackathon');
       } else if (initialCredits) {
-        const match = packages.find(p => p.credits === initialCredits);
+        const match = packagesRef.current.find(p => p.credits === initialCredits);
         if (match) {
           setSelectedCredits(initialCredits);
           setMode('packages');

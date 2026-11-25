@@ -9,19 +9,35 @@ function CallbackHandler() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const accessToken = searchParams.get('accessToken');
-    const refreshToken = searchParams.get('refreshToken');
-    const error = searchParams.get('error');
+    const hashRaw = typeof window !== 'undefined' ? window.location.hash.replace(/^#/, '') : '';
+    const hashParams = new URLSearchParams(hashRaw);
+
+    const accessToken = hashParams.get('accessToken') || searchParams.get('accessToken');
+    const refreshToken = hashParams.get('refreshToken') || searchParams.get('refreshToken');
+    const error = hashParams.get('error') || searchParams.get('error');
+
+    if (typeof window !== 'undefined' && (window.location.hash || window.location.search)) {
+      window.history.replaceState({}, '', '/auth/callback');
+    }
 
     if (error) {
-      router.push(`/login?error=${error}`);
+      router.push(`/login?error=${encodeURIComponent(error)}`);
       return;
     }
 
     if (accessToken && refreshToken) {
       localStorage.setItem('token', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
-      router.push('/dashboard');
+
+      let nextPath = '/dashboard';
+      if (typeof window !== 'undefined') {
+        const storedRedirect = sessionStorage.getItem('postAuthRedirect');
+        sessionStorage.removeItem('postAuthRedirect');
+        if (storedRedirect && storedRedirect.startsWith('/dashboard') && !storedRedirect.startsWith('//')) {
+          nextPath = storedRedirect;
+        }
+      }
+      router.push(nextPath);
     } else {
       router.push('/login?error=oauth_failed');
     }

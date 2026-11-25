@@ -2,53 +2,33 @@
 
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { LogoWithText } from '@/components/Logo';
-import { 
-  ArrowRight, 
-  Box, 
-  Terminal, 
-  Activity,
-  Cpu, 
-  HardDrive, 
-  Globe, 
-  Zap, 
-  Shield, 
-  CheckCircle2, 
-  Github, 
-  Twitter, 
-  Linkedin,
-  MessageSquare,
+import {
+  ArrowRight,
+  Box,
+  Terminal,
+  Cpu,
+  HardDrive,
+  Globe,
+  Zap,
+  Shield,
+  CheckCircle2,
   GitBranch,
-  Play,
-  Layers,
   Sparkles,
   Server,
   Cloud,
   Check,
   ChevronDown,
-  RefreshCw,
-  Sliders,
-  ExternalLink,
-  Code2,
-  Lock,
   ArrowUpRight,
-  Database,
-  Copy,
-  Moon,
-  Sun,
   Flame,
   Rocket,
-  Radio,
-  FileCode,
-  Menu,
-  X,
-  Gift
+  FileCode
 } from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { fetchApi } from '@/lib/api';
+import { getApiUrl } from '@/lib/api';
 import { useHasAuthToken } from '@/lib/client-hooks';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { LogoWithText } from '@/components/Logo';
 import { MobileFloatingIsland } from '@/components/MobileFloatingIsland';
 import {
   NextjsIcon,
@@ -63,9 +43,7 @@ import {
   FlaskIcon,
   GoIcon,
   RustIcon,
-  JavaIcon,
   SpringIcon,
-  PhpIcon,
   LaravelIcon,
   RubyIcon,
   DotNetIcon,
@@ -442,50 +420,21 @@ const TECH_STACKS = [
 ];
 
 export default function Home() {
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [serverCount, setServerCount] = React.useState(0);
   const isLoggedIn = useHasAuthToken();
   const [openFaq, setOpenFaq] = React.useState<number | null>(0);
-  const [calcCredits, setCalcCredits] = React.useState<number>(250);
   const [tplCategory, setTplCategory] = React.useState<'all' | 'fullstack' | 'backend' | 'ai'>('all');
   const [selectedTplId, setSelectedTplId] = React.useState<string>('nextjs');
-  const [stackCategory, setStackCategory] = React.useState<'all' | 'frontend' | 'backend' | 'runtimes' | 'databases'>('all');
-  const [activeDbTab, setActiveDbTab] = React.useState<'postgres' | 'redis'>('postgres');
-  const [copiedDbUri, setCopiedDbUri] = React.useState<boolean>(false);
-  const [wakeSimState, setWakeSimState] = React.useState<'sleeping' | 'waking' | 'active'>('sleeping');
-  const [customDomainInput, setCustomDomainInput] = React.useState<string>('app.mybrand.com');
-  const [whiteLabelActive, setWhiteLabelActive] = React.useState<boolean>(false);
+
   const heroRef = useRef<HTMLDivElement>(null);
-  const dashboardRef = useRef<HTMLDivElement>(null);
-  const featuresRef = useRef<HTMLDivElement>(null);
-
-  const runWakeSim = () => {
-    if (wakeSimState !== 'sleeping') return;
-    setWakeSimState('waking');
-    setTimeout(() => {
-      setWakeSimState('active');
-      setTimeout(() => {
-        setWakeSimState('sleeping');
-      }, 5000);
-    }, 280);
-  };
-
-  const copyDbUri = (uri: string) => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(uri);
-      setCopiedDbUri(true);
-      setTimeout(() => setCopiedDbUri(false), 2000);
-    }
-  };
 
   const selectedTpl = STARTER_TEMPLATES.find(t => t.id === selectedTplId) || STARTER_TEMPLATES[0];
   const filteredTemplates = tplCategory === 'all' ? STARTER_TEMPLATES : STARTER_TEMPLATES.filter(t => t.category === tplCategory);
-  const filteredStacks = stackCategory === 'all' ? TECH_STACKS : TECH_STACKS.filter(s => s.category === stackCategory);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/stats/public`);
+        const response = await fetch(`${getApiUrl()}/stats/public`);
         const data = await response.json();
         setServerCount(data.runningServers || 48);
       } catch {
@@ -610,33 +559,32 @@ export default function Home() {
          }
        });
 
-       let rafId: number | null = null;
-       const onMouseMove = (e: MouseEvent) => {
-          if (rafId) return;
-          rafId = window.requestAnimationFrame(() => {
-             const { clientX, clientY } = e;
-             const xPos = (clientX / window.innerWidth) - 0.5;
-             const yPos = (clientY / window.innerHeight) - 0.5;
+         }, [heroRef]);
 
-             gsap.to(".floating-symbol", {
-                xPercent: xPos * 15,
-                yPercent: yPos * 15,
-                duration: 0.8,
-                ease: "power2.out",
-                stagger: 0.01
-             });
-             rafId = null;
-          });
-       };
+     let rafId: number | null = null;
+     const onMouseMove = (e: MouseEvent) => {
+        if (rafId) return;
+        rafId = window.requestAnimationFrame(() => {
+           const { clientX, clientY } = e;
+           const xPos = (clientX / window.innerWidth) - 0.5;
+           const yPos = (clientY / window.innerHeight) - 0.5;
+           gsap.to(".floating-symbol", {
+              xPercent: xPos * 15,
+              yPercent: yPos * 15,
+              duration: 0.8,
+              ease: "power2.out",
+              stagger: 0.01
+           });
+           rafId = null;
+        });
+     };
+     window.addEventListener("mousemove", onMouseMove, { passive: true });
 
-       window.addEventListener("mousemove", onMouseMove, { passive: true });
-       return () => {
-         window.removeEventListener("mousemove", onMouseMove);
-         if (rafId) window.cancelAnimationFrame(rafId);
-       };
-     }, [heroRef]);
-
-     return () => ctx.revert();
+     return () => {
+       window.removeEventListener("mousemove", onMouseMove);
+       if (rafId) window.cancelAnimationFrame(rafId);
+       ctx.revert();
+     };
    }, []);
 
    return (
@@ -1157,7 +1105,7 @@ export default function Home() {
 
               <div className="flex items-center justify-between text-xs pt-0.5">
                 <span className="text-slate-500 font-medium">Instant HTTPS SSE &amp; bearer auth</span>
-                <Link href="/docs#mcp" className="text-blue-600 hover:text-blue-700 font-bold inline-flex items-center space-x-1">
+                <Link href="/docs#mcp-server" className="text-blue-600 hover:text-blue-700 font-bold inline-flex items-center space-x-1">
                   <span>View MCP Docs</span>
                   <ArrowRight size={13} />
                 </Link>
@@ -1692,10 +1640,10 @@ export default function Home() {
                 Weekend Hackathon Pass — Just ₹49 for 72 Hours
               </h3>
               <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed">
-                Competing in a college hackathon or presenting an MVP to investors? Get instant Pro power (2 vCPUs, 2GB RAM, 5GB NVMe, unlimited fast builds) for 3 full days with zero recurring commitments.
+                Competing in a college hackathon or presenting an MVP to investors? Get instant Pro power (2 vCPUs, 512MB RAM, 5GB NVMe, unlimited fast builds) for 3 full days with zero recurring commitments.
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
-                {['2 vCPUs Dedicated', '2GB High-Speed RAM', 'Priority Build Sandboxes', 'Instant Let\'s Encrypt SSL', 'Zero Monthly Lock-In'].map((tag, idx) => (
+                {['2 vCPUs Dedicated', '512MB High-Speed RAM', 'Priority Build Sandboxes', 'Instant Let\'s Encrypt SSL', 'Zero Monthly Lock-In'].map((tag, idx) => (
                   <span key={idx} className="px-2.5 py-1 rounded-lg bg-white/10 text-white font-mono text-[10px] font-bold border border-white/10">
                     ✓ {tag}
                   </span>
@@ -1736,7 +1684,7 @@ export default function Home() {
             },
             {
               q: "How does Scale-to-Zero work and does it save my credits?",
-              a: "Yes! When your application experiences 15 minutes of zero inbound traffic, CodeHost puts compute resources to sleep (0% CPU, 0 RAM), reducing credit burn to ₹0. As soon as a visitor opens your URL, our reverse proxy seamlessly buffers the request and wakes up the container in under 300ms."
+              a: "Yes! When your application experiences 30 minutes of inactivity on the Free tier, CodeHost safely scales the container down (0% CPU, 0 RAM) to conserve shared capacity; you can restart it anytime from your dashboard. Basic, Pro, and Business plans run 24/7 with zero auto-sleep."
             },
             {
               q: "Can I connect my own custom domain to my project?",
@@ -1748,7 +1696,7 @@ export default function Home() {
             },
             {
               q: "What is the Weekend Hackathon Pass?",
-              a: "The Hackathon Pass gives you 72 hours of full Pro tier power (2 vCPUs, 2GB RAM, unlimited builds, zero sleeping) for just ₹49. It is designed for students attending 24-48h hackathons or building client demos without committing to monthly fees."
+              a: "The Hackathon Pass gives you 72 hours of full Pro tier power (2 vCPUs, 512MB RAM, unlimited builds, zero sleeping) for just ₹49. It is designed for students attending 24-48h hackathons or building client demos without committing to monthly fees."
             },
             {
               q: "What happens if my credit balance reaches zero?",
@@ -1851,17 +1799,17 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="#scaletozero" className="hover:text-blue-600 transition-colors">
+                  <Link href="#features" className="hover:text-blue-600 transition-colors">
                     Scale-to-Zero Auto-Sleep
                   </Link>
                 </li>
                 <li>
-                  <Link href="#domains" className="hover:text-blue-600 transition-colors">
+                  <Link href="#capabilities" className="hover:text-blue-600 transition-colors">
                     Custom Domains &amp; Free TLS
                   </Link>
                 </li>
                 <li>
-                  <Link href="/docs#mcp" className="hover:text-blue-600 transition-colors flex items-center space-x-1.5">
+                  <Link href="/docs#mcp-server" className="hover:text-blue-600 transition-colors flex items-center space-x-1.5">
                     <span>Model Context Protocol (MCP)</span>
                     <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-blue-100 text-blue-700 rounded-full">New</span>
                   </Link>
@@ -1896,7 +1844,7 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/dashboard/settings" className="hover:text-blue-600 transition-colors">
+                  <Link href="/dashboard/profile" className="hover:text-blue-600 transition-colors">
                     API Keys &amp; Agent Tokens
                   </Link>
                 </li>
@@ -1974,7 +1922,7 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/pricing" className="hover:text-blue-600 transition-colors flex items-center space-x-1.5">
+                  <Link href="#pricing" className="hover:text-blue-600 transition-colors flex items-center space-x-1.5">
                     <span>Student Hackathon Grants</span>
                     <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-emerald-100 text-emerald-700 rounded-full">Apply</span>
                   </Link>

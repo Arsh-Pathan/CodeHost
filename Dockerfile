@@ -87,7 +87,7 @@ COPY --from=builder /app/frontend/.next/static ./frontend/.next/static
 # Ensure Next.js cache directory exists and is writable by non-root users
 RUN mkdir -p /app/frontend/.next/cache && \
     chown -R node:node /app/frontend/.next && \
-    chmod -R 777 /app/frontend/.next
+    chmod -R 755 /app/frontend/.next
 
 EXPOSE 3000
 CMD ["node", "frontend/server.js"]

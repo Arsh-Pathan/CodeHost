@@ -16,15 +16,38 @@ const transporter = canSendEmail
     })
   : null;
 
-const appBaseUrl = env.APP_URL && !env.APP_URL.includes('localhost')
+const appBaseUrl = (env.APP_URL && !env.APP_URL.includes('localhost')
   ? env.APP_URL
-  : 'https://code-host.online';
+  : 'https://code-host.online').replace(/\/$/, '');
+const domainHost = env.DOMAIN || 'code-host.online';
 const logoUrl = `${appBaseUrl}/logo.png`;
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function stripHeaderCrlf(value: string): string {
+  return String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
+}
+
+function safeHref(url: string): string {
+  const trimmed = String(url ?? '').trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return escapeHtml(trimmed);
+  }
+  return escapeHtml(appBaseUrl);
+}
 
 // ─── Branded HTML Wrapper (CodeHost Production Theme) ───────────────
 export function wrapEmail(title: string, body: string, options?: { badge?: string; previewText?: string }): string {
-  const badgeText = options?.badge || title;
-  const previewText = options?.previewText || title;
+  const safeTitle = escapeHtml(title);
+  const badgeText = escapeHtml(options?.badge || title);
+  const previewText = escapeHtml(options?.previewText || title);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -32,7 +55,7 @@ export function wrapEmail(title: string, body: string, options?: { badge?: strin
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>${title} - CodeHost</title>
+  <title>${safeTitle} - CodeHost</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;color:#334155;">
   <!-- Preheader text for inbox previews -->
@@ -133,8 +156,8 @@ export function ctaButton(label: string, href: string): string {
     <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:24px 0 16px;">
       <tr>
         <td align="center" style="border-radius:10px;background-color:#2563EB;">
-          <a href="${href}" target="_blank" style="background-color:#2563EB;border:1px solid #2563EB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;line-height:1;color:#FFFFFF;text-decoration:none;padding:14px 28px;border-radius:10px;display:inline-block;letter-spacing:0.2px;">
-            ${label}
+          <a href="${safeHref(href)}" target="_blank" style="background-color:#2563EB;border:1px solid #2563EB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;line-height:1;color:#FFFFFF;text-decoration:none;padding:14px 28px;border-radius:10px;display:inline-block;letter-spacing:0.2px;">
+            ${escapeHtml(label)}
           </a>
         </td>
       </tr>
@@ -143,32 +166,35 @@ export function ctaButton(label: string, href: string): string {
 }
 
 async function sendMail(to: string, subject: string, html: string) {
+  const cleanTo = stripHeaderCrlf(to);
+  const cleanSubject = stripHeaderCrlf(subject);
   if (!transporter) {
-    logger.warn(`SMTP not configured. Email to ${to}: ${subject}`);
+    logger.warn(`SMTP not configured. Email to ${cleanTo}: ${cleanSubject}`);
     return;
   }
   try {
     await transporter.sendMail({
-      from: `"CodeHost" <${env.SMTP_USER}>`,
-      to,
-      subject,
+      from: env.SMTP_FROM || `"CodeHost" <${env.SMTP_USER}>`,
+      to: cleanTo,
+      subject: cleanSubject,
       html,
     });
-    logger.info(`Email sent to ${to}: ${subject}`);
+    logger.info(`Email sent to ${cleanTo}: ${cleanSubject}`);
   } catch (err) {
-    logger.error({ err }, `Failed to send email to ${to}: ${subject}`);
+    logger.error({ err }, `Failed to send email to ${cleanTo}: ${cleanSubject}`);
   }
 }
 
 // ─── 1. Email Verification Email ─────────────────────────────────────
 export async function sendVerificationEmail(to: string, token: string, username?: string) {
-  const verifyUrl = `${env.APP_URL || 'https://code-host.online'}/verify-email?token=${token}`;
+  const verifyBase = (env.APP_URL || appBaseUrl).replace(/\/$/, '');
+  const verifyUrl = `${verifyBase}/verify-email?token=${encodeURIComponent(token)}`;
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
       Verify your email address
     </h1>
     <p style="margin:0 0 16px;color:#475569;font-size:14px;line-height:1.6;">
-      Hello ${username ? `<strong>${username}</strong>` : 'there'}, thank you for signing up for CodeHost. Please verify your email address to activate your cloud account and start deploying projects.
+      Hello ${username ? `<strong>${escapeHtml(username)}</strong>` : 'there'}, thank you for signing up for CodeHost. Please verify your email address to activate your cloud account and start deploying projects.
     </p>
 
     <div style="background-color:#F0FDF4;border:1px solid #DCFCE7;border-radius:12px;padding:14px 18px;margin-bottom:20px;">
@@ -202,9 +228,10 @@ export async function sendVerificationEmail(to: string, token: string, username?
 
 // ─── 2. Welcome Email ────────────────────────────────────────────────
 export async function sendWelcomeEmail(to: string, username: string, bonusCredits = 0) {
+  const safeUsername = escapeHtml(username);
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
-      Welcome to CodeHost, ${username}
+      Welcome to CodeHost, ${safeUsername}
     </h1>
     <p style="margin:0 0 18px;color:#475569;font-size:14px;line-height:1.6;">
       Your cloud development environment is active and ready. You can now launch full-stack applications, background workers, and APIs in seconds with automated containerization.
@@ -261,13 +288,16 @@ export async function sendCertificateAwardEmail(
     certUrl: string;
   }
 ) {
+  const safeRecipient = escapeHtml(data.recipientName);
+  const safeProject = escapeHtml(data.projectName);
+  const safeCertNum = escapeHtml(data.certNumber);
   const body = `
     <div style="text-align:center;margin-bottom:24px;">
       <div style="display:inline-block;padding:6px 14px;border-radius:20px;background-color:#EFF6FF;border:1px solid #DBEAFE;margin-bottom:12px;">
         <span style="font-size:11px;font-weight:800;color:#2563EB;text-transform:uppercase;letter-spacing:1px;">Official Accreditation</span>
       </div>
       <h1 style="color:#0F172A;margin:4px 0 6px;font-size:22px;font-weight:900;letter-spacing:-0.5px;">
-        Certificate Awarded to ${data.recipientName}
+        Certificate Awarded to ${safeRecipient}
       </h1>
       <p style="margin:0;color:#2563EB;font-weight:700;font-size:14px;">
         Certified Cloud Deployer
@@ -275,7 +305,7 @@ export async function sendCertificateAwardEmail(
     </div>
 
     <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px;">
-      You have successfully deployed <strong>${data.projectName}</strong> to production on CodeHost cloud infrastructure. Your official cryptographic certificate has been generated and validated.
+      You have successfully deployed <strong>${safeProject}</strong> to production on CodeHost cloud infrastructure. Your official cryptographic certificate has been generated and validated.
     </p>
 
     <!-- Certificate Summary Card -->
@@ -285,7 +315,7 @@ export async function sendCertificateAwardEmail(
           Certificate Number
         </td>
         <td style="padding:12px 18px;border-bottom:1px solid #E2E8F0;text-align:right;font-family:monospace;font-weight:800;color:#0F172A;font-size:13px;">
-          ${data.certNumber}
+          ${safeCertNum}
         </td>
       </tr>
       <tr>
@@ -293,8 +323,8 @@ export async function sendCertificateAwardEmail(
           Live Application
         </td>
         <td style="padding:12px 18px;border-bottom:1px solid #E2E8F0;text-align:right;">
-          <a href="${data.liveUrl}" target="_blank" style="color:#2563EB;font-weight:700;font-size:12px;text-decoration:none;">
-            ${data.projectName}.code-host.online
+          <a href="${safeHref(data.liveUrl)}" target="_blank" style="color:#2563EB;font-weight:700;font-size:12px;text-decoration:none;">
+            ${safeProject}.${escapeHtml(domainHost)}
           </a>
         </td>
       </tr>
@@ -338,12 +368,13 @@ export async function sendReferralEarnedEmail(
     referralUrl: string;
   }
 ) {
+  const safeReferee = escapeHtml(data.refereeUsername);
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
       Referral Reward Credited: +${data.creditsEarned} Credits
     </h1>
     <p style="margin:0 0 18px;color:#475569;font-size:14px;line-height:1.6;">
-      Developer <strong>@${data.refereeUsername}</strong> has registered on CodeHost using your referral invitation link.
+      Developer <strong>@${safeReferee}</strong> has verified their email on CodeHost using your referral invitation link.
     </p>
 
     <!-- Credits Card -->
@@ -417,12 +448,12 @@ export async function sendPaymentConfirmationEmail(
           Transaction Reference
         </td>
         <td style="padding:12px 18px;text-align:right;font-family:monospace;font-size:11px;color:#64748B;">
-          ${data.transactionId}
+          ${escapeHtml(data.transactionId)}
         </td>
       </tr>
     </table>
 
-    ${ctaButton('View Billing Statement', `https://code-host.online/dashboard/billing/invoice/${data.transactionId}`)}
+    ${ctaButton('View Billing Statement', `${appBaseUrl}/dashboard/billing/invoice/${encodeURIComponent(data.transactionId)}`)}
   `;
 
   await sendMail(
@@ -440,13 +471,14 @@ export async function sendLowCreditWarningEmail(
   to: string,
   data: { balance: number; projectName?: string }
 ) {
+  const safeProject = data.projectName ? escapeHtml(data.projectName) : '';
   const body = `
     <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
       Low Credit Balance Alert
     </h1>
     <p style="color:#475569;line-height:1.6;margin:0 0 16px;font-size:14px;">
       Your CodeHost compute credit balance is running low: <strong style="color:#DC2626;">${data.balance} credits remaining</strong>.
-      ${data.projectName ? `Your project <strong>${data.projectName}</strong> may automatically hibernate soon.` : 'Active containers will safely hibernate if your credit balance reaches zero.'}
+      ${safeProject ? `Your project <strong>${safeProject}</strong> may automatically hibernate soon.` : 'Active containers will safely hibernate if your credit balance reaches zero.'}
     </p>
 
     <div style="background-color:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:14px 18px;margin-bottom:20px;">
@@ -500,11 +532,14 @@ export async function sendServerStatusEmail(
     },
   };
 
+  const safeProject = escapeHtml(data.projectName);
+  const safeStatus = escapeHtml(data.status);
+
   const config = statusConfig[data.status] || {
     color: '#64748B',
     bg: '#F8FAFC',
     border: '#E2E8F0',
-    message: `Status updated to ${data.status}.`,
+    message: `Status updated to ${safeStatus}.`,
   };
 
   const body = `
@@ -513,14 +548,14 @@ export async function sendServerStatusEmail(
     </h1>
     <div style="background-color:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0;padding:18px;margin-bottom:20px;">
       <p style="margin:0 0 4px;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;">Project</p>
-      <p style="margin:0 0 14px;color:#0F172A;font-weight:800;font-size:16px;">${data.projectName}</p>
+      <p style="margin:0 0 14px;color:#0F172A;font-weight:800;font-size:16px;">${safeProject}</p>
       <p style="margin:0 0 6px;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;">Current State</p>
       <span style="display:inline-block;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:800;color:${config.color};background-color:${config.bg};border:1px solid ${config.border};letter-spacing:0.5px;">
-        ${data.status.toUpperCase()}
+        ${safeStatus.toUpperCase()}
       </span>
     </div>
     <p style="color:#475569;line-height:1.6;margin:0 0 18px;font-size:14px;">${config.message}</p>
-    ${ctaButton('Open Project Console', `https://code-host.online/dashboard/project/${data.projectId}`)}
+    ${ctaButton('Open Project Console', `${appBaseUrl}/dashboard/project/${encodeURIComponent(data.projectId)}`)}
   `;
 
   await sendMail(
@@ -549,7 +584,7 @@ export async function sendHackathonPassActivatedEmail(
       Weekend Hackathon Pass Activated
     </h1>
     <p style="color:#475569;line-height:1.6;margin:0 0 20px;font-size:14px;">
-      Hello ${data.username}, your 72-hour Pro access is now active. Your projects are enabled with dedicated high-performance compute:
+      Hello ${escapeHtml(data.username)}, your 72-hour Pro access is now active. Your projects are enabled with dedicated high-performance compute:
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 18px;margin-bottom:20px;">
       ${[

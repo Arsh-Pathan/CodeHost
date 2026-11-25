@@ -32,13 +32,13 @@ router.get('/my-status', requireAuth, async (req: AuthRequest, res) => {
       });
     }
 
-    // Check if user has deployed at least 1 project on CodeHost
+    // Check if user has successfully deployed at least 1 project on CodeHost
     const qualifyingProject = await prisma.project.findFirst({
       where: {
         userId,
         OR: [
           { status: 'running' },
-          { deployments: { some: { status: { in: ['success', 'running'] } } } },
+          { deployments: { some: { status: 'success' } } },
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -82,20 +82,26 @@ router.post('/claim', requireAuth, async (req: AuthRequest, res) => {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, username: true, email: true },
+      select: { id: true, name: true, username: true, email: true, emailVerified: true },
     });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if user has deployed at least 1 project on CodeHost
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        error: 'Please verify your email address before claiming your official certificate.',
+      });
+    }
+
+    // Check if user has successfully deployed at least 1 project on CodeHost
     const qualifyingProject = await prisma.project.findFirst({
       where: {
         userId,
         OR: [
           { status: 'running' },
-          { deployments: { some: { status: { in: ['success', 'running'] } } } },
+          { deployments: { some: { status: 'success' } } },
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -107,26 +113,52 @@ router.post('/claim', requireAuth, async (req: AuthRequest, res) => {
       });
     }
 
-    const randomSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
-    const certNumber = `CH-CERT-${randomSuffix}`;
+    const domain = env.DOMAIN || 'code-host.online';
     const recipientName = user.name || user.username;
-    const liveUrl = `https://${qualifyingProject.name.toLowerCase()}.code-host.online`;
+    const liveUrl = `https://${qualifyingProject.name.toLowerCase()}.${domain}`;
 
-    cert = await prisma.certificate.create({
-      data: {
-        certNumber,
-        userId,
-        projectId: qualifyingProject.id,
-        projectName: qualifyingProject.name,
-        recipientName,
-        title: 'Certified Cloud Deployer',
-        description: 'Demonstrated practical competence in cloud deployment, container orchestration, and web service management on CodeHost cloud infrastructure.',
-        framework: qualifyingProject.startCommand?.includes('python') || qualifyingProject.buildCommand?.includes('pip')
-          ? 'Python Cloud Microservice'
-          : 'Fullstack Web Application & Containers',
-        liveUrl,
-      },
-    });
+    let certNumber = '';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const randomSuffix = crypto.randomBytes(4).toString('hex').toUpperCase();
+      certNumber = `CH-CERT-${randomSuffix}`;
+      try {
+        cert = await prisma.certificate.create({
+          data: {
+            certNumber,
+            userId,
+            projectId: qualifyingProject.id,
+            projectName: qualifyingProject.name,
+            recipientName,
+            title: 'Certified Cloud Deployer',
+            description: 'Demonstrated practical competence in cloud deployment, container orchestration, and web service management on CodeHost cloud infrastructure.',
+            framework: qualifyingProject.startCommand?.includes('python') || qualifyingProject.buildCommand?.includes('pip')
+              ? 'Python Cloud Microservice'
+              : 'Fullstack Web Application & Containers',
+            liveUrl,
+          },
+        });
+        break;
+      } catch (err: any) {
+        if (err?.code === 'P2002') {
+          const existingForUser = await prisma.certificate.findUnique({ where: { userId } });
+          if (existingForUser) {
+            return res.json({
+              success: true,
+              certificate: {
+                ...existingForUser,
+                certUrl: `${env.APP_URL}/certificate/${existingForUser.id}`,
+              },
+            });
+          }
+          if (attempt < 4) continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!cert) {
+      return res.status(500).json({ error: 'Could not issue certificate, please retry.' });
+    }
 
     // Send award email asynchronously
     const certUrl = `${env.APP_URL}/certificate/${cert.id}`;
@@ -195,7 +227,7 @@ router.get('/verify/:idOrCode', async (req, res) => {
         title: cert.title,
         description: cert.description,
         framework: cert.framework,
-        liveUrl: cert.liveUrl || 'https://code-host.online',
+        liveUrl: cert.liveUrl || `https://${env.DOMAIN || 'code-host.online'}`,
         issuedAt: cert.issuedAt,
         authorUsername: cert.user.username,
         authorAvatar: cert.user.avatarUrl,

@@ -7,31 +7,14 @@ import fs from 'fs-extra';
 import { BuilderService } from '../services/builder.js';
 import { RunnerService } from '../services/runner.js';
 import { acquireDeploySlot, releaseDeployLock } from '../services/deploy-lock.js';
+import { ensureProjectBillingCurrent } from '../services/billing-guard.js';
+import { resolveSafeProjectPath } from '../lib/validation.js';
 
 const router = Router();
 router.use(requireAuth);
 
 const getSourceDir = (projectId: string) => path.join(process.cwd(), 'storage', 'projects', projectId, 'source');
-
-const assertSafePath = async (baseDir: string, relativePath: string): Promise<string> => {
-  const resolvedBase = path.resolve(baseDir);
-  const resolvedPath = path.resolve(resolvedBase, relativePath);
-
-  // Prevent path traversal outside baseDir
-  if (!resolvedPath.startsWith(resolvedBase + path.sep) && resolvedPath !== resolvedBase) {
-    throw new Error('Forbidden path');
-  }
-
-  // If the file exists, verify canonical path (prevents symlink attacks)
-  if (await fs.pathExists(resolvedPath)) {
-    const realTarget = await fs.realpath(resolvedPath);
-    if (!realTarget.startsWith(resolvedBase + path.sep) && realTarget !== resolvedBase) {
-      throw new Error('Forbidden path: symlink target escapes project root');
-    }
-  }
-
-  return resolvedPath;
-};
+const MAX_EDITABLE_FILE_BYTES = 2 * 1024 * 1024;
 
 // List files in a project
 router.get('/:projectId', async (req: AuthRequest, res) => {
@@ -48,9 +31,10 @@ router.get('/:projectId', async (req: AuthRequest, res) => {
     const getAllFiles = async (dirPath: string, relativeTo: string = ''): Promise<any[]> => {
       const items = await fs.readdir(dirPath, { withFileTypes: true });
       const files = await Promise.all(items.map(async (item) => {
+        if (item.isSymbolicLink()) return null;
         const relativePath = path.join(relativeTo, item.name).replace(/\\/g, '/');
         const absolutePath = path.join(dirPath, item.name);
-        
+
         if (item.isDirectory()) {
           // Ignore heavy or hidden folders
           if (item.name === 'node_modules' || item.name === '.git' || item.name === '.next') return null;
@@ -60,8 +44,8 @@ router.get('/:projectId', async (req: AuthRequest, res) => {
             type: 'directory',
             children: await getAllFiles(absolutePath, relativePath)
           };
-        } else {
-          const stats = await fs.stat(absolutePath);
+        } else if (item.isFile()) {
+          const stats = await fs.lstat(absolutePath);
           return {
             name: item.name,
             path: relativePath,
@@ -70,6 +54,7 @@ router.get('/:projectId', async (req: AuthRequest, res) => {
             updatedAt: stats.mtime
           };
         }
+        return null;
       }));
       return files.filter(Boolean);
     };
@@ -87,24 +72,37 @@ router.get('/:projectId/content', async (req: AuthRequest, res) => {
   try {
     const { projectId } = req.params;
     const { filePath } = req.query as { filePath: string };
-    
-    if (!filePath) return res.status(400).json({ error: 'filePath is required' });
+
+    if (!filePath || typeof filePath !== 'string') return res.status(400).json({ error: 'filePath is required' });
 
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== req.user!.id) return res.status(404).json({ error: 'Project not found' });
 
     let fullPath: string;
     try {
-      fullPath = await assertSafePath(getSourceDir(projectId), filePath);
+      fullPath = await resolveSafeProjectPath(getSourceDir(projectId), filePath);
     } catch (e: any) {
       return res.status(403).json({ error: e.message || 'Forbidden path' });
     }
 
-    if (!await fs.pathExists(fullPath)) return res.status(404).json({ error: 'File not found' });
-    if ((await fs.stat(fullPath)).isDirectory()) return res.status(400).json({ error: 'Is a directory' });
+    let stats;
+    try {
+      stats = await fs.lstat(fullPath);
+    } catch {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    if (stats.isSymbolicLink()) return res.status(403).json({ error: 'Forbidden path: symbolic links are not allowed' });
+    if (stats.isDirectory()) return res.status(400).json({ error: 'Is a directory' });
+    if (stats.size > MAX_EDITABLE_FILE_BYTES) {
+      return res.status(400).json({ error: 'File exceeds the 2MB in-browser editor limit' });
+    }
 
-    const content = await fs.readFile(fullPath, 'utf8');
-    res.json({ content });
+    const buf = await fs.readFile(fullPath);
+    if (buf.subarray(0, 8192).includes(0)) {
+      return res.status(400).json({ error: 'Binary files cannot be opened in the text editor' });
+    }
+
+    res.json({ content: buf.toString('utf8') });
   } catch (error) {
     logger.error({ error }, 'Read file error');
     res.status(500).json({ error: 'Failed to read file' });
@@ -117,20 +115,25 @@ router.post('/:projectId', async (req: AuthRequest, res) => {
     const { projectId } = req.params;
     const { filePath, content } = req.body;
 
-    if (!filePath || content === undefined) return res.status(400).json({ error: 'filePath and content are required' });
+    if (!filePath || typeof filePath !== 'string' || typeof content !== 'string') {
+      return res.status(400).json({ error: 'filePath and string content are required' });
+    }
+    if (Buffer.byteLength(content, 'utf8') > MAX_EDITABLE_FILE_BYTES) {
+      return res.status(400).json({ error: 'File content exceeds 2MB editor limit' });
+    }
 
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== req.user!.id) return res.status(404).json({ error: 'Project not found' });
 
     let fullPath: string;
     try {
-      fullPath = await assertSafePath(getSourceDir(projectId), filePath);
+      fullPath = await resolveSafeProjectPath(getSourceDir(projectId), filePath);
     } catch (e: any) {
       return res.status(403).json({ error: e.message || 'Forbidden path' });
     }
 
     await fs.ensureDir(path.dirname(fullPath));
-    await fs.writeFile(fullPath, content);
+    await fs.writeFile(fullPath, content, 'utf8');
 
     res.json({ success: true });
   } catch (error) {
@@ -145,14 +148,14 @@ router.delete('/:projectId', async (req: AuthRequest, res) => {
     const { projectId } = req.params;
     const { filePath } = req.query as { filePath: string };
 
-    if (!filePath) return res.status(400).json({ error: 'filePath is required' });
+    if (!filePath || typeof filePath !== 'string') return res.status(400).json({ error: 'filePath is required' });
 
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== req.user!.id) return res.status(404).json({ error: 'Project not found' });
 
     let fullPath: string;
     try {
-      fullPath = await assertSafePath(getSourceDir(projectId), filePath);
+      fullPath = await resolveSafeProjectPath(getSourceDir(projectId), filePath);
     } catch (e: any) {
       return res.status(403).json({ error: e.message || 'Forbidden path' });
     }
@@ -178,23 +181,34 @@ router.post('/:projectId/deploy', async (req: AuthRequest, res) => {
       return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
     }
 
-    const slot = await acquireDeploySlot(projectId, project.tier || 'free');
+    const billingCheck = await ensureProjectBillingCurrent(projectId, userId);
+    if (!billingCheck.ok) {
+      return res.status(billingCheck.status).json({ error: billingCheck.error });
+    }
+
+    const slot = await acquireDeploySlot(projectId, project.tier || 'free', userId);
     if (!slot.ok) {
       return res.status(slot.status).json({ error: slot.error });
     }
 
-    // 1. Create Deployment Record
-    const deployment = await prisma.deployment.create({
-      data: {
-        projectId,
-        status: 'queued',
-        source: 'files',
-      }
-    });
+    let deployment;
+    try {
+      // 1. Create Deployment Record
+      deployment = await prisma.deployment.create({
+        data: {
+          projectId,
+          status: 'queued',
+          source: 'files',
+        }
+      });
+    } catch (dbErr) {
+      await releaseDeployLock(projectId, (slot as any).lockToken);
+      throw dbErr;
+    }
 
-    res.status(202).json({ 
-      message: 'Deployment queued', 
-      deploymentId: deployment.id 
+    res.status(202).json({
+      message: 'Deployment queued',
+      deploymentId: deployment.id
     });
 
     // 2. Background Task
@@ -203,17 +217,19 @@ router.post('/:projectId/deploy', async (req: AuthRequest, res) => {
         const imageName = await BuilderService.buildProject(deployment.id, projectId);
         await RunnerService.startContainer(projectId, deployment.id, imageName);
       } catch (err) {
-        logger.error(`Pipeline failed for ${deployment.id}`);
+        logger.error({ err }, `Pipeline failed for ${deployment.id}`);
         await prisma.deployment.update({ where: { id: deployment.id }, data: { status: 'failed' } }).catch(() => {});
         await prisma.project.update({ where: { id: projectId }, data: { status: 'failed' } }).catch(() => {});
       } finally {
-        await releaseDeployLock(projectId);
+        await releaseDeployLock(projectId, (slot as any).lockToken);
       }
     })();
 
   } catch (error) {
     logger.error({ error }, 'Deploy files error');
-    res.status(500).json({ error: 'Failed to queue deployment' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to queue deployment' });
+    }
   }
 });
 

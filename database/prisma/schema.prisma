@@ -68,7 +68,7 @@ model Project {
   repoUrl            String?
   repoBranch         String?      @default("main")
   repoSubdir         String?
-  customDomain       String?
+  customDomain       String?      @unique
   deployments        Deployment[]
   certificates       Certificate[]
   createdAt          DateTime     @default(now())
@@ -96,12 +96,11 @@ model Transaction {
   type              String   // purchase, tier_charge, refund, admin_grant
   description       String?
   razorpayOrderId   String?
-  razorpayPaymentId String?
+  razorpayPaymentId String?  @unique
   projectId         String?
   createdAt         DateTime @default(now())
 
   @@index([walletId])
-  @@index([razorpayPaymentId])
 }
 
 model Deployment {

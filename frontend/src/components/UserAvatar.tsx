@@ -48,7 +48,7 @@ export default function UserAvatar({
     if (user?.avatarUrl) {
       imgSrc = user.avatarUrl;
     } else if (isGithub) {
-      imgSrc = `https://github.com/${username}.png`;
+      imgSrc = `https://github.com/${encodeURIComponent(username)}.png`;
     }
   }
 
@@ -87,6 +87,7 @@ export default function UserAvatar({
         `}
       >
         {imgSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imgSrc}
             alt={user?.username || 'User Avatar'}

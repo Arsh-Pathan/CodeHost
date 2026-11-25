@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import PanelLayout from '@/components/PanelLayout';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorStatus } from '@/lib/api';
 import { 
   Gift, 
   Copy, 
@@ -43,6 +44,7 @@ interface ReferralUser {
 }
 
 export default function ReferralsPage() {
+  const router = useRouter();
   const [user, setUser] = useState<ReferralUser | null>(null);
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,11 @@ export default function ReferralsPage() {
   const [copiedPromo, setCopiedPromo] = useState(false);
 
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      router.replace('/login');
+      return;
+    }
     async function loadData() {
       try {
         const [userData, statsData] = await Promise.all([
@@ -59,14 +66,19 @@ export default function ReferralsPage() {
         ]);
         setUser(userData.user);
         setStats(statsData);
-      } catch (err) {
+      } catch (err: unknown) {
+        const status = getErrorStatus(err);
+        if (status === 401 || status === 403) {
+          router.replace('/login');
+          return;
+        }
         console.error('Failed to load referral details', err);
       } finally {
         setLoading(false);
       }
     }
-    loadData();
-  }, []);
+    void loadData();
+  }, [router]);
 
   const handleCopyLink = () => {
     if (!stats?.referralUrl) return;
@@ -397,6 +409,7 @@ export default function ReferralsPage() {
                       <td className="px-6 py-4 flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-700">
                           {ref.refereeAvatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={ref.refereeAvatarUrl}
                               alt={ref.refereeUsername}

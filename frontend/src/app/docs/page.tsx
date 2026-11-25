@@ -12,13 +12,9 @@ import {
   Database,
   Zap,
   Rocket,
-  Shield,
-  Lock,
-  Check,
   Sparkles,
   Moon,
-  Flame,
-  Copy
+  Flame
 } from 'lucide-react';
 
 export const metadata = {
@@ -981,7 +977,7 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
                   </div>
                   <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60">
                     <span className="text-slate-400 block text-[10px]">RAM</span>
-                    <span className="font-bold text-white">2GB Dedicated</span>
+                    <span className="font-bold text-white">512MB Dedicated</span>
                   </div>
                   <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60">
                     <span className="text-slate-400 block text-[10px]">Storage</span>

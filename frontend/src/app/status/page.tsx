@@ -20,7 +20,6 @@ import {
   Layers,
   ArrowLeft,
   Calendar,
-  AlertCircle,
   MessageSquare,
   Twitter,
   Github,
@@ -274,18 +273,19 @@ export default function StatusPage() {
     for (let i = 0; i < 3; i++) {
       const start = performance.now();
       try {
-        await fetch('https://api.code-host.online/health?b=' + Date.now(), { cache: 'no-store' });
-        const dur = Math.round(performance.now() - start);
-        pings.push(dur);
+        const res = await fetch('https://api.code-host.online/health?b=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          pings.push(Math.round(performance.now() - start));
+        }
       } catch {
-        pings.push(35);
+        // Endpoint unreachable — do not record fake latency
       }
       await new Promise(r => setTimeout(r, 200));
     }
 
-    const min = Math.min(...pings);
-    const max = Math.max(...pings);
-    const avg = Math.round(pings.reduce((a, b) => a + b, 0) / pings.length);
+    const min = pings.length > 0 ? Math.min(...pings) : 0;
+    const max = pings.length > 0 ? Math.max(...pings) : 0;
+    const avg = pings.length > 0 ? Math.round(pings.reduce((a, b) => a + b, 0) / pings.length) : 0;
 
     setBenchmarkResult({
       min,
@@ -304,19 +304,22 @@ export default function StatusPage() {
     return () => clearTimeout(timer);
   }, [probeHealth]);
 
-  // Real-time 30-second countdown loop
+  // Real-time 30-second countdown loop (keep side effects outside React state updater)
   useEffect(() => {
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          probeHealth();
-          return 30;
-        }
-        return prev - 1;
-      });
+      setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [probeHealth]);
+  }, []);
+
+  useEffect(() => {
+    if (countdown === 0) {
+      const refreshTimer = setTimeout(() => {
+        void probeHealth();
+      }, 0);
+      return () => clearTimeout(refreshTimer);
+    }
+  }, [countdown, probeHealth]);
 
   const getServiceIcon = (iconName: string) => {
     switch (iconName) {
@@ -786,6 +789,7 @@ export default function StatusPage() {
             <div className="hidden md:block w-px h-4 bg-slate-200"></div>
             <div className="flex items-center space-x-1.5 text-slate-400">
               <span>Core hosted powered by</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/csky-logo.png" alt="CSky Developments" className="h-4 w-auto inline-block object-contain" />
               <span className="font-bold text-slate-500">CSky Developments</span>
             </div>

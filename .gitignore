@@ -10,6 +10,7 @@ node_modules/
 **/out/
 **/build/
 **/.turbo/
+*.tsbuildinfo
 .docker/
 
 # --- 🧪 Testing & Coverage ---

@@ -8,6 +8,7 @@ export interface TechIconProps {
 function createDevicon(file: string, label: string) {
   return function TechIcon({ size = 24, className = '' }: TechIconProps) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={`/icons/tech/${file}`}
         alt={label}

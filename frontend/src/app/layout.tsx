@@ -60,9 +60,6 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  alternates: {
-    canonical: "https://code-host.online",
-  },
   openGraph: {
     title: "CodeHost | Cloud Made Simple for Developers",
     description: "The simplest cloud platform for students and developers. One-click deploy, persistent databases, free subdomains, and zero DevOps.",

@@ -8,6 +8,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@codehost/logger": "*",
     "dockerode": "^4.0.0"
   },
   "devDependencies": {
