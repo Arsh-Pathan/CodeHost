@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { fetchApi, getErrorMessage, getErrorStatus } from '@/lib/api';
+import { fetchApi, getErrorMessage, getErrorStatus, clearClientAuth } from '@/lib/api';
 import { STARTER_TEMPLATES_MAP } from '@/lib/starter-templates';
 import PanelLayout from '@/components/PanelLayout';
 import CreditTopUpModal from '@/components/CreditTopUpModal';
@@ -57,7 +57,10 @@ function NewProjectContent() {
       })
       .catch((err: unknown) => {
         const status = getErrorStatus(err);
-        if (status === 401 || status === 403) router.push('/login');
+        if (status === 401 || status === 403 || status === 404) {
+          clearClientAuth();
+          router.replace('/login');
+        }
       });
   }, [router]);
 
@@ -99,7 +102,11 @@ function NewProjectContent() {
           )
         );
         setStatusMessage('Queueing initial deployment...');
-        await fetchApi(`/files/${projectId}/deploy`, { method: 'POST' }).catch(() => {});
+        try {
+          await fetchApi(`/files/${projectId}/deploy`, { method: 'POST' });
+        } catch (deployErr: unknown) {
+          setError(getErrorMessage(deployErr, 'Project created, but initial deployment could not be queued.'));
+        }
       }
 
       router.push(`/dashboard/project/${projectId}`);
@@ -164,7 +171,7 @@ function NewProjectContent() {
             </div>
 
             <div className="max-w-md mx-auto space-y-8">
-              {selectedTemplate && (
+              {selectedTemplate ? (
                 <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 flex items-start justify-between gap-3">
                   <div className="flex items-start space-x-3">
                     <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 mt-0.5">
@@ -190,6 +197,33 @@ function NewProjectContent() {
                   >
                     <X size={14} />
                   </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">
+                      Quick-Start Template (Optional)
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">Or leave blank</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.values(STARTER_TEMPLATES_MAP).map((tpl) => (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTemplateId(tpl.id);
+                          if (!name.trim()) {
+                            const suffix = Math.floor(100 + Math.random() * 900);
+                            setName(`${tpl.id}-app-${suffix}`);
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-xs font-bold text-slate-700 hover:text-blue-700 transition-colors cursor-pointer"
+                      >
+                        {tpl.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 

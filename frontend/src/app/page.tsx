@@ -1088,23 +1088,24 @@ export default function Home() {
                   ))}
                 </div>
                 <span className="px-2.5 py-1 rounded-lg bg-blue-600/10 border border-blue-200 font-mono text-[11px] font-semibold text-blue-700">
-                  https://agent.code-host.online/sse
+                  https://api.code-host.online/mcp
                 </span>
               </div>
 
               <div className="bg-[#0B1120] rounded-2xl p-4 border border-slate-800/90 font-mono text-[11px] text-slate-300 overflow-x-auto leading-relaxed">
                 <pre>{`{
   "mcpServers": {
-    "codehost-agent": {
-      "url": "https://agent.code-host.online/sse",
-      "headers": { "Authorization": "Bearer ch_live_..." }
+    "codehost": {
+      "type": "http",
+      "url": "https://api.code-host.online/mcp",
+      "headers": { "Authorization": "Bearer <mcp_token>" }
     }
   }
 }`}</pre>
               </div>
 
               <div className="flex items-center justify-between text-xs pt-0.5">
-                <span className="text-slate-500 font-medium">Instant HTTPS SSE &amp; bearer auth</span>
+                <span className="text-slate-500 font-medium">Streamable HTTP MCP &amp; bearer auth</span>
                 <Link href="/docs#mcp-server" className="text-blue-600 hover:text-blue-700 font-bold inline-flex items-center space-x-1">
                   <span>View MCP Docs</span>
                   <ArrowRight size={13} />
@@ -1640,7 +1641,7 @@ export default function Home() {
                 Weekend Hackathon Pass — Just ₹49 for 72 Hours
               </h3>
               <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed">
-                Competing in a college hackathon or presenting an MVP to investors? Get instant Pro power (2 vCPUs, 512MB RAM, 5GB NVMe, unlimited fast builds) for 3 full days with zero recurring commitments.
+                Competing in a college hackathon or presenting an MVP to investors? Get instant Pro power (2 vCPUs, 512MB RAM, 5GB NVMe, up to 5 projects, +50 bonus credits, unlimited fast builds) for 3 full days with zero recurring commitments.
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
                 {['2 vCPUs Dedicated', '512MB High-Speed RAM', 'Priority Build Sandboxes', 'Instant Let\'s Encrypt SSL', 'Zero Monthly Lock-In'].map((tag, idx) => (
@@ -1916,7 +1917,7 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="https://github.com/ArshPathan/CodeHost" target="_blank" className="hover:text-slate-900 transition-colors flex items-center space-x-1">
+                  <Link href="https://github.com/Arsh-Pathan/CodeHost" target="_blank" className="hover:text-slate-900 transition-colors flex items-center space-x-1">
                     <span>GitHub Organization</span>
                     <ArrowUpRight size={13} />
                   </Link>

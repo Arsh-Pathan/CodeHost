@@ -31,8 +31,10 @@ RUN cd database && npx prisma generate
 
 # Build everything
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_RAZORPAY_KEY_ID
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-RUN turbo run build --filter=@codehost/api --filter=web
+ENV NEXT_PUBLIC_RAZORPAY_KEY_ID=${NEXT_PUBLIC_RAZORPAY_KEY_ID}
+RUN turbo run build --no-daemon --filter=@codehost/api --filter=web
 
 # --- Stage 2: API Runner ---
 FROM node:20-alpine AS api
@@ -42,6 +44,7 @@ RUN apk add --no-cache openssl libc6-compat git docker-cli
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV HOME=/tmp
 
 # Install only production dependencies
 COPY package.json package-lock.json ./
@@ -69,7 +72,7 @@ COPY --from=builder /app/packages/redis/dist ./packages/redis/dist
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 
 EXPOSE 4000
-CMD ["sh", "-c", "cd database && npx prisma migrate deploy && cd .. && node backend/dist/index.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=./database/prisma/schema.prisma && exec node backend/dist/index.js"]
 
 # --- Stage 3: Web Runner ---
 FROM node:20-alpine AS web
@@ -78,16 +81,18 @@ RUN apk add --no-cache fontconfig font-dejavu font-liberation font-inter
 
 WORKDIR /app
 ENV NODE_ENV=production
+ENV HOME=/tmp
 
 # Next.js standalone setup
 COPY --from=builder /app/frontend/public ./frontend/public
 COPY --from=builder /app/frontend/.next/standalone ./
 COPY --from=builder /app/frontend/.next/static ./frontend/.next/static
 
-# Ensure Next.js cache directory exists and is writable by non-root users
+# Ensure Next.js cache directory exists and is writable by non-root PUID/PGID users
 RUN mkdir -p /app/frontend/.next/cache && \
     chown -R node:node /app/frontend/.next && \
-    chmod -R 755 /app/frontend/.next
+    chmod -R 775 /app/frontend/.next && \
+    chmod -R 1777 /app/frontend/.next/cache
 
 EXPOSE 3000
 CMD ["node", "frontend/server.js"]

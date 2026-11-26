@@ -94,18 +94,20 @@ export async function ensureProjectBillingCurrent(
     };
   }
 
-  const lastCharge = await prisma.transaction.findFirst({
-    where: { walletId: wallet.id, type: 'tier_charge', projectId: project.id },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  const referenceDate = lastCharge ? lastCharge.createdAt : project.createdAt;
-  if (referenceDate > thirtyDaysAgo) {
-    return { ok: true };
-  }
-
-  // Renewal due — charge atomically with row-level sufficiency guard
+  // Acquire per-project advisory lock inside transaction before reading lastCharge to prevent TOCTOU double-billing
   const charged = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${project.id}))`;
+
+    const lastCharge = await tx.transaction.findFirst({
+      where: { walletId: wallet.id, type: 'tier_charge', projectId: project.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const referenceDate = lastCharge ? lastCharge.createdAt : project.createdAt;
+    if (referenceDate > thirtyDaysAgo) {
+      return true;
+    }
+
     const res = await tx.wallet.updateMany({
       where: { id: wallet.id, balance: { gte: tierConfig.creditsPerMonth } },
       data: { balance: { decrement: tierConfig.creditsPerMonth } },

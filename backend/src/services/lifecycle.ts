@@ -15,9 +15,11 @@ const BILLING_CHECK_INTERVAL_MS = 60 * 60 * 1000;  // 1 hour
 
 let lifecycleTimer: NodeJS.Timeout | null = null;
 let billingTimer: NodeJS.Timeout | null = null;
+let startupReconcileTimer: NodeJS.Timeout | null = null;
 let isReconciling = false;
 let isHibernating = false;
 let isEnforcingStorage = false;
+let isExpiringTiers = false;
 let isProcessingBilling = false;
 
 async function getDirectorySizeBytes(dirPath: string): Promise<number> {
@@ -43,6 +45,17 @@ async function getDirectorySizeBytes(dirPath: string): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+async function stopContainerIfUnlocked(projectId: string): Promise<boolean> {
+  const locked = await redis.exists(`deploy-lock:${projectId}`).catch(() => 0);
+  if (locked === 1) return false;
+  await RunnerService.stopContainer(projectId);
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { status: 'stopped', containerId: null },
+  });
+  return true;
 }
 
 /**
@@ -71,6 +84,9 @@ export async function hibernateIdleFreeProjects(): Promise<void> {
         continue;
       }
 
+      const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+      if (locked === 1) continue;
+
       try {
         const container = docker.getContainer(`codehost-run-${project.id}`);
         const stats: any = await container.stats({ stream: false }).catch(() => null);
@@ -83,24 +99,23 @@ export async function hibernateIdleFreeProjects(): Promise<void> {
           const prevStr = await redis.get(netKey).catch(() => null);
           await redis.set(netKey, String(totalNetBytes), 'EX', idleMinutes * 60 + 300).catch(() => {});
 
-          if (prevStr !== null) {
-            const delta = totalNetBytes - Number(prevStr);
-            if (delta > 2048) {
-              // Container served live traffic (>2KB) since last lifecycle check — bump activity & keep running
-              await prisma.project.update({
-                where: { id: project.id },
-                data: { updatedAt: new Date() },
-              }).catch(() => {});
-              continue;
-            }
+          // Require at least one prior baseline measurement so newly 30m containers measure actual recent traffic
+          if (prevStr === null || totalNetBytes < Number(prevStr)) {
+            continue;
+          }
+
+          const delta = totalNetBytes - Number(prevStr);
+          if (delta > 2048) {
+            await prisma.project.update({
+              where: { id: project.id },
+              data: { updatedAt: new Date() },
+            }).catch(() => {});
+            continue;
           }
         }
 
-        await RunnerService.stopContainer(project.id);
-        await prisma.project.update({
-          where: { id: project.id },
-          data: { status: 'stopped', containerId: null },
-        });
+        const stopped = await stopContainerIfUnlocked(project.id);
+        if (!stopped) continue;
         await redis.del(`idle-net:${project.id}`).catch(() => {});
         logger.info(`Auto-hibernated idle free-tier project ${project.id} (${project.name}) after ${idleMinutes}m`);
       } catch (err) {
@@ -117,57 +132,58 @@ export async function hibernateIdleFreeProjects(): Promise<void> {
  * and stop any running containers beyond their reverted server limit.
  */
 export async function expireTimedTiers(): Promise<void> {
-  const now = new Date();
-  const expiredUsers = await prisma.user.findMany({
-    where: {
-      tier: { not: 'free' },
-      tierExpiresAt: { lt: now },
-    },
-    select: { id: true, tier: true, serverLimit: true },
-  });
+  if (isExpiringTiers) return;
+  isExpiringTiers = true;
+  try {
+    const now = new Date();
+    const expiredUsers = await prisma.user.findMany({
+      where: {
+        tier: { not: 'free' },
+        tierExpiresAt: { lt: now },
+      },
+      select: { id: true, tier: true, serverLimit: true },
+    });
 
-  for (const user of expiredUsers) {
-    try {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { tier: 'free', tierExpiresAt: null },
-      });
-
-      const nextServerLimit = await recalculateUserServerLimit(prisma, user.id);
-
-      // Stop any excess running free-tier containers above the reverted limit
-      const runningFreeProjects = await prisma.project.findMany({
-        where: { userId: user.id, status: 'running', tier: 'free' },
-        orderBy: { updatedAt: 'desc' },
-        select: { id: true, name: true },
-      });
-
-      const allProjectsCount = await prisma.project.count({ where: { userId: user.id } });
-      if (allProjectsCount > nextServerLimit && runningFreeProjects.length > 0) {
-        const paidCount = await prisma.project.count({
-          where: { userId: user.id, tier: { not: 'free' } },
+    for (const user of expiredUsers) {
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { tier: 'free', tierExpiresAt: null },
         });
-        const allowedFreeRunning = Math.max(0, nextServerLimit - paidCount);
-        const excess = runningFreeProjects.slice(allowedFreeRunning);
-        for (const p of excess) {
-          await RunnerService.stopContainer(p.id).catch(() => {});
-          await prisma.project.update({
-            where: { id: p.id },
-            data: { status: 'stopped', containerId: null },
-          }).catch(() => {});
-          logger.info(`Stopped excess free container ${p.id} (${p.name}) after Hackathon Pass expiration`);
-        }
-      }
 
-      logger.info(`Expired timed tier (${user.tier}) for user ${user.id}; reverted to free (serverLimit=${nextServerLimit})`);
-    } catch (err) {
-      logger.error({ error: err }, `Failed to expire timed tier for user ${user.id}`);
+        const nextServerLimit = await recalculateUserServerLimit(prisma, user.id);
+
+        const runningFreeProjects = await prisma.project.findMany({
+          where: { userId: user.id, status: 'running', tier: 'free' },
+          orderBy: { updatedAt: 'desc' },
+          select: { id: true, name: true },
+        });
+
+        const allProjectsCount = await prisma.project.count({ where: { userId: user.id } });
+        if (allProjectsCount > nextServerLimit && runningFreeProjects.length > 0) {
+          const paidCount = await prisma.project.count({
+            where: { userId: user.id, tier: { not: 'free' } },
+          });
+          const allowedFreeRunning = Math.max(0, nextServerLimit - paidCount);
+          const excess = runningFreeProjects.slice(allowedFreeRunning);
+          for (const p of excess) {
+            await stopContainerIfUnlocked(p.id).catch(() => {});
+            logger.info(`Stopped excess free container ${p.id} (${p.name}) after Hackathon Pass expiration`);
+          }
+        }
+
+        logger.info(`Expired timed tier (${user.tier}) for user ${user.id}; reverted to free (serverLimit=${nextServerLimit})`);
+      } catch (err) {
+        logger.error({ error: err }, `Failed to expire timed tier for user ${user.id}`);
+      }
     }
+  } finally {
+    isExpiringTiers = false;
   }
 }
 
 /**
- * Enforce tier storage quotas on running projects by checking workspace disk usage.
+ * Enforce tier storage quotas on running projects by checking workspace + container writable layer disk usage.
  */
 export async function enforceStorageQuotas(): Promise<void> {
   if (isEnforcingStorage) return;
@@ -178,27 +194,37 @@ export async function enforceStorageQuotas(): Promise<void> {
       select: { id: true, name: true, tier: true },
     });
 
+    const containersList: any[] = await (docker.listContainers({ all: false, size: true }) as unknown as Promise<any[]>).catch(() => []);
+    const containerSizeByName = new Map<string, number>();
+    for (const c of containersList) {
+      const rwSize = Number(c?.SizeRw) || 0;
+      for (const n of c?.Names || []) {
+        containerSizeByName.set(String(n).replace(/^\//, ''), rwSize);
+      }
+    }
+
     for (const project of runningProjects) {
+      const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+      if (locked === 1) continue;
+
       const tierConfig = RESOURCE_TIERS[project.tier] || RESOURCE_TIERS.free;
       const projectDir = path.join(process.cwd(), 'storage', 'projects', project.id);
-      const usedBytes = await getDirectorySizeBytes(projectDir);
+      const workspaceBytes = await getDirectorySizeBytes(projectDir);
+      const containerRwBytes = containerSizeByName.get(`codehost-run-${project.id}`) || 0;
+      const usedBytes = workspaceBytes + containerRwBytes;
 
       if (usedBytes > tierConfig.storage) {
         logger.warn(
           `Project ${project.id} (${project.name}) exceeded ${tierConfig.label} storage quota (${usedBytes} > ${tierConfig.storage} bytes)`
         );
 
-        if (project.tier === 'free') {
-          try {
-            await RunnerService.stopContainer(project.id);
-            await prisma.project.update({
-              where: { id: project.id },
-              data: { status: 'stopped', containerId: null },
-            });
-            logger.info(`Stopped free-tier project ${project.id} for exceeding storage quota`);
-          } catch (err) {
-            logger.error({ error: err }, `Failed to stop project ${project.id} exceeding storage quota`);
+        try {
+          const stopped = await stopContainerIfUnlocked(project.id);
+          if (stopped) {
+            logger.info(`Stopped project ${project.id} for exceeding storage quota`);
           }
+        } catch (err) {
+          logger.error({ error: err }, `Failed to stop project ${project.id} exceeding storage quota`);
         }
       }
     }
@@ -230,24 +256,50 @@ export async function processMonthlyBilling(): Promise<void> {
 
       const wallet = await prisma.wallet.findUnique({ where: { userId: project.userId } });
       if (!wallet) {
-        await RunnerService.stopContainer(project.id).catch(() => {});
-        await prisma.project.update({
-          where: { id: project.id },
-          data: { status: 'stopped', containerId: null },
-        }).catch(() => {});
+        await stopContainerIfUnlocked(project.id).catch(() => {});
         logger.warn(`Stopped paid project ${project.id} because owner ${project.userId} has no wallet`);
         continue;
       }
 
-      const lastCharge = await prisma.transaction.findFirst({
-        where: { walletId: wallet.id, type: 'tier_charge', projectId: project.id },
-        orderBy: { createdAt: 'desc' },
+      const billingOutcome = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${project.id}))`;
+
+        const lastCharge = await tx.transaction.findFirst({
+          where: { walletId: wallet.id, type: 'tier_charge', projectId: project.id },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const referenceDate = lastCharge ? lastCharge.createdAt : project.createdAt;
+        if (referenceDate > thirtyDaysAgo) {
+          return { action: 'skip' as const, referenceDate };
+        }
+
+        const res = await tx.wallet.updateMany({
+          where: { id: wallet.id, balance: { gte: tierConfig.creditsPerMonth } },
+          data: { balance: { decrement: tierConfig.creditsPerMonth } },
+        });
+        if (res.count === 0) {
+          return { action: 'insufficient' as const, referenceDate };
+        }
+
+        await tx.transaction.create({
+          data: {
+            walletId: wallet.id,
+            amount: -tierConfig.creditsPerMonth,
+            type: 'tier_charge',
+            description: `Monthly charge for ${project.name} (${tierConfig.label} tier)`,
+            projectId: project.id,
+          },
+        });
+        return { action: 'charged' as const, referenceDate };
       });
 
-      const referenceDate = lastCharge ? lastCharge.createdAt : project.createdAt;
-      if (referenceDate > thirtyDaysAgo) {
-        // Send a pre-renewal low-credit warning within 3 days of renewal (once per 24h)
-        if (referenceDate <= twentySevenDaysAgo && wallet.balance < tierConfig.creditsPerMonth && project.user?.email) {
+      if (billingOutcome.action === 'skip') {
+        if (
+          billingOutcome.referenceDate <= twentySevenDaysAgo &&
+          wallet.balance < tierConfig.creditsPerMonth &&
+          project.user?.email
+        ) {
           const warnKey = `low-credit-warn:${project.id}`;
           const alreadyWarned = await redis.get(warnKey).catch(() => null);
           if (!alreadyWarned) {
@@ -262,34 +314,11 @@ export async function processMonthlyBilling(): Promise<void> {
         continue;
       }
 
-      const charged = await prisma.$transaction(async (tx) => {
-        const res = await tx.wallet.updateMany({
-          where: { id: wallet.id, balance: { gte: tierConfig.creditsPerMonth } },
-          data: { balance: { decrement: tierConfig.creditsPerMonth } },
-        });
-        if (res.count === 0) return false;
-
-        await tx.transaction.create({
-          data: {
-            walletId: wallet.id,
-            amount: -tierConfig.creditsPerMonth,
-            type: 'tier_charge',
-            description: `Monthly charge for ${project.name} (${tierConfig.label} tier)`,
-            projectId: project.id,
-          },
-        });
-        return true;
-      });
-
-      if (charged) {
+      if (billingOutcome.action === 'charged') {
         logger.info(`Charged ${tierConfig.creditsPerMonth} credits for project ${project.id}`);
       } else {
         try {
-          await RunnerService.stopContainer(project.id);
-          await prisma.project.update({
-            where: { id: project.id },
-            data: { status: 'stopped', containerId: null },
-          });
+          await stopContainerIfUnlocked(project.id);
           logger.info(`Stopped project ${project.id} due to insufficient credits`);
         } catch (err) {
           logger.error({ error: err }, `Failed to stop project ${project.id} for billing`);
@@ -302,7 +331,7 @@ export async function processMonthlyBilling(): Promise<void> {
 }
 
 /**
- * Reconcile DB project status ('running') with actual Docker container state.
+ * Reconcile DB project status ('running' / stale 'building') with actual Docker container state & deploy locks.
  */
 export async function reconcileContainerStates(): Promise<void> {
   if (isReconciling) return;
@@ -315,9 +344,8 @@ export async function reconcileContainerStates(): Promise<void> {
 
     for (const project of runningProjects) {
       try {
-        // Skip reconciliation while a deployment lock is active (container may be recreating)
-        const locked = await redis.get(`deploy-lock:${project.id}`).catch(() => null);
-        if (locked) continue;
+        const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+        if (locked === 1) continue;
 
         const container = docker.getContainer(`codehost-run-${project.id}`);
         const info = await container.inspect().catch(() => null);
@@ -334,9 +362,63 @@ export async function reconcileContainerStates(): Promise<void> {
         logger.error({ error: err }, `Failed to reconcile container state for ${project.id}`);
       }
     }
+
+    // Recover projects/deployments stuck in 'building'/'queued' after an unclean server restart
+    const buildingCutoff = new Date(Date.now() - 2 * 60 * 1000);
+    const stuckBuilding = await prisma.project.findMany({
+      where: { status: 'building', updatedAt: { lt: buildingCutoff } },
+      select: { id: true, name: true },
+    });
+
+    for (const project of stuckBuilding) {
+      const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+      if (locked === 1) continue;
+
+      await prisma.deployment.updateMany({
+        where: { projectId: project.id, status: { in: ['queued', 'building'] } },
+        data: { status: 'failed', logs: 'Build interrupted by server restart or worker timeout.' },
+      }).catch(() => {});
+      await prisma.project.update({
+        where: { id: project.id },
+        data: { status: 'failed' },
+      }).catch(() => {});
+      logger.warn(`Recovered stuck building project ${project.id} (${project.name}) -> failed`);
+    }
   } finally {
     isReconciling = false;
   }
+}
+
+export async function cleanupStaleTempFiles(): Promise<void> {
+  const cutoffMs = Date.now() - 30 * 60 * 1000;
+  const dirs = [
+    path.join(process.cwd(), 'tmp', 'uploads'),
+    path.join(process.cwd(), 'tmp', 'builds'),
+    path.join(process.cwd(), 'tmp', 'clones'),
+  ];
+  for (const dir of dirs) {
+    try {
+      if (!(await fs.pathExists(dir))) continue;
+      const entries = await fs.readdir(dir);
+      for (const name of entries) {
+        const full = path.join(dir, name);
+        const stat = await fs.lstat(full).catch(() => null);
+        if (stat && stat.mtimeMs < cutoffMs) {
+          await fs.remove(full).catch(() => {});
+        }
+      }
+    } catch {
+      // Ignore transient cleanup errors
+    }
+  }
+}
+
+async function runPeriodicMaintenance(): Promise<void> {
+  await expireTimedTiers().catch((error) => logger.error({ error }, 'Timed tier expiry error'));
+  await reconcileContainerStates().catch((error) => logger.error({ error }, 'State reconciliation error'));
+  await hibernateIdleFreeProjects().catch((error) => logger.error({ error }, 'Idle hibernation error'));
+  await enforceStorageQuotas().catch((error) => logger.error({ error }, 'Storage quota check error'));
+  await cleanupStaleTempFiles().catch(() => {});
 }
 
 /**
@@ -345,11 +427,13 @@ export async function reconcileContainerStates(): Promise<void> {
 export function startLifecycleJobs(): void {
   stopLifecycleJobs();
 
+  startupReconcileTimer = setTimeout(() => {
+    reconcileContainerStates().catch((error) => logger.error({ error }, 'Startup reconciliation error'));
+  }, 5_000);
+  startupReconcileTimer.unref?.();
+
   lifecycleTimer = setInterval(() => {
-    expireTimedTiers().catch((error) => logger.error({ error }, 'Timed tier expiry error'));
-    reconcileContainerStates().catch((error) => logger.error({ error }, 'State reconciliation error'));
-    hibernateIdleFreeProjects().catch((error) => logger.error({ error }, 'Idle hibernation error'));
-    enforceStorageQuotas().catch((error) => logger.error({ error }, 'Storage quota check error'));
+    void runPeriodicMaintenance();
   }, LIFECYCLE_CHECK_INTERVAL_MS);
 
   billingTimer = setInterval(() => {
@@ -361,6 +445,10 @@ export function startLifecycleJobs(): void {
  * Clear background lifecycle timers during graceful shutdown.
  */
 export function stopLifecycleJobs(): void {
+  if (startupReconcileTimer) {
+    clearTimeout(startupReconcileTimer);
+    startupReconcileTimer = null;
+  }
   if (lifecycleTimer) {
     clearInterval(lifecycleTimer);
     lifecycleTimer = null;

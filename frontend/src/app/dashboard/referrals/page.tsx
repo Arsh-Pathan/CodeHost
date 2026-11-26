@@ -371,7 +371,7 @@ export default function ReferralsPage() {
               <p className="text-xs text-slate-500">History of users who registered using your referral link</p>
             </div>
             <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-              {stats?.recentReferrals?.length || 0} total
+              {stats?.totalReferred ?? stats?.recentReferrals?.length ?? 0} total
             </span>
           </div>
 
@@ -382,7 +382,7 @@ export default function ReferralsPage() {
               </div>
               <h3 className="text-sm font-bold text-[#0F172A]">No referrals yet</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">
-                Share your unique link with fellow developers to earn 100 credits for every person who signs up!
+                Share your unique link with fellow developers to earn 50 credits for every person who signs up and verifies their email!
               </p>
               <button
                 onClick={handleCopyLink}
@@ -436,10 +436,16 @@ export default function ReferralsPage() {
                         })}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 size={12} />
-                          Completed
-                        </span>
+                        {ref.status === 'pending' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            Pending Verification
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 size={12} />
+                            Completed
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <span className="font-black text-emerald-600 text-sm">

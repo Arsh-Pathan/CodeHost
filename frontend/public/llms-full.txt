@@ -31,7 +31,7 @@ CodeHost is an automated Platform as a Service (PaaS) running isolated Docker wo
 | `basic` | 50 | ₹80 ($1.00) | 256 MB | 1.0 | 2 GB | 3 | 24/7 Always-On | Included (Free TLS) | Unlimited | 2 GB RAM, 10m timeout |
 | `pro` | 150 | ₹240 ($3.00) | 512 MB | 2.0 | 5 GB | 5 | 24/7 Always-On | Included (Free TLS) | Unlimited | 2 GB RAM, 10m timeout |
 | `business` | 400 | ₹640 ($8.00) | 1024 MB | 4.0 | 10 GB | 10 | 24/7 Always-On | Included (Free TLS) | Unlimited | 2 GB RAM, 10m timeout |
-| Hackathon Pass | — | ₹49 (72h one-time) | 512 MB | 2.0 | 5 GB | 1 | 24/7 Always-On | `.code-host.online` only | Unlimited | 2 GB RAM, 10m timeout |
+| Hackathon Pass | +50 bonus | ₹49 (72h one-time) | 512 MB | 2.0 | 5 GB | Up to 5 | 24/7 Always-On | Included (Free TLS) | Unlimited | 2 GB RAM, 10m timeout |
 
 ### Credit Top-Up Bundles
 - **Starter**: 50 credits — ₹80 ($1.00)
@@ -48,7 +48,11 @@ CodeHost is an automated Platform as a Service (PaaS) running isolated Docker wo
 All authenticated endpoints require `Authorization: Bearer <JWT_TOKEN>`.
 
 - `POST /auth/login` — Body: `{ identifier, password }` -> `{ accessToken, refreshToken, user }`
+- `POST /auth/refresh` — Body: `{ refreshToken }` -> Rotates session tokens (`accessToken`, `refreshToken`).
 - `GET /auth/me` — Returns current authenticated user profile and `serverLimit`.
+- `POST /auth/mcp-token` — Issues a 30-day JWT for headless MCP AI agent clients.
+- `POST /auth/change-password` — Body: `{ currentPassword?, newPassword }` -> Updates password, increments `tokenVersion`, and returns fresh tokens.
+- `POST /auth/logout` — Revokes active JWT `jti` and deletes the refresh session.
 - `GET /projects` — List projects belonging to the user.
 - `POST /projects` — Body: `{ name, tier }` -> Creates a project (validates `serverLimit` and atomically deducts tier credits if paid).
 - `GET /projects/:id` — Fetch single project details.
@@ -61,7 +65,7 @@ All authenticated endpoints require `Authorization: Bearer <JWT_TOKEN>`.
 - `GET /deployments/:projectId` — List latest 10 deployments and status.
 - `POST /files/:projectId` — Body: `{ filePath, content }` -> Write source file directly into project workspace.
 - `POST /files/:projectId/deploy` — Build and deploy directly from files written in project workspace.
-- `GET /billing/wallet` | `GET /billing/tiers` | `POST /billing/unlock-slot` — Check credits, tiers, and unlock slots.
+- `GET /billing/wallet` | `GET /billing/tiers` | `POST /billing/unlock-slot` | `POST /billing/razorpay/verify` — Check credits, tiers, verify Razorpay orders, and unlock slots.
 
 ---
 

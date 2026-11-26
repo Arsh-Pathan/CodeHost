@@ -39,19 +39,43 @@ export async function GET(
   const { id } = await params;
   const cert = await getCertificate(id);
 
-  const recipientName = cert?.recipientName || 'Cloud Developer';
-  const certNumber = cert?.certNumber || (id.length > 12 ? `${id.slice(0, 4).toUpperCase()}-${id.slice(-4).toUpperCase()}` : id.toUpperCase());
-  const issuedDate = cert?.issuedAt
+  if (!cert) {
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            width: '1200px',
+            height: '630px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#F8FAFC',
+            fontFamily: 'sans-serif',
+            color: '#0F172A',
+          }}
+        >
+          <div style={{ fontSize: '20px', fontWeight: 800, color: '#64748B', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '12px' }}>
+            CodeHost Verification Registry
+          </div>
+          <div style={{ fontSize: '42px', fontWeight: 900, color: '#0F172A' }}>
+            Certificate Not Found — Unverified
+          </div>
+        </div>
+      ),
+      { width: 1200, height: 630, status: 404 }
+    );
+  }
+
+  const recipientName = cert.recipientName || 'Cloud Developer';
+  const certNumber = cert.certNumber || (id.length > 12 ? `${id.slice(0, 4).toUpperCase()}-${id.slice(-4).toUpperCase()}` : id.toUpperCase());
+  const issuedDate = cert.issuedAt
     ? new Date(cert.issuedAt).toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
       })
-    : new Date().toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      });
+    : 'Verified';
 
   return new ImageResponse(
     (

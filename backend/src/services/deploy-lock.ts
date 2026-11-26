@@ -20,6 +20,8 @@ end
 return current
 `;
 
+const fallbackLocks = new Map<string, { token: string; expiresAt: number }>();
+
 export async function acquireDeploySlot(
   projectId: string,
   tier: string,
@@ -27,9 +29,20 @@ export async function acquireDeploySlot(
 ): Promise<{ ok: true; lockToken: string } | { ok: false; status: number; error: string }> {
   const lockKey = `deploy-lock:${projectId}`;
   const lockToken = crypto.randomUUID();
-  const acquired = await redis
-    .set(lockKey, lockToken, 'EX', DEPLOY_LOCK_TTL_SECONDS, 'NX')
-    .catch(() => 'OK');
+  const now = Date.now();
+  let usedFallback = false;
+  let acquired: string | null = null;
+
+  try {
+    acquired = await redis.set(lockKey, lockToken, 'EX', DEPLOY_LOCK_TTL_SECONDS, 'NX');
+  } catch {
+    usedFallback = true;
+    const existing = fallbackLocks.get(lockKey);
+    if (!existing || existing.expiresAt <= now) {
+      fallbackLocks.set(lockKey, { token: lockToken, expiresAt: now + DEPLOY_LOCK_TTL_SECONDS * 1000 });
+      acquired = 'OK';
+    }
+  }
 
   if (acquired !== 'OK') {
     return {
@@ -37,6 +50,10 @@ export async function acquireDeploySlot(
       status: 409,
       error: 'A deployment is already in progress for this project. Please wait for it to finish.',
     };
+  }
+
+  if (!usedFallback) {
+    fallbackLocks.set(lockKey, { token: lockToken, expiresAt: now + DEPLOY_LOCK_TTL_SECONDS * 1000 });
   }
 
   if (tier === 'free') {
@@ -61,6 +78,10 @@ export async function acquireDeploySlot(
 
 export async function releaseDeployLock(projectId: string, lockToken?: string): Promise<void> {
   const lockKey = `deploy-lock:${projectId}`;
+  const local = fallbackLocks.get(lockKey);
+  if (!lockToken || local?.token === lockToken) {
+    fallbackLocks.delete(lockKey);
+  }
   if (lockToken) {
     await redis.eval(RELEASE_LOCK_LUA, 1, lockKey, lockToken).catch(() => {});
     return;

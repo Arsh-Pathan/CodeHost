@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchApi, getErrorMessage, getErrorStatus } from '@/lib/api';
+import { fetchApi, getErrorMessage, getErrorStatus, clearClientAuth } from '@/lib/api';
 import PanelLayout from '@/components/PanelLayout';
 import { 
   User, 
@@ -57,6 +57,13 @@ export default function ProfilePage() {
   const [claimingCert, setClaimingCert] = useState(false);
   const [copiedCertLink, setCopiedCertLink] = useState(false);
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   useEffect(() => {
     Promise.all([
       fetchApi('/auth/me'),
@@ -70,10 +77,45 @@ export default function ProfilePage() {
       })
       .catch((err: unknown) => {
         const status = getErrorStatus(err);
-        if (status === 401 || status === 403) router.push('/login');
+        if (status === 401 || status === 403 || status === 404) {
+          clearClientAuth();
+          router.replace('/login');
+        }
       })
       .finally(() => setLoading(false));
   }, [router]);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMessage(null);
+    if (newPassword.length < 6) {
+      setPasswordMessage({ type: 'error', text: 'New password must be at least 6 characters.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'New passwords do not match.' });
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const res = await fetchApi('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      if (res.accessToken && res.refreshToken) {
+        localStorage.setItem('token', res.accessToken);
+        localStorage.setItem('refreshToken', res.refreshToken);
+      }
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordMessage({ type: 'success', text: res.message || 'Password updated successfully.' });
+    } catch (err: unknown) {
+      setPasswordMessage({ type: 'error', text: getErrorMessage(err, 'Failed to change password.') });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   const handleClaimCertificate = async () => {
     setClaimingCert(true);
@@ -286,7 +328,7 @@ export default function ProfilePage() {
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Member Since</label>
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <span className="text-sm font-bold text-slate-900">
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'July 12, 2026'}
+                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
                   </span>
                 </div>
               </div>
@@ -342,9 +384,79 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <button disabled className="mt-8 w-full py-3.5 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-30 transition-all cursor-not-allowed">
-              Change Password
-            </button>
+            {showPasswordModal ? (
+              <form onSubmit={handleChangePassword} className="mt-6 space-y-3 pt-5 border-t border-slate-100">
+                {passwordMessage && (
+                  <div
+                    className={`p-3 rounded-xl text-xs font-bold border ${
+                      passwordMessage.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-red-50 text-red-600 border-red-200'
+                    }`}
+                  >
+                    {passwordMessage.text}
+                  </div>
+                )}
+                {!user?.provider && (
+                  <input
+                    type="password"
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Current password"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 outline-none focus:border-blue-500"
+                  />
+                )}
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New password (min 6 chars)"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 outline-none focus:border-blue-500"
+                />
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 outline-none focus:border-blue-500"
+                />
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPasswordMessage(null);
+                    }}
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={passwordLoading}
+                    className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {passwordLoading ? 'Saving...' : 'Update Password'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setPasswordMessage(null);
+                  setShowPasswordModal(true);
+                }}
+                className="mt-8 w-full py-3.5 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                {user?.provider ? 'Set / Change Password' : 'Change Password'}
+              </button>
+            )}
           </div>
         </div>
 

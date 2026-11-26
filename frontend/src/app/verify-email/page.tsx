@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { fetchApi } from "@/lib/api";
@@ -11,15 +11,21 @@ type Status = "loading" | "success" | "error";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const [token] = useState<string | null>(() => searchParams.get("token"));
+  const submittedRef = useRef(false);
 
   const [status, setStatus] = useState<Status>(token ? "loading" : "error");
   const [errorMessage, setErrorMessage] = useState(token ? "" : "No verification token provided.");
   const hasToken = useHasAuthToken();
 
   useEffect(() => {
-    if (!token) {
+    if (!token || submittedRef.current) {
       return;
+    }
+    submittedRef.current = true;
+
+    if (typeof window !== "undefined" && window.location.search) {
+      window.history.replaceState({}, "", "/verify-email");
     }
 
     fetchApi(`/auth/verify-email?token=${encodeURIComponent(token)}`)
@@ -67,7 +73,7 @@ function VerifyEmailContent() {
               features.
             </p>
             <Link
-              href={hasToken ? "/dashboard" : "/login"}
+              href={hasToken ? "/dashboard" : "/login?verified=true"}
               className="inline-block bg-blue-600 text-white px-6 py-2.5 rounded-md text-sm font-semibold hover:bg-blue-500 transition"
             >
               {hasToken ? "Continue to Dashboard" : "Go to Login"}

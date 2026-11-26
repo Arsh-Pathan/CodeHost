@@ -17,7 +17,7 @@ CodeHost removes cloud DevOps complexity with automatic framework detection acro
 - **Basic (50 credits / INR 80 per month)**: 256 MB RAM, 1.0 vCPU, 2 GB NVMe storage, up to 3 projects, 24/7 always-on, custom domains with TLS, unlimited deploys.
 - **Pro (150 credits / INR 240 per month)**: 512 MB RAM, 2.0 vCPU, 5 GB NVMe storage, up to 5 projects, 24/7 always-on, custom domains with TLS, unlimited deploys.
 - **Business (400 credits / INR 640 per month)**: 1.0 GB RAM, 4.0 vCPU, 10 GB NVMe storage, up to 10 projects, 24/7 always-on, custom domains with TLS, unlimited deploys.
-- **Weekend Hackathon Pass (INR 49 / 72h)**: Dedicated Pro compute (512 MB RAM, 2.0 vCPU, 5 GB NVMe, 24/7 always-on, priority build queue).
+- **Weekend Hackathon Pass (INR 49 / 72h)**: Dedicated Pro compute (512 MB RAM, 2.0 vCPU, 5 GB NVMe, up to 5 projects, +50 bonus credits, 24/7 always-on, priority build queue).
 - **Credit Packs**: Starter (50 cr / ₹80), Developer (100 cr / ₹160), Team (300 cr / ₹400), Pro Scale (600 cr / ₹720), Custom (min 10 cr / ₹16).
 
 ## Supported Runtimes & Templates

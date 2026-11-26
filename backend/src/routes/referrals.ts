@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { prisma } from '@codehost/database';
 import { logger } from '@codehost/logger';
 import { env } from '@codehost/config';
@@ -10,6 +11,12 @@ import {
 } from '../services/referral.js';
 
 const router = Router();
+
+const validateReferralLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { valid: false, error: 'Too many requests, please try again later.' },
+});
 
 /**
  * GET /referrals/stats
@@ -25,7 +32,7 @@ router.get('/stats', requireAuth, async (req: AuthRequest, res) => {
         where: { referrerId: userId },
       }),
       prisma.referral.aggregate({
-        where: { referrerId: userId },
+        where: { referrerId: userId, status: 'completed' },
         _sum: { referrerReward: true },
       }),
       prisma.referral.findMany({
@@ -91,7 +98,7 @@ router.get('/stats', requireAuth, async (req: AuthRequest, res) => {
  * GET /referrals/validate/:code
  * Public lookup to check validity of a referral code and get referrer display name
  */
-router.get('/validate/:code', async (req, res) => {
+router.get('/validate/:code', validateReferralLimiter, async (req, res) => {
   try {
     const rawCode = req.params.code;
     if (!rawCode) {

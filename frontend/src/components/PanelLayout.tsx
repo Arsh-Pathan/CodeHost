@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import UserAvatar from './UserAvatar';
 import CreditTopUpModal from './CreditTopUpModal';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, clearClientAuth } from '@/lib/api';
 
 interface PanelLayoutProps {
   children: React.ReactNode;
@@ -98,11 +98,7 @@ export default function PanelLayout({
         body: JSON.stringify({ refreshToken }),
       }).catch(() => {});
     }
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('codehost_user_cache');
-    localStorage.removeItem('codehost_projects_cache');
-    localStorage.removeItem('codehost_wallet_cache');
+    clearClientAuth();
     router.push('/');
   };
 

@@ -42,7 +42,7 @@ services:
   api:
     image: ghcr.io/arsh-pathan/codehost-api:latest
     container_name: codehost-api
-    user: "${PUID}:${PGID}"
+    user: "${PUID:-1000}:${PGID:-1000}"
     group_add:
       - "${DOCKER_GID:-999}"
     depends_on:
@@ -55,16 +55,22 @@ services:
     environment:
       PORT: 4000
       DATABASE_URL: ${DATABASE_URL:-postgresql://${DB_USER:-codehost}:${DB_PASS:-securepass}@postgres:5432/${DB_NAME:-codehost}?schema=public}
-      REDIS_URL: redis://redis:6379
-      VIRTUAL_HOST: api.code-host.online
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      VIRTUAL_HOST: ${API_DOMAIN:-api.code-host.online}
       VIRTUAL_PORT: 4000
       VIRTUAL_NETWORK: proxy
-      LETSENCRYPT_HOST: api.code-host.online
-      LETSENCRYPT_EMAIL: admin@code-host.online
+      LETSENCRYPT_HOST: ${API_DOMAIN:-api.code-host.online}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@code-host.online}
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:rw"
       - "../data/api_tmp:/app/tmp"
       - "../data/api_storage:/app/storage"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
     networks:
       - default
@@ -77,19 +83,21 @@ services:
   web:
     image: ghcr.io/arsh-pathan/codehost-web:latest
     container_name: codehost-web
-    user: "${PUID}:${PGID}"
+    user: "${PUID:-1000}:${PGID:-1000}"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       HOSTNAME: "0.0.0.0"
       PORT: 3000
-      NEXT_PUBLIC_API_URL: ${API_URL:-https://api.code-host.online}
-      VIRTUAL_HOST: code-host.online,www.code-host.online
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.code-host.online}
+      INTERNAL_API_URL: http://api:4000
+      VIRTUAL_HOST: ${DOMAIN:-code-host.online},www.${DOMAIN:-code-host.online}
       VIRTUAL_PORT: 3000
       VIRTUAL_NETWORK: proxy
-      LETSENCRYPT_HOST: code-host.online,www.code-host.online
-      LETSENCRYPT_EMAIL: admin@code-host.online
+      LETSENCRYPT_HOST: ${DOMAIN:-code-host.online},www.${DOMAIN:-code-host.online}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@code-host.online}
     env_file:
       - .env
     restart: unless-stopped

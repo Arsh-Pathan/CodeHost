@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import fs from 'fs-extra';
 import { prisma } from '@codehost/database';
+import { redis } from '@codehost/redis';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { logger } from '@codehost/logger';
 import { z } from 'zod';
@@ -10,11 +12,18 @@ import { BuilderService } from '../services/builder.js';
 import { RunnerService } from '../services/runner.js';
 import { acquireDeploySlot, releaseDeployLock } from '../services/deploy-lock.js';
 import { ensureProjectBillingCurrent } from '../services/billing-guard.js';
+import { validateGithubRepoInput } from '../lib/validation.js';
 
 export { acquireDeploySlot, releaseDeployLock };
 
 const router = Router();
 router.use(requireAuth);
+
+const deployLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 25,
+  message: { error: 'Too many deployment requests. Please wait a few minutes before retrying.' },
+});
 
 // Setup multer for zip uploads
 const uploadDir = path.join(process.cwd(), 'tmp', 'uploads');
@@ -28,7 +37,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
   fileFilter: (req, file, cb) => {
@@ -44,7 +53,32 @@ const upload = multer({
   }
 });
 
-router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) => {
+// Pre-upload check prevents accepting 50MB uploads for unauthorized, locked, or unpaid projects
+const preUploadDeployGuard = async (req: AuthRequest, res: any, next: any) => {
+  try {
+    const projectId = req.params.projectId;
+    const userId = req.user!.id;
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project || project.userId !== userId) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    const locked = await redis.exists(`deploy-lock:${projectId}`).catch(() => 0);
+    if (locked === 1) {
+      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
+    }
+    const billingCheck = await ensureProjectBillingCurrent(projectId, userId);
+    if (!billingCheck.ok) {
+      return res.status(billingCheck.status).json({ error: billingCheck.error });
+    }
+    (req as any)._guardedProject = project;
+    next();
+  } catch (error) {
+    logger.error({ error }, 'Pre-upload deploy check error');
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+router.post('/:projectId', deployLimiter, preUploadDeployGuard, upload.single('code'), async (req: AuthRequest, res) => {
   let lockToken: string | undefined;
   const projectId = req.params.projectId;
   try {
@@ -54,21 +88,10 @@ router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) 
       return res.status(400).json({ error: 'No zip file uploaded' });
     }
 
-    const project = await prisma.project.findUnique({ where: { id: projectId }});
+    const project = (req as any)._guardedProject || await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== userId) {
       await fs.remove(req.file.path).catch(() => {});
       return res.status(404).json({ error: 'Project not found' });
-    }
-
-    if (project.status === 'building') {
-      await fs.remove(req.file.path).catch(() => {});
-      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
-    }
-
-    const billingCheck = await ensureProjectBillingCurrent(projectId, userId);
-    if (!billingCheck.ok) {
-      await fs.remove(req.file.path).catch(() => {});
-      return res.status(billingCheck.status).json({ error: billingCheck.error });
     }
 
     const slot = await acquireDeploySlot(projectId, project.tier || 'free', userId);
@@ -107,7 +130,6 @@ router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) 
         await prisma.project.update({ where: { id: projectId }, data: { status: 'failed' } }).catch(() => {});
       } finally {
         await releaseDeployLock(projectId, lockToken);
-        // Cleanup uploaded zip
         await fs.remove(req.file!.path).catch(() => {});
       }
     })();
@@ -121,36 +143,34 @@ router.post('/:projectId', upload.single('code'), async (req: AuthRequest, res) 
     }
     logger.error('Upload error', error);
     if (!res.headersSent) {
-      res.status(500).json({ error: error.message || 'Internal server error' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 });
 
 // Deploy from GitHub repository
 const githubDeploySchema = z.object({
-  repoUrl: z.string().url().refine(
-    (url) => /^https:\/\/github\.com\/[^/]+\/[^/]+/.test(url),
-    'Must be a valid GitHub repository URL'
-  ),
+  repoUrl: z.string().min(1),
   branch: z.string().min(1).max(100).default('main'),
   subdir: z.string().max(200).optional(),
 });
 
-router.post('/:projectId/github', async (req: AuthRequest, res) => {
+router.post('/:projectId/github', deployLimiter, async (req: AuthRequest, res) => {
   let lockToken: string | undefined;
   const projectId = req.params.projectId;
   try {
     const userId = req.user!.id;
 
-    const { repoUrl, branch, subdir } = githubDeploySchema.parse(req.body);
+    const rawParsed = githubDeploySchema.parse(req.body);
+    const repoValidation = validateGithubRepoInput(rawParsed);
+    if (!repoValidation.valid) {
+      return res.status(400).json({ error: repoValidation.error || 'Invalid GitHub repository settings' });
+    }
+    const { repoUrl, branch, subdir } = repoValidation;
 
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== userId) {
       return res.status(404).json({ error: 'Project not found' });
-    }
-
-    if (project.status === 'building') {
-      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
     }
 
     const billingCheck = await ensureProjectBillingCurrent(projectId, userId);
@@ -164,7 +184,7 @@ router.post('/:projectId/github', async (req: AuthRequest, res) => {
     }
     lockToken = (slot as any).lockToken;
 
-    // Save repo info on the project
+    // Save validated repo info on the project
     await prisma.project.update({
       where: { id: projectId },
       data: { repoUrl, repoBranch: branch, repoSubdir: subdir || null },
@@ -211,8 +231,28 @@ router.post('/:projectId/github', async (req: AuthRequest, res) => {
     }
     logger.error('GitHub deploy error', error);
     if (!res.headersSent) {
-      res.status(500).json({ error: error.message || 'Internal server error' });
+      res.status(500).json({ error: 'Internal server error' });
     }
+  }
+});
+
+// Get single deployment details
+router.get('/:projectId/:deploymentId', async (req: AuthRequest, res) => {
+  try {
+    const { projectId, deploymentId } = req.params;
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project || project.userId !== req.user!.id) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    const deployment = await prisma.deployment.findFirst({
+      where: { id: deploymentId, projectId },
+    });
+    if (!deployment) {
+      return res.status(404).json({ error: 'Deployment not found' });
+    }
+    res.json({ deployment });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

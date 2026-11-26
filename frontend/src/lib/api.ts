@@ -38,12 +38,33 @@ export function getErrorStatus(err: unknown): number | undefined {
   return undefined;
 }
 
+export const AUTH_CHANGE_EVENT = 'codehost-auth-change';
+
+export function notifyAuthStateChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+  }
+}
+
+export function clearClientAuth() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('codehost_user_cache');
+  localStorage.removeItem('codehost_projects_cache');
+  localStorage.removeItem('codehost_wallet_cache');
+  notifyAuthStateChanged();
+}
+
 let inflightRefresh: Promise<string | null> | null = null;
 
 async function refreshAccessToken(baseUrl: string): Promise<string | null> {
   if (typeof window === 'undefined') return null;
   const refreshToken = localStorage.getItem('refreshToken');
-  if (!refreshToken) return null;
+  if (!refreshToken) {
+    clearClientAuth();
+    return null;
+  }
 
   if (!inflightRefresh) {
     inflightRefresh = (async () => {
@@ -54,8 +75,7 @@ async function refreshAccessToken(baseUrl: string): Promise<string | null> {
           body: JSON.stringify({ refreshToken }),
         });
         if (!res.ok) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
+          clearClientAuth();
           return null;
         }
         const data = (await res.json()) as { accessToken?: string; refreshToken?: string };
@@ -65,8 +85,10 @@ async function refreshAccessToken(baseUrl: string): Promise<string | null> {
         if (data.refreshToken) {
           localStorage.setItem('refreshToken', data.refreshToken);
         }
+        notifyAuthStateChanged();
         return data.accessToken || null;
       } catch {
+        clearClientAuth();
         return null;
       } finally {
         inflightRefresh = null;
@@ -113,6 +135,8 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
         ...options,
         headers: buildHeaders(refreshedToken),
       });
+    } else {
+      clearClientAuth();
     }
   }
 

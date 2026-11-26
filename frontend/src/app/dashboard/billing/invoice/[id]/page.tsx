@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage, getErrorStatus, clearClientAuth } from '@/lib/api';
 import { Printer, ArrowLeft, Loader2, FileText } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,15 +30,21 @@ export default function InvoicePage() {
 
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchApi(`/billing/transactions/${id}`)
       .then((res) => {
         setTransaction(res.transaction);
       })
-      .catch((err) => {
-        alert(err.message || 'Invoice not found');
-        router.push('/dashboard/billing');
+      .catch((err: unknown) => {
+        const status = getErrorStatus(err);
+        if (status === 401 || status === 403) {
+          clearClientAuth();
+          router.replace('/login');
+          return;
+        }
+        setError(getErrorMessage(err, 'Receipt not found'));
       })
       .finally(() => setLoading(false));
   }, [id, router]);
@@ -51,7 +57,23 @@ export default function InvoicePage() {
     );
   }
 
-  if (!transaction) return null;
+  if (error || !transaction) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4 shadow-sm">
+          <h1 className="text-lg font-black text-slate-900">Receipt Unavailable</h1>
+          <p className="text-sm text-slate-500">{error || 'This payment receipt could not be found.'}</p>
+          <Link
+            href="/dashboard/billing"
+            className="inline-flex items-center space-x-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition"
+          >
+            <ArrowLeft size={16} />
+            <span>Back to Billing</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 font-sans text-slate-900">
@@ -86,7 +108,7 @@ export default function InvoicePage() {
               </div>
               <p className="text-sm text-slate-500 font-medium max-w-xs">
                 CodeHost Online Services<br/>
-                contact@code-host.online
+                support@code-host.online
               </p>
             </div>
             <div className="text-right">

@@ -45,19 +45,18 @@ desktop.ini
 *.sln
 *.sw?
 
-# --- 🚀 CodeHost Specific ---
+# --- CodeHost Specific ---
 # Ignore temporary build folders created by the builder service
 /tmp/
 /uploads/
 /builds/
 
-# --- 🐘 Database (Prisma) ---
+# --- Database (Prisma) ---
 # We keep migrations but ignore local sqlite DBs or environment configs
 *.db
 *.db-journal
-/packages/database/.env
 
-# --- 📦 Logs ---
+# --- Logs ---
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -69,3 +68,4 @@ docker-runtime-logs/
 /demos/
 /scratch/
 frontend/public/demos/
+.claude/

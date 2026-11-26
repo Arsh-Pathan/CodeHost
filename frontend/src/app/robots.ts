@@ -13,7 +13,7 @@ const PUBLIC_ALLOW = [
   '/privacy',
 ];
 
-const PRIVATE_DISALLOW = ['/admin', '/api/', '/dashboard/'];
+const PRIVATE_DISALLOW = ['/admin', '/api/', '/dashboard/', '/auth/', '/verify-email'];
 
 const AI_CRAWLERS = [
   'GPTBot',

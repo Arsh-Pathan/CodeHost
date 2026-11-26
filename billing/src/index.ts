@@ -14,17 +14,24 @@ import {
 const app = express();
 const domainHost = env.DOMAIN || 'code-host.online';
 const allowedOrigins = new Set<string>(
-  [env.APP_URL, `https://${domainHost}`, `https://www.${domainHost}`, 'http://localhost:3000']
+  [
+    env.APP_URL,
+    `https://${domainHost}`,
+    `https://www.${domainHost}`,
+    ...(env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://127.0.0.1:3000'] : []),
+  ]
     .filter(Boolean)
     .map((o) => String(o).replace(/\/$/, ''))
 );
 
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       const clean = origin.replace(/\/$/, '');
-      if (allowedOrigins.has(clean) || clean.endsWith(`.${domainHost}`)) return callback(null, true);
+      if (allowedOrigins.has(clean)) return callback(null, true);
       return callback(null, false);
     },
     credentials: true,
@@ -33,7 +40,9 @@ app.use(
 app.use(express.json({
   limit: '1mb',
   verify: (req: any, _res, buf) => {
-    req.rawBody = buf;
+    if (req.originalUrl?.includes('/webhook')) {
+      req.rawBody = buf;
+    }
   }
 }));
 
@@ -112,14 +121,17 @@ app.get('/tiers', requireAuth, async (_req: AuthRequest, res) => {
 });
 
 function resolveOrderGrant(
-  orderData: { amount?: number | string | null; notes?: Record<string, unknown> | null } | null | undefined,
+  orderData: { amount?: number | string | null; currency?: string | null; notes?: Record<string, unknown> | null } | null | undefined,
   requestingUserId: string
 ) {
   if (!orderData) {
     return { ok: false, status: 400, error: 'Order not found', creditsToAdd: 0, orderAmountPaise: 0, isHackathon: false };
   }
+  if (orderData.currency !== undefined && orderData.currency !== null && String(orderData.currency).toUpperCase() !== 'INR') {
+    return { ok: false, status: 400, error: 'Unsupported order currency. Only INR orders are accepted.', creditsToAdd: 0, orderAmountPaise: 0, isHackathon: false };
+  }
   const notes = orderData.notes && typeof orderData.notes === 'object' ? orderData.notes : {};
-  if (notes.userId && String(notes.userId) !== requestingUserId) {
+  if (!notes.userId || String(notes.userId) !== requestingUserId) {
     return { ok: false, status: 403, error: 'Order belongs to a different account', creditsToAdd: 0, orderAmountPaise: 0, isHackathon: false };
   }
 
@@ -164,7 +176,12 @@ function resolveOrderGrant(
 
 const handleCreateOrder = async (req: AuthRequest, res: any) => {
   try {
-    const { credits, amount: rawAmount, currency = 'INR', receipt: customReceipt, planType } = req.body;
+    const { credits, amount: rawAmount, currency: rawCurrency, receipt: customReceipt, planType } = req.body;
+    if (rawCurrency !== undefined && String(rawCurrency).trim().toUpperCase() !== 'INR') {
+      return res.status(400).json({ error: 'Only INR currency is supported' });
+    }
+    const currency = 'INR';
+
     let amountInPaise = 0;
     const notes: Record<string, string> = {};
 
@@ -173,6 +190,19 @@ const handleCreateOrder = async (req: AuthRequest, res: any) => {
     }
 
     if (planType === 'hackathon') {
+      if (req.user?.id) {
+        const currentUser = await prisma.user.findUnique({
+          where: { id: req.user.id },
+          select: { tier: true, tierExpiresAt: true },
+        });
+        if (
+          currentUser &&
+          (currentUser.tier === 'pro' || currentUser.tier === 'business') &&
+          (!currentUser.tierExpiresAt || currentUser.tierExpiresAt > new Date())
+        ) {
+          return res.status(400).json({ error: 'Your account already has an active Pro/Business plan or Hackathon Pass.' });
+        }
+      }
       amountInPaise = 4900;
       notes.planType = 'hackathon';
       notes.credits = '50';
@@ -279,8 +309,6 @@ const handleVerifyPayment = async (req: AuthRequest, res: any) => {
       return res.status(grant.status || 400).json({ error: grant.error });
     }
     const { creditsToAdd, isHackathon } = grant;
-
-    const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
     const proMaxProjects = RESOURCE_TIERS.pro?.maxProjects || 5;
 
     let result: { wallet: any; transaction: any; duplicate?: boolean };
@@ -307,15 +335,25 @@ const handleVerifyPayment = async (req: AuthRequest, res: any) => {
         });
 
         if (isHackathon) {
-          const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { serverLimit: true } });
-          await tx.user.update({
+          const currentUser = await tx.user.findUnique({
             where: { id: userId },
-            data: {
-              tier: 'pro',
-              tierExpiresAt: hackathonExpiresAt,
-              serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
-            },
+            select: { tier: true, tierExpiresAt: true, serverLimit: true },
           });
+          const hasPermanentPaidTier =
+            currentUser &&
+            (currentUser.tier === 'pro' || currentUser.tier === 'business') &&
+            !currentUser.tierExpiresAt;
+          if (!hasPermanentPaidTier) {
+            const baseMs = Math.max(Date.now(), currentUser?.tierExpiresAt?.getTime() || 0);
+            await tx.user.update({
+              where: { id: userId },
+              data: {
+                tier: currentUser?.tier === 'business' ? 'business' : 'pro',
+                tierExpiresAt: new Date(baseMs + 72 * 60 * 60 * 1000),
+                serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
+              },
+            });
+          }
         }
 
         const transaction = await tx.transaction.create({
@@ -371,11 +409,12 @@ app.post('/create-order', requireAuth, handleCreateOrder);
 app.post('/purchase', requireAuth, handleCreateOrder);
 
 app.post('/razorpay/verify', requireAuth, handleVerifyPayment);
+app.post('/razorpay/verify-payment', requireAuth, handleVerifyPayment);
 app.post('/verify-payment', requireAuth, handleVerifyPayment);
 app.post('/verify', requireAuth, handleVerifyPayment);
 
 // Webhook Handler
-app.post('/webhook', async (req: any, res: any) => {
+const handleWebhook = async (req: any, res: any) => {
   try {
     const signature = (req.headers['x-razorpay-signature'] || '') as string;
     const rawBody = req.rawBody ? req.rawBody.toString() : JSON.stringify(req.body);
@@ -392,17 +431,24 @@ app.post('/webhook', async (req: any, res: any) => {
       const order = event.payload?.order?.entity;
       const paymentId = payment?.id;
       const orderId = payment?.order_id || order?.id;
-      const webhookAmountPaise = Number(payment?.amount ?? order?.amount) || 0;
-      const notes = order?.notes || payment?.notes || {};
-      const userId = notes.userId ? String(notes.userId) : '';
+      const paymentCurrency = String(payment?.currency || order?.currency || 'INR').toUpperCase();
 
-      if (userId && paymentId) {
-        let verifiedOrder: any = { amount: webhookAmountPaise, notes };
-        if (orderId) {
-          try {
-            const fetched = await getRazorpayClient().orders.fetch(orderId);
-            if (fetched) verifiedOrder = fetched;
-          } catch {}
+      if (paymentCurrency !== 'INR') {
+        return res.json({ status: 'ignored' });
+      }
+
+      if (paymentId && orderId) {
+        let verifiedOrder: any;
+        try {
+          verifiedOrder = await getRazorpayClient().orders.fetch(orderId);
+        } catch (fetchErr) {
+          logger.error({ fetchErr, paymentId, orderId }, 'Billing webhook failed to fetch Razorpay order');
+          return res.status(500).json({ error: 'Temporary Razorpay fetch failure' });
+        }
+
+        const userId = verifiedOrder?.notes?.userId ? String(verifiedOrder.notes.userId) : '';
+        if (!userId) {
+          return res.json({ status: 'ignored' });
         }
 
         const grant = resolveOrderGrant(verifiedOrder, userId);
@@ -410,7 +456,6 @@ app.post('/webhook', async (req: any, res: any) => {
           return res.json({ status: 'ignored' });
         }
         const { creditsToAdd: credits, isHackathon } = grant;
-        const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
         const proMaxProjects = RESOURCE_TIERS.pro?.maxProjects || 5;
 
         try {
@@ -433,15 +478,25 @@ app.post('/webhook', async (req: any, res: any) => {
             });
 
             if (isHackathon) {
-              const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { serverLimit: true } });
-              await tx.user.update({
+              const currentUser = await tx.user.findUnique({
                 where: { id: userId },
-                data: {
-                  tier: 'pro',
-                  tierExpiresAt: hackathonExpiresAt,
-                  serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
-                },
+                select: { tier: true, tierExpiresAt: true, serverLimit: true },
               });
+              const hasPermanentPaidTier =
+                currentUser &&
+                (currentUser.tier === 'pro' || currentUser.tier === 'business') &&
+                !currentUser.tierExpiresAt;
+              if (!hasPermanentPaidTier) {
+                const baseMs = Math.max(Date.now(), currentUser?.tierExpiresAt?.getTime() || 0);
+                await tx.user.update({
+                  where: { id: userId },
+                  data: {
+                    tier: currentUser?.tier === 'business' ? 'business' : 'pro',
+                    tierExpiresAt: new Date(baseMs + 72 * 60 * 60 * 1000),
+                    serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
+                  },
+                });
+              }
             }
 
             await tx.transaction.create({
@@ -466,7 +521,10 @@ app.post('/webhook', async (req: any, res: any) => {
     logger.error({ error }, 'Webhook error');
     res.status(500).json({ error: 'Webhook processing failed' });
   }
-});
+};
+
+app.post('/razorpay/webhook', handleWebhook);
+app.post('/webhook', handleWebhook);
 
 const SLOT_UNLOCK_COST = 25;
 
@@ -494,22 +552,36 @@ app.post('/unlock-slot', requireAuth, async (req: AuthRequest, res) => {
       }
 
       const updatedWallet = await tx.wallet.findUnique({ where: { id: wallet.id } });
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: { serverLimit: { increment: 1 } },
-        select: { serverLimit: true },
-      });
-
       await tx.transaction.create({
         data: {
           walletId: wallet.id,
           amount: -SLOT_UNLOCK_COST,
           type: 'slot_unlock',
-          description: `Unlocked +1 server slot (new limit: ${updatedUser.serverLimit})`,
+          description: 'Unlocked +1 additional server slot',
         },
       });
 
-      return { serverLimit: updatedUser.serverLimit, balance: updatedWallet.balance };
+      const [userRow, slotCount, paidProjects] = await Promise.all([
+        tx.user.findUnique({ where: { id: userId }, select: { role: true, tier: true, tierExpiresAt: true, serverLimit: true } }),
+        tx.transaction.count({ where: { wallet: { userId }, type: 'slot_unlock' } }),
+        tx.project.findMany({ where: { userId }, select: { tier: true } }),
+      ]);
+      const freeMax = RESOURCE_TIERS.free?.maxProjects || 1;
+      const effectiveTier =
+        userRow?.tier && userRow.tier !== 'free' && (!userRow.tierExpiresAt || userRow.tierExpiresAt > new Date())
+          ? userRow.tier
+          : 'free';
+      const userTierMax = RESOURCE_TIERS[effectiveTier]?.maxProjects || freeMax;
+      const projectTierMax = paidProjects.reduce(
+        (m: number, p: { tier: string }) => Math.max(m, RESOURCE_TIERS[p.tier]?.maxProjects || freeMax),
+        freeMax
+      );
+      const nextLimit = userRow?.role === 'ADMIN'
+        ? Math.max(100, userRow.serverLimit)
+        : Math.max(1, Math.max(userTierMax, projectTierMax) + slotCount);
+      await tx.user.update({ where: { id: userId }, data: { serverLimit: nextLimit } });
+
+      return { serverLimit: nextLimit, balance: updatedWallet.balance };
     });
 
     res.json(result);
@@ -545,6 +617,17 @@ app.get('/transactions/:id', requireAuth, async (req: AuthRequest, res) => {
 });
 
 const port = process.env.PORT || 4001;
-app.listen(port, () => {
+const server = app.listen(port, () => {
   logger.info(`Billing service listening on port ${port}`);
 });
+
+const shutdownBilling = (signal: string) => {
+  logger.info(`Billing received ${signal}, shutting down...`);
+  server.close(async () => {
+    await prisma.$disconnect().catch(() => {});
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10_000).unref();
+};
+process.on('SIGTERM', () => shutdownBilling('SIGTERM'));
+process.on('SIGINT', () => shutdownBilling('SIGINT'));

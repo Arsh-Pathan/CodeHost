@@ -40,6 +40,7 @@ export const STARTER_TEMPLATES_MAP: Record<string, StarterTemplateDefinition> = 
             devDependencies: {
               '@types/node': '^22.0.0',
               '@types/react': '^19.0.0',
+              '@types/react-dom': '^19.0.0',
               typescript: '^5.6.0',
             },
           },
@@ -410,6 +411,13 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.staticfiles",
 ]
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
 
 MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",

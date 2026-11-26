@@ -1236,9 +1236,9 @@ export default function AdminPage() {
                 >
                   <option value="all">All Tiers</option>
                   <option value="free">Free Tier</option>
-                  <option value="basic">Basic (₹249)</option>
-                  <option value="pro">Pro (₹499)</option>
-                  <option value="business">Business (₹999)</option>
+                  <option value="basic">Starter (₹80)</option>
+                  <option value="pro">Pro (₹240)</option>
+                  <option value="business">Business (₹640)</option>
                 </select>
               </div>
 
@@ -1331,10 +1331,10 @@ export default function AdminPage() {
                                 disabled={actionLoading === `tier-${p.id}`}
                                 className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg font-bold text-[10px] uppercase text-blue-600 focus:outline-none focus:border-blue-500 disabled:opacity-50"
                               >
-                                <option value="free">Free (0.5 CPU / 512MB)</option>
-                                <option value="basic">Basic (1 CPU / 1GB)</option>
-                                <option value="pro">Pro (2 CPU / 2GB)</option>
-                                <option value="business">Business (4 CPU / 4GB)</option>
+                                <option value="free">Free (0.5 CPU / 128MB)</option>
+                                <option value="basic">Starter (1 CPU / 256MB)</option>
+                                <option value="pro">Pro (2 CPU / 512MB)</option>
+                                <option value="business">Business (4 CPU / 1GB)</option>
                               </select>
                             </td>
 

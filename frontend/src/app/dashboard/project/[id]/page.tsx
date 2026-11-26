@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchApi, API_URL, getErrorMessage } from '@/lib/api';
+import { fetchApi, getApiUrl, getErrorMessage, getErrorStatus, clearClientAuth } from '@/lib/api';
 import {
   Box,
   Upload,
@@ -268,7 +268,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         buildCommand: projRes.project.buildCommand || '',
         startCommand: projRes.project.startCommand || '',
         dockerfileOverride: projRes.project.dockerfileOverride || '',
-        envVars: Object.keys(projRes.project.envVars || {}).length > 0 ? JSON.stringify(projRes.project.envVars, null, 2) : '{\n  "PORT": "3000"\n}',
+        envVars: Object.keys(projRes.project.envVars || {}).length > 0 ? JSON.stringify(projRes.project.envVars, null, 2) : '',
         customDomain: projRes.project.customDomain || ''
       });
 
@@ -279,7 +279,13 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         setGithubSubdir(projRes.project.repoSubdir || '');
         setDeployMode('github');
       }
-    } catch {
+    } catch (err: unknown) {
+      const status = getErrorStatus(err);
+      if (status === 401 || status === 403) {
+        clearClientAuth();
+        router.replace('/login');
+        return;
+      }
       router.push('/dashboard');
     } finally {
       setLoading(false);
@@ -316,7 +322,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
   }, [pollStatus, project?.status]);
 
   useEffect(() => {
-    const socket = io(API_URL, {
+    const socket = io(getApiUrl(), {
       auth: (cb) => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         cb({ token });
@@ -338,7 +344,10 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       setStats(data);
     });
 
-    return () => { socket.disconnect(); };
+    return () => {
+      socket.emit('leave-project-logs', params.id);
+      socket.disconnect();
+    };
   }, [params.id]);
 
   useEffect(() => {
@@ -453,9 +462,14 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       return;
     }
 
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      clearClientAuth();
+      router.replace('/login');
+      return;
+    }
     setUploading(true);
     setError('');
-    const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('code', file);
 
@@ -468,6 +482,11 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
       });
 
       xhr.addEventListener('load', () => {
+        if (xhr.status === 401) {
+          clearClientAuth();
+          router.replace('/login');
+          return;
+        }
         if (xhr.status >= 200 && xhr.status < 300) {
           fetchProjectData();
           setUploadProgress(0);
@@ -498,7 +517,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
         setUploadProgress(0);
         if (fileInputRef.current) fileInputRef.current.value = '';
       });
-      xhr.open('POST', `${API_URL}/deployments/${params.id}`);
+      xhr.open('POST', `${getApiUrl()}/deployments/${params.id}`);
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.send(formData);
     } catch (err: unknown) {
@@ -610,6 +629,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
              <a
                 href={`https://${project.name.toLowerCase()}.code-host.online`}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center px-5 py-2.5 bg-blue-600 rounded-xl text-sm font-bold text-white hover:bg-blue-500 transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-500/20"
              >
                 <ExternalLink size={16} className="mr-2" />
@@ -903,7 +923,9 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                       <div className="flex justify-between items-end">
                          <span className="text-xs font-bold text-slate-400 flex items-center"><HardDrive size={12} className="mr-1.5" />Memory</span>
                          <span className="text-xs font-black">
-                           {stats ? `${Math.round(stats.memory.usage / 1024 / 1024)}MB / ${Math.round(stats.memory.limit / 1024 / 1024)}MB` : '0MB / 128MB'}
+                           {stats
+                             ? `${Math.round(stats.memory.usage / 1024 / 1024)}MB / ${Math.round(stats.memory.limit / 1024 / 1024)}MB`
+                             : `0MB / ${project.tier === 'business' ? 1024 : project.tier === 'pro' ? 512 : project.tier === 'basic' ? 256 : 128}MB`}
                          </span>
                       </div>
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -945,6 +967,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                     <a
                       href={`https://${project.name.toLowerCase()}.code-host.online`}
                       target="_blank"
+                      rel="noopener noreferrer"
                       className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-blue-200 transition-all block"
                     >
                       <div className="flex flex-col">
@@ -971,7 +994,7 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                       <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-blue-200 transition-all">
                         <div className="flex flex-col">
                           <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Custom Domain</span>
-                          <a href={`https://${project.customDomain}`} target="_blank" className="font-mono text-sm font-bold text-slate-900 block hover:underline">
+                          <a href={`https://${project.customDomain}`} target="_blank" rel="noopener noreferrer" className="font-mono text-sm font-bold text-slate-900 block hover:underline">
                             {project.customDomain}
                           </a>
                         </div>
@@ -1369,33 +1392,6 @@ export default function ProjectDetail({ params: paramsPromise }: { params: Promi
                          onChange={(e) => setSettings({ ...settings, startCommand: e.target.value })}
                       />
                       <p className="text-[10px] text-slate-400 italic px-1">Command to launch your app. Must listen on PORT.</p>
-                   </div>
-
-                   <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Environment Variables (JSON)</label>
-                      <textarea
-                         rows={3}
-                         placeholder='{ "API_KEY": "123", "GREETING": "Hello CodeHost!" }'
-                         className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                         value={typeof settings.envVars === 'string' ? settings.envVars : JSON.stringify(settings.envVars, null, 2)}
-                         onChange={(e) => {
-                           const val = e.target.value;
-                           setSettings({ ...settings, envVars: val || {} });
-                         }}
-                         onBlur={() => {
-                           if (typeof settings.envVars === 'string') {
-                             try {
-                               const parsed = JSON.parse(settings.envVars);
-                               if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                                 setSettings({ ...settings, envVars: parsed });
-                               }
-                             } catch {
-                               // Validated inline when clicking Save Build Settings (supports JSON or KEY=VALUE)
-                             }
-                           }
-                         }}
-                      />
-                      <p className="text-[10px] text-slate-400 italic px-1">Format: JSON object.</p>
                    </div>
 
                    <div className="pt-4 border-t border-slate-100">

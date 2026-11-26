@@ -138,7 +138,7 @@ Launch pre-configured, production-ready fullstack applications and APIs with zer
 | **Basic** | **INR 80** | 50 | 256 MB | 1.0 | 2 GB | 3 | 24/7 Always-On | Custom Apex & Sub | Unlimited |
 | **Pro** | **INR 240** | 150 | 512 MB | 2.0 | 5 GB | 5 | 24/7 Always-On | Custom Apex & Sub | Unlimited |
 | **Business** | **INR 640** | 400 | 1.0 GB | 4.0 | 10 GB | 10 | 24/7 Always-On | Custom Apex & Sub | Unlimited |
-| **Hackathon Pass** | **INR 49** (72h) | — | 512 MB | 2.0 | 5 GB | 1 | 24/7 Always-On | Subdomain only | Unlimited |
+| **Hackathon Pass** | **INR 49** (72h) | +50 bonus | 512 MB | 2.0 | 5 GB | Up to 5 | 24/7 Always-On | Included (Free TLS) | Unlimited |
 
 *Note: Custom credit top-ups can be purchased at any time starting from INR 16 (10 credits). Additional server slots can be unlocked on-demand for 25 credits.*
 
@@ -167,10 +167,14 @@ cp .env.example .env
 Configure your environment variables:
 ```env
 # Database
-DATABASE_URL="postgresql://codehost:codehost_secret@db:5432/codehost?schema=public"
+POSTGRES_USER="codehost"
+POSTGRES_PASSWORD="change-me-strong-password"
+POSTGRES_DB="codehost"
+DATABASE_URL="postgresql://codehost:change-me-strong-password@postgres:5432/codehost?schema=public"
 
 # Authentication and App URLs
 JWT_SECRET="your-secure-jwt-secret"
+JWT_REFRESH_SECRET="your-secure-refresh-secret"
 APP_URL="http://localhost:3000"
 API_URL="http://localhost:4000"
 
@@ -187,8 +191,8 @@ SMTP_PASS="your-app-password"
 
 ### 4. Boot Services
 ```bash
-# Create shared internal bridge network
-docker network create codehost_internal
+# Create shared proxy network expected by infra/docker-compose.yml
+docker network create proxy
 
 # Launch containers
 docker compose up -d
@@ -214,22 +218,25 @@ npm run build --workspaces --if-present
 
 ```text
 CodeHost/
-├── backend/                  # Express TypeScript API server
+├── backend/                  # Express TypeScript API server (@codehost/api)
 │   ├── src/
-│   │   ├── lib/              # Email templates and utility helpers
-│   │   ├── routes/           # Auth, Projects, Deployments, Billing, Admin
-│   │   └── services/         # Docker runner, buildpack detection, Razorpay
-├── frontend/                 # Next.js 16 Web Application
-│   ├── public/               # Static assets, icons, and SVG logos
+│   │   ├── lib/              # Email templates, validation, socket registry
+│   │   ├── routes/           # Auth, Projects, Deployments, Billing, MCP, Admin
+│   │   └── services/         # Docker builder/runner, lifecycle, Razorpay
+├── billing/                  # Standalone billing micro-worker
+├── database/                 # Top-level Prisma schema, migrations, client (@codehost/database)
+├── frontend/                 # Next.js 16 Web Application (@codehost/web)
+│   ├── public/               # Static assets, Devicon SVGs, llms.txt
 │   └── src/
 │       ├── app/              # App Router pages (Landing, Dashboard, Billing, Docs)
 │       └── components/       # Layouts, navigation, brand components, consoles
 ├── packages/                 # Shared monorepo packages
-│   ├── config/               # Shared environment schemas and tier definitions
-│   ├── database/             # Prisma schema and client exports
-│   ├── docker/               # Dockerode singleton configuration
-│   └── logger/               # Pino structured logging
-├── infra/                    # Docker Compose files, Nginx proxy, and SSL configs
+│   ├── config/               # Environment schemas and resource tier definitions
+│   ├── docker/               # Dockerode singleton and log demuxer
+│   ├── logger/               # Pino structured logging with field redaction
+│   ├── redis/                # Shared Redis client
+│   └── types/                # Shared TypeScript interfaces
+├── infra/                    # Docker Compose, Nginx proxy, monitoring configs
 └── README.md                 # Project documentation
 ```
 

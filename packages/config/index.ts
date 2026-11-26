@@ -10,9 +10,12 @@ const __dirname = dirname(__filename);
 
 const candidateEnvPaths = [
   path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../../infra/.env'),
   path.resolve(__dirname, '../../../.env'),
+  path.resolve(__dirname, '../../../infra/.env'),
   path.resolve(__dirname, '../../../../.env'),
   path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), 'infra/.env'),
 ];
 const envPath = candidateEnvPaths.find((candidate) => fs.existsSync(candidate));
 if (envPath) {
@@ -39,7 +42,8 @@ export const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
-  ADMIN_EMAILS: z.string().default('mail.arsh.pathan@gmail.com'),
+  ADMIN_EMAILS: z.string().default(''),
+  TRUST_PROXY: z.string().optional(),
   APP_URL: z.string().default('http://localhost:3000'),
   API_URL: z.string().default('http://localhost:4000'),
   RAZORPAY_KEY_ID: z.string().optional(),

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { LogoWithText } from '@/components/Logo';
+import { getApiUrl } from '@/lib/api';
 import {
   CheckCircle2,
   Activity,
@@ -20,10 +21,7 @@ import {
   Layers,
   ArrowLeft,
   Calendar,
-  MessageSquare,
-  Twitter,
-  Github,
-  Linkedin
+  MessageSquare
 } from 'lucide-react';
 
 interface ServiceStatus {
@@ -105,7 +103,7 @@ export default function StatusPage() {
       status: 'operational',
       uptimePercentage: 99.99,
       latencyMs: 18,
-      days: generate90Days(99.99, []),
+      days: [],
     },
     {
       id: 'api-gateway',
@@ -115,7 +113,7 @@ export default function StatusPage() {
       status: 'operational',
       uptimePercentage: 99.98,
       latencyMs: 24,
-      days: generate90Days(99.98, [22]),
+      days: [],
     },
     {
       id: 'postgres',
@@ -125,7 +123,7 @@ export default function StatusPage() {
       status: 'operational',
       uptimePercentage: 100.0,
       latencyMs: 1.2,
-      days: generate90Days(100.0, []),
+      days: [],
     },
     {
       id: 'redis',
@@ -135,7 +133,7 @@ export default function StatusPage() {
       status: 'operational',
       uptimePercentage: 100.0,
       latencyMs: 0.8,
-      days: generate90Days(100.0, []),
+      days: [],
     },
     {
       id: 'docker-sandbox',
@@ -145,7 +143,7 @@ export default function StatusPage() {
       status: 'operational',
       uptimePercentage: 99.97,
       latencyMs: 4,
-      days: generate90Days(99.97, [48]),
+      days: [],
     },
     {
       id: 'tls-engine',
@@ -155,7 +153,7 @@ export default function StatusPage() {
       status: 'operational',
       uptimePercentage: 100.0,
       latencyMs: 12,
-      days: generate90Days(100.0, []),
+      days: [],
     },
     {
       id: 'telemetry-ws',
@@ -165,13 +163,27 @@ export default function StatusPage() {
       status: 'operational',
       uptimePercentage: 99.99,
       latencyMs: 15,
-      days: generate90Days(99.99, []),
+      days: [],
     },
   ]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setServices((prev) =>
+        prev.map((s) => {
+          if (s.days.length > 0) return s;
+          const maintOffsets = s.id === 'api-gateway' ? [22] : s.id === 'docker-sandbox' ? [48] : [];
+          return { ...s, days: generate90Days(s.uptimePercentage, maintOffsets) };
+        })
+      );
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [generate90Days]);
 
   // Real Probe of Live Infrastructure Endpoints
   const probeHealth = useCallback(async () => {
     setIsRefreshing(true);
+    const apiBase = getApiUrl();
 
     // 1. Probe API Gateway (/health)
     const startApi = performance.now();
@@ -181,9 +193,9 @@ export default function StatusPage() {
     let apiDuration = 24;
 
     try {
-      const res = await fetch('https://api.code-host.online/health', {
+      const res = await fetch(`${apiBase}/health`, {
         cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' }
+        signal: AbortSignal.timeout(5000),
       });
       apiDuration = Math.round(performance.now() - startApi);
       if (res.ok) {
@@ -222,8 +234,9 @@ export default function StatusPage() {
 
     // 3. Probe Public Stats for Real Workload Count
     try {
-      const statsRes = await fetch('https://api.code-host.online/stats/public', {
-        cache: 'no-store'
+      const statsRes = await fetch(`${apiBase}/stats/public`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(5000),
       });
       if (statsRes.ok) {
         const statsJson = await statsRes.json();
@@ -235,14 +248,7 @@ export default function StatusPage() {
       // fallback
     }
 
-    // 4. Probe Next.js internal status endpoint
-    try {
-      await fetch('/api/status', { cache: 'no-store' });
-    } catch {
-      // fallback
-    }
-
-    // 5. Update service statuses based on real telemetry
+    // 4. Update service statuses based on real telemetry
     setServices(prev =>
       prev.map(s => {
         if (s.id === 'edge-cdn') {
@@ -269,11 +275,15 @@ export default function StatusPage() {
   // Diagnostic benchmark testing real live round-trips
   const runBenchmark = async () => {
     setIsBenchmarking(true);
+    const apiBase = getApiUrl();
     const pings: number[] = [];
     for (let i = 0; i < 3; i++) {
       const start = performance.now();
       try {
-        const res = await fetch('https://api.code-host.online/health?b=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch(`${apiBase}/health?b=` + Date.now(), {
+          cache: 'no-store',
+          signal: AbortSignal.timeout(5000),
+        });
         if (res.ok) {
           pings.push(Math.round(performance.now() - start));
         }
@@ -554,7 +564,7 @@ export default function StatusPage() {
                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
                 <div>
                   <h4 className="text-sm font-bold text-[#0F172A]">Asia Pacific — Mumbai (India)</h4>
-                  <p className="text-xs text-slate-400 font-medium">Primary VPS Datacenter & Docker Host (51.79.249.143)</p>
+                  <p className="text-xs text-slate-400 font-medium">Primary VPS Datacenter &amp; Docker Host</p>
                 </div>
               </div>
               <div className="text-right">
@@ -665,17 +675,16 @@ export default function StatusPage() {
         {/* Incident History & Maintenance Log */}
         <div className="mb-12">
           <div className="mb-5">
-            <h2 className="text-lg font-black text-[#0F172A] tracking-tight">Recent Incidents & Maintenance History</h2>
-            <p className="text-xs font-medium text-slate-500">Chronological platform logs over the preceding 90-day operating window.</p>
+            <h2 className="text-lg font-black text-[#0F172A] tracking-tight">Recent Incidents &amp; Maintenance Window</h2>
+            <p className="text-xs font-medium text-slate-500">Rolling 90-day operational summary across live services.</p>
           </div>
 
           <div className="space-y-4">
-            {/* October 2026 */}
             <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
               <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
                 <div className="flex items-center space-x-2.5">
                   <Calendar size={15} className="text-blue-600" />
-                  <h4 className="text-sm font-bold text-[#0F172A]">October 2026</h4>
+                  <h4 className="text-sm font-bold text-[#0F172A]">Current 30-Day Window</h4>
                 </div>
                 <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
                   100% Operational
@@ -684,21 +693,20 @@ export default function StatusPage() {
               <div className="flex items-start space-x-3 text-xs text-slate-600">
                 <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-slate-800">No incidents reported this month.</p>
-                  <p className="text-slate-400 mt-0.5">All services across frontend, API gateway, container orchestrator, and PostgreSQL clusters operated at full capacity.</p>
+                  <p className="font-bold text-slate-800">No active incidents reported.</p>
+                  <p className="text-slate-400 mt-0.5">Live telemetry polls the API gateway, PostgreSQL, Redis, and Web Edge every 30 seconds.</p>
                 </div>
               </div>
             </div>
 
-            {/* September 2026 */}
             <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
               <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
                 <div className="flex items-center space-x-2.5">
                   <Calendar size={15} className="text-slate-400" />
-                  <h4 className="text-sm font-bold text-[#0F172A]">September 2026</h4>
+                  <h4 className="text-sm font-bold text-[#0F172A]">Scheduled Rolling Maintenance</h4>
                 </div>
                 <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                  Maintenance Completed
+                  Zero-Downtime Policy
                 </span>
               </div>
               <div className="space-y-3">
@@ -707,34 +715,11 @@ export default function StatusPage() {
                     i
                   </div>
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <p className="font-bold text-slate-800">Scheduled Platform Maintenance: Linux Kernel & Docker Engine Upgrades</p>
-                      <span className="text-[10px] font-semibold text-slate-400">Sep 24, 2026</span>
-                    </div>
+                    <p className="font-bold text-slate-800">Automated Security Patches &amp; Docker Engine Maintenance</p>
                     <p className="text-slate-500 mt-1">
-                      Rolling kernel upgrades and security patches applied to underlying compute hosts. Workloads seamlessly transitioned with zero container interruption.
+                      Infrastructure security updates are announced in Discord prior to rolling host restarts.
                     </p>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* August 2026 */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
-                <div className="flex items-center space-x-2.5">
-                  <Calendar size={15} className="text-slate-400" />
-                  <h4 className="text-sm font-bold text-[#0F172A]">August 2026</h4>
-                </div>
-                <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
-                  100% Operational
-                </span>
-              </div>
-              <div className="flex items-start space-x-3 text-xs text-slate-600">
-                <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-slate-800">No incidents reported.</p>
-                  <p className="text-slate-400 mt-0.5">100% uptime achieved across all 31 days.</p>
                 </div>
               </div>
             </div>
@@ -748,7 +733,7 @@ export default function StatusPage() {
               Real-Time Incident Notifications
             </span>
             <h3 className="text-lg sm:text-xl font-black tracking-tight">
-              Get notified of scheduled maintenance & updates
+              Get notified of scheduled maintenance &amp; updates
             </h3>
             <p className="text-xs text-slate-400 mt-1 max-w-xl">
               Join the official Code Host Discord community for real-time infrastructure maintenance announcements and developer assistance.
@@ -758,6 +743,7 @@ export default function StatusPage() {
             <Link
               href="https://discord.gg/gsh2qpEXT4"
               target="_blank"
+              rel="noopener noreferrer"
               className="px-5 py-2.5 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center space-x-2"
             >
               <span>Join Discord</span>
@@ -775,12 +761,9 @@ export default function StatusPage() {
             <p className="text-slate-400 text-sm max-w-sm">The simplest cloud platform for modern web applications. From code to live URL in under 60 seconds.</p>
           </div>
           <div className="flex items-center space-x-6">
-            <Link href="https://discord.gg/gsh2qpEXT4" target="_blank">
+            <Link href="https://discord.gg/gsh2qpEXT4" target="_blank" rel="noopener noreferrer" aria-label="CodeHost Discord">
               <MessageSquare className="hover:text-[#5865F2] transition-colors cursor-pointer" />
             </Link>
-            <Twitter className="hover:text-blue-400 transition-colors cursor-pointer" />
-            <Github className="hover:text-slate-900 transition-colors cursor-pointer" />
-            <Linkedin className="hover:text-blue-700 transition-colors cursor-pointer" />
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold text-slate-300">

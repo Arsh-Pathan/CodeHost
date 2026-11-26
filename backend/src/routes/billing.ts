@@ -1,6 +1,4 @@
 import { Router } from 'express';
-import express from 'express';
-import cors from 'cors';
 import { prisma } from '@codehost/database';
 import { logger } from '@codehost/logger';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
@@ -14,12 +12,12 @@ import {
 import {
   sendPaymentConfirmationEmail,
   sendHackathonPassActivatedEmail,
-  sendLowCreditWarningEmail,
 } from '../lib/email.js';
+import { recalculateUserServerLimit } from '../services/billing-guard.js';
 
 const router = Router();
 
-export function resolvePackageAmountInr(credits: number, orderAmountPaise?: number): number {
+export function resolvePackageAmountInr(credits: number, orderAmountPaise?: number | null): number {
   if (typeof orderAmountPaise === 'number' && orderAmountPaise > 0) {
     return Math.round(orderAmountPaise / 100);
   }
@@ -40,7 +38,7 @@ export interface VerifiedOrderGrant {
 }
 
 export function resolveVerifiedOrderGrant(
-  orderData: { amount?: number | string | null; notes?: Record<string, unknown> | null } | null | undefined,
+  orderData: { amount?: number | string | null; currency?: string | null; notes?: Record<string, unknown> | null } | null | undefined,
   requestingUserId: string
 ): VerifiedOrderGrant {
   if (!orderData) {
@@ -54,8 +52,19 @@ export function resolveVerifiedOrderGrant(
     };
   }
 
+  if (orderData.currency !== undefined && orderData.currency !== null && String(orderData.currency).toUpperCase() !== 'INR') {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Unsupported order currency. Only INR orders are accepted.',
+      creditsToAdd: 0,
+      orderAmountPaise: 0,
+      isHackathon: false,
+    };
+  }
+
   const notes = orderData.notes && typeof orderData.notes === 'object' ? orderData.notes : {};
-  if (notes.userId && String(notes.userId) !== requestingUserId) {
+  if (!notes.userId || String(notes.userId) !== requestingUserId) {
     return {
       ok: false,
       status: 403,
@@ -175,7 +184,12 @@ router.get('/tiers', requireAuth, async (_req: AuthRequest, res) => {
 // Create Order Handler (Supports predefined packages, custom credits, & hackathon pass)
 export const handleCreateRazorpayOrder = async (req: AuthRequest, res: any) => {
   try {
-    const { credits, amount: rawAmount, currency = 'INR', receipt: customReceipt, planType } = req.body;
+    const { credits, amount: rawAmount, currency: rawCurrency, receipt: customReceipt, planType } = req.body;
+    if (rawCurrency !== undefined && String(rawCurrency).trim().toUpperCase() !== 'INR') {
+      return res.status(400).json({ error: 'Only INR currency is supported' });
+    }
+    const currency = 'INR';
+
     let amountInPaise = 0;
     const notes: Record<string, string> = {};
 
@@ -184,7 +198,23 @@ export const handleCreateRazorpayOrder = async (req: AuthRequest, res: any) => {
     }
 
     if (planType === 'hackathon') {
-      // Weekend Hackathon Pass: ₹49 flat for 72h Pro Access
+      // Prevent repeated ₹49 credit farming while an active Pro/Business/Hackathon tier is already in effect
+      if (req.user?.id) {
+        const currentUser = await prisma.user.findUnique({
+          where: { id: req.user.id },
+          select: { tier: true, tierExpiresAt: true },
+        });
+        if (
+          currentUser &&
+          (currentUser.tier === 'pro' || currentUser.tier === 'business') &&
+          (!currentUser.tierExpiresAt || currentUser.tierExpiresAt > new Date())
+        ) {
+          return res.status(400).json({
+            error: 'Your account already has an active Pro/Business plan or Hackathon Pass.',
+          });
+        }
+      }
+      // Weekend Hackathon Pass: ₹49 flat for 72h Pro Access + 50 credits
       amountInPaise = 4900;
       notes.planType = 'hackathon';
       notes.credits = '50';
@@ -240,6 +270,10 @@ export const handleCreateRazorpayOrder = async (req: AuthRequest, res: any) => {
 // Verify Payment Signature Handler
 export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) => {
   try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const orderId = req.body.razorpay_order_id || req.body.razorpayOrderId;
     const paymentId = req.body.razorpay_payment_id || req.body.razorpayPaymentId;
     const signature = req.body.razorpay_signature || req.body.razorpaySignature;
@@ -263,149 +297,149 @@ export const handleVerifyRazorpayPayment = async (req: AuthRequest, res: any) =>
       });
     }
 
-    // If authenticated, credit user's wallet
-    if (req.user?.id) {
-      const userId = req.user.id;
-      // Fast idempotency check
-      const existingTx = await prisma.transaction.findFirst({
-        where: { razorpayPaymentId: paymentId },
+    const userId = req.user.id;
+    // Fast idempotency check
+    const existingTx = await prisma.transaction.findFirst({
+      where: { razorpayPaymentId: paymentId },
+    });
+
+    if (existingTx) {
+      return res.json({
+        success: true,
+        message: 'Payment already processed',
+        credits: existingTx.amount,
       });
+    }
 
-      if (existingTx) {
-        return res.json({
-          success: true,
-          message: 'Payment already processed',
-          credits: existingTx.amount,
+    // Securely read credits and planType strictly from verified Razorpay order
+    let orderData: any;
+    try {
+      const client = getRazorpayClient();
+      orderData = await client.orders.fetch(orderId);
+    } catch (fetchErr) {
+      logger.error({ fetchErr, orderId }, 'Failed to fetch order from Razorpay during verification');
+      return res.status(502).json({ error: 'Failed to verify payment with Razorpay. Please retry in a few seconds.' });
+    }
+
+    const grant = resolveVerifiedOrderGrant(orderData, userId);
+    if (!grant.ok) {
+      return res.status(grant.status || 400).json({ error: grant.error });
+    }
+    const { creditsToAdd, orderAmountPaise, isHackathon } = grant;
+
+    let effectiveHackathonExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+    let result: { wallet: any; transaction: any; duplicate?: boolean };
+    try {
+      result = await prisma.$transaction(async (tx: any) => {
+        // Serialize concurrent verify + webhook invocations on the same paymentId
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${String(paymentId)}))`;
+
+        const alreadyProcessed = await tx.transaction.findFirst({
+          where: { razorpayPaymentId: paymentId },
         });
-      }
+        if (alreadyProcessed) {
+          const w = await tx.wallet.findUnique({ where: { id: alreadyProcessed.walletId } });
+          return { wallet: w, transaction: alreadyProcessed, duplicate: true };
+        }
 
-      // Securely read credits and planType strictly from verified Razorpay order
-      let orderData: any;
-      try {
-        const client = getRazorpayClient();
-        orderData = await client.orders.fetch(orderId);
-      } catch (fetchErr) {
-        logger.error({ fetchErr, orderId }, 'Failed to fetch order from Razorpay during verification');
-        return res.status(502).json({ error: 'Failed to verify payment with Razorpay. Please retry in a few seconds.' });
-      }
+        let wallet = await tx.wallet.findUnique({ where: { userId } });
+        if (!wallet) {
+          wallet = await tx.wallet.create({ data: { userId } });
+        }
 
-      const grant = resolveVerifiedOrderGrant(orderData, userId);
-      if (!grant.ok) {
-        return res.status(grant.status || 400).json({ error: grant.error });
-      }
-      const { creditsToAdd, orderAmountPaise, isHackathon } = grant;
+        const updatedWallet = await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { increment: creditsToAdd } },
+        });
 
-      const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
-      const proMaxProjects = RESOURCE_TIERS.pro?.maxProjects || 5;
-
-      let result: { wallet: any; transaction: any; duplicate?: boolean };
-      try {
-        result = await prisma.$transaction(async (tx: any) => {
-          // Serialize concurrent verify + webhook invocations on the same paymentId
-          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${String(paymentId)}))`;
-
-          const alreadyProcessed = await tx.transaction.findFirst({
-            where: { razorpayPaymentId: paymentId },
+        // If Hackathon Pass, upgrade/extend Pro without downgrading permanent Pro/Business tiers
+        if (isHackathon) {
+          const currentUser = await tx.user.findUnique({
+            where: { id: userId },
+            select: { tier: true, tierExpiresAt: true },
           });
-          if (alreadyProcessed) {
-            const w = await tx.wallet.findUnique({ where: { id: alreadyProcessed.walletId } });
-            return { wallet: w, transaction: alreadyProcessed, duplicate: true };
-          }
-
-          let wallet = await tx.wallet.findUnique({ where: { userId } });
-          if (!wallet) {
-            wallet = await tx.wallet.create({ data: { userId } });
-          }
-
-          const updatedWallet = await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: creditsToAdd } },
-          });
-
-          // If Hackathon Pass, upgrade user to pro for 72 hours and expand serverLimit
-          if (isHackathon) {
-            const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { serverLimit: true } });
+          const hasPermanentPaidTier =
+            currentUser &&
+            (currentUser.tier === 'pro' || currentUser.tier === 'business') &&
+            !currentUser.tierExpiresAt;
+          if (!hasPermanentPaidTier) {
+            const baseMs = Math.max(Date.now(), currentUser?.tierExpiresAt?.getTime() || 0);
+            effectiveHackathonExpiry = new Date(baseMs + 72 * 60 * 60 * 1000);
             await tx.user.update({
               where: { id: userId },
               data: {
-                tier: 'pro',
-                tierExpiresAt: hackathonExpiresAt,
-                serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
+                tier: currentUser?.tier === 'business' ? 'business' : 'pro',
+                tierExpiresAt: effectiveHackathonExpiry,
               },
             });
           }
-
-          const transaction = await tx.transaction.create({
-            data: {
-              walletId: wallet.id,
-              amount: creditsToAdd,
-              type: 'purchase',
-              description: isHackathon ? 'Weekend Hackathon Pass (72h Pro Access)' : `Purchased ${creditsToAdd} credits`,
-              razorpayOrderId: orderId,
-              razorpayPaymentId: paymentId,
-            },
-          });
-
-          return { wallet: updatedWallet, transaction, duplicate: false };
-        });
-      } catch (txErr: any) {
-        if (txErr?.code === 'P2002') {
-          const dup = await prisma.transaction.findFirst({ where: { razorpayPaymentId: paymentId } });
-          return res.json({
-            success: true,
-            message: 'Payment already processed',
-            credits: dup?.amount ?? creditsToAdd,
-          });
+          await recalculateUserServerLimit(tx, userId);
         }
-        throw txErr;
-      }
 
-      if (result.duplicate) {
+        const transaction = await tx.transaction.create({
+          data: {
+            walletId: wallet.id,
+            amount: creditsToAdd,
+            type: 'purchase',
+            description: isHackathon ? 'Weekend Hackathon Pass (72h Pro Access)' : `Purchased ${creditsToAdd} credits`,
+            razorpayOrderId: orderId,
+            razorpayPaymentId: paymentId,
+          },
+        });
+
+        return { wallet: updatedWallet, transaction, duplicate: false };
+      });
+    } catch (txErr: any) {
+      if (txErr?.code === 'P2002') {
+        const dup = await prisma.transaction.findFirst({ where: { razorpayPaymentId: paymentId } });
         return res.json({
           success: true,
           message: 'Payment already processed',
-          credits: result.transaction.amount,
+          credits: dup?.amount ?? creditsToAdd,
         });
       }
+      throw txErr;
+    }
 
-      // Send confirmation email asynchronously
-      try {
-        const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, username: true } });
-        if (user && user.email) {
-          if (isHackathon) {
-            sendHackathonPassActivatedEmail(user.email, {
-              expiresAt: hackathonExpiresAt,
-              username: user.username,
-            }).catch((err) => logger.error({ err }, 'Error sending hackathon email'));
-          } else {
-            sendPaymentConfirmationEmail(user.email, {
-              credits: creditsToAdd,
-              amountInr: resolvePackageAmountInr(creditsToAdd, orderAmountPaise),
-              newBalance: result.wallet.balance,
-              transactionId: result.transaction.id,
-            }).catch((err) => logger.error({ err }, 'Error sending payment confirmation email'));
-          }
-        }
-      } catch (emailErr) {
-        logger.error({ emailErr }, 'Error looking up user for confirmation email');
-      }
-
+    if (result.duplicate) {
       return res.json({
         success: true,
-        message: isHackathon
-          ? 'Weekend Hackathon Pass activated successfully! Pro features unlocked for 72 hours.'
-          : 'Payment verified and credits added successfully',
-        balance: result.wallet.balance,
-        transaction: result.transaction,
-        hackathon: isHackathon,
+        message: 'Payment already processed',
+        credits: result.transaction.amount,
       });
+    }
+
+    // Send confirmation email asynchronously
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, username: true } });
+      if (user && user.email) {
+        if (isHackathon) {
+          sendHackathonPassActivatedEmail(user.email, {
+            expiresAt: effectiveHackathonExpiry,
+            username: user.username,
+          }).catch((err) => logger.error({ err }, 'Error sending hackathon email'));
+        } else {
+          sendPaymentConfirmationEmail(user.email, {
+            credits: creditsToAdd,
+            amountInr: resolvePackageAmountInr(creditsToAdd, orderAmountPaise),
+            newBalance: result.wallet.balance,
+            transactionId: result.transaction.id,
+          }).catch((err) => logger.error({ err }, 'Error sending payment confirmation email'));
+        }
+      }
+    } catch (emailErr) {
+      logger.error({ emailErr }, 'Error looking up user for confirmation email');
     }
 
     return res.json({
       success: true,
-      message: 'Payment verified successfully',
-      orderId,
-      paymentId,
+      message: isHackathon
+        ? 'Weekend Hackathon Pass activated successfully! Pro features unlocked for 72 hours.'
+        : 'Payment verified and credits added successfully',
+      balance: result.wallet.balance,
+      transaction: result.transaction,
+      hackathon: isHackathon,
     });
   } catch (error: any) {
     logger.error({ error }, 'Razorpay verify payment error');
@@ -438,20 +472,27 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
       const order = event.payload?.order?.entity;
       const paymentId = payment?.id;
       const orderId = payment?.order_id || order?.id;
-      const webhookAmountPaise = Number(payment?.amount ?? order?.amount) || 0;
-      const webhookNotes = order?.notes || payment?.notes || {};
-      const userId = webhookNotes.userId ? String(webhookNotes.userId) : '';
+      const paymentCurrency = String(payment?.currency || order?.currency || 'INR').toUpperCase();
 
-      if (userId && paymentId) {
-        // Verify paid grant strictly against Razorpay's authoritative order amount / Razorpay API
-        let verifiedOrder: any = { amount: webhookAmountPaise, notes: webhookNotes };
-        if (orderId) {
-          try {
-            const fetched = await getRazorpayClient().orders.fetch(orderId);
-            if (fetched) verifiedOrder = fetched;
-          } catch {
-            // Fall back to webhook-verified payment amount if Razorpay API fetch is temporarily unavailable
-          }
+      if (paymentCurrency !== 'INR') {
+        logger.warn({ paymentId, orderId, paymentCurrency }, 'Rejected non-INR Razorpay webhook');
+        return res.json({ status: 'ignored' });
+      }
+
+      if (paymentId && orderId) {
+        // Always fetch authoritative Razorpay order — never trust client-controllable payment.notes fallback
+        let verifiedOrder: any;
+        try {
+          verifiedOrder = await getRazorpayClient().orders.fetch(orderId);
+        } catch (fetchErr) {
+          logger.error({ fetchErr, paymentId, orderId }, 'Webhook failed to fetch authoritative Razorpay order');
+          return res.status(500).json({ error: 'Temporary Razorpay fetch failure' });
+        }
+
+        const userId = verifiedOrder?.notes?.userId ? String(verifiedOrder.notes.userId) : '';
+        if (!userId) {
+          logger.warn({ paymentId, orderId }, 'Webhook ignored: authoritative order missing notes.userId');
+          return res.json({ status: 'ignored' });
         }
 
         const grant = resolveVerifiedOrderGrant(verifiedOrder, userId);
@@ -461,8 +502,7 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
         }
 
         const { creditsToAdd: credits, orderAmountPaise, isHackathon } = grant;
-        const hackathonExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
-        const proMaxProjects = RESOURCE_TIERS.pro?.maxProjects || 5;
+        let effectiveHackathonExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000);
 
         let result: { wallet: any; transaction: any; duplicate?: boolean } | null = null;
         try {
@@ -487,15 +527,26 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
             });
 
             if (isHackathon) {
-              const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { serverLimit: true } });
-              await tx.user.update({
+              const currentUser = await tx.user.findUnique({
                 where: { id: userId },
-                data: {
-                  tier: 'pro',
-                  tierExpiresAt: hackathonExpiresAt,
-                  serverLimit: Math.max(currentUser?.serverLimit ?? 1, proMaxProjects),
-                },
+                select: { tier: true, tierExpiresAt: true },
               });
+              const hasPermanentPaidTier =
+                currentUser &&
+                (currentUser.tier === 'pro' || currentUser.tier === 'business') &&
+                !currentUser.tierExpiresAt;
+              if (!hasPermanentPaidTier) {
+                const baseMs = Math.max(Date.now(), currentUser?.tierExpiresAt?.getTime() || 0);
+                effectiveHackathonExpiry = new Date(baseMs + 72 * 60 * 60 * 1000);
+                await tx.user.update({
+                  where: { id: userId },
+                  data: {
+                    tier: currentUser?.tier === 'business' ? 'business' : 'pro',
+                    tierExpiresAt: effectiveHackathonExpiry,
+                  },
+                });
+              }
+              await recalculateUserServerLimit(tx, userId);
             }
 
             const transaction = await tx.transaction.create({
@@ -519,13 +570,12 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
         }
 
         if (result && !result.duplicate) {
-          // Send confirmation email asynchronously
           try {
             const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, username: true } });
             if (user && user.email) {
               if (isHackathon) {
                 sendHackathonPassActivatedEmail(user.email, {
-                  expiresAt: hackathonExpiresAt,
+                  expiresAt: effectiveHackathonExpiry,
                   username: user.username,
                 }).catch(() => {});
               } else {
@@ -537,7 +587,7 @@ export const handleRazorpayWebhook = async (req: any, res: any) => {
                 }).catch(() => {});
               }
             }
-          } catch (e) {}
+          } catch {}
 
           logger.info(`Webhook: ${credits} credits added for user ${userId} (Hackathon: ${isHackathon})`);
         }
@@ -585,22 +635,17 @@ router.post('/unlock-slot', requireAuth, async (req: AuthRequest, res) => {
       }
 
       const updatedWallet = await tx.wallet.findUnique({ where: { id: wallet.id } });
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: { serverLimit: { increment: 1 } },
-        select: { serverLimit: true },
-      });
-
       await tx.transaction.create({
         data: {
           walletId: wallet.id,
           amount: -SLOT_UNLOCK_COST,
           type: 'slot_unlock',
-          description: `Unlocked +1 server slot (new limit: ${updatedUser.serverLimit})`,
+          description: 'Unlocked +1 additional server slot',
         },
       });
+      const newServerLimit = await recalculateUserServerLimit(tx, userId);
 
-      return { serverLimit: updatedUser.serverLimit, balance: updatedWallet.balance };
+      return { serverLimit: newServerLimit, balance: updatedWallet.balance };
     });
 
     logger.info(`User ${userId} unlocked +1 server slot (new limit: ${result.serverLimit})`);

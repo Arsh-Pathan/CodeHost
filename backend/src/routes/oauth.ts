@@ -1,17 +1,30 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { prisma } from '@codehost/database';
 import { env } from '@codehost/config';
 import { logger } from '@codehost/logger';
 import { generateTokens } from './auth.js';
+import { sendWelcomeEmail } from '../lib/email.js';
 import {
+  completePendingReferral,
   generateUniqueReferralCode,
   isConfiguredAdminEmail,
   processReferralReward,
+  REFEREE_REWARD_CREDITS,
 } from '../services/referral.js';
 
 const router = Router();
+const OAUTH_STATE_COOKIE = 'codehost_oauth_state';
+
+const oauthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many OAuth attempts, please try again later.' },
+});
+
+router.use(oauthLimiter);
 
 // --- Helpers ---
 
@@ -20,12 +33,62 @@ function generateState(): string {
 }
 
 function createStateToken(state: string, ref?: string): string {
-  return jwt.sign({ state, ref: ref || null }, env.JWT_SECRET, { expiresIn: '15m' });
+  return jwt.sign({ state, ref: ref || null, typ: 'oauth_state' }, env.JWT_SECRET, { expiresIn: '15m' });
 }
 
-function verifyStateToken(token: string, expectedState: string): { valid: boolean; ref?: string | null } {
+function parseCookies(cookieHeader: string | undefined): Record<string, string> {
+  const cookies: Record<string, string> = {};
+  if (!cookieHeader) return cookies;
+  for (const part of cookieHeader.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx <= 0) continue;
+    const key = part.slice(0, idx).trim();
+    const val = part.slice(idx + 1).trim();
+    try {
+      cookies[key] = decodeURIComponent(val);
+    } catch {
+      cookies[key] = val;
+    }
+  }
+  return cookies;
+}
+
+function setOAuthStateCookie(res: any, state: string) {
+  const secureFlag = env.NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader(
+    'Set-Cookie',
+    `${OAUTH_STATE_COOKIE}=${encodeURIComponent(state)}; HttpOnly; Path=/auth/oauth; Max-Age=900; SameSite=Lax${secureFlag}`
+  );
+}
+
+function clearOAuthStateCookie(res: any) {
+  const secureFlag = env.NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader(
+    'Set-Cookie',
+    `${OAUTH_STATE_COOKIE}=; HttpOnly; Path=/auth/oauth; Max-Age=0; SameSite=Lax${secureFlag}`
+  );
+}
+
+function verifyStateBinding(req: any, res: any, token: string, expectedState: string): { valid: boolean; ref?: string | null } {
+  const cookies = parseCookies(req.headers?.cookie);
+  const cookieState = cookies[OAUTH_STATE_COOKIE] || '';
+  clearOAuthStateCookie(res);
+
+  if (!cookieState || !expectedState || cookieState.length !== expectedState.length) {
+    return { valid: false };
+  }
+  const cookieMatches = crypto.timingSafeEqual(Buffer.from(cookieState), Buffer.from(expectedState));
+  if (!cookieMatches) {
+    return { valid: false };
+  }
+
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as { state: string; ref?: string | null };
+    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as {
+      state: string;
+      ref?: string | null;
+      typ?: string;
+    };
+    if (decoded.typ && decoded.typ !== 'oauth_state') return { valid: false };
     if (decoded.state !== expectedState) return { valid: false };
     return { valid: true, ref: decoded.ref || null };
   } catch {
@@ -35,22 +98,19 @@ function verifyStateToken(token: string, expectedState: string): { valid: boolea
 
 async function generateUniqueUsername(email: string, name: string | null): Promise<string> {
   // Use name if available and NOT an email address, else fallback to email prefix
-  const emailPrefix = email.split('@')[0] || 'user';
+  const emailPrefix = (email.split('@')[0] || 'user').replace(/[^a-z0-9_-]/g, '');
   let base = (name && !name.includes('@') ? name : emailPrefix)
     .toLowerCase()
-    .replace(/\s+/g, '-') 
+    .replace(/\s+/g, '-')
     .replace(/[^a-z0-9_-]/g, '');
 
-  // fallback if base is empty or very short
-  if (base.length < 2) base = emailPrefix.replace(/[^a-z0-9_-]/g, '') || 'user';
+  if (base.length < 2) base = emailPrefix.length >= 2 ? emailPrefix : `${base || 'u'}0`;
 
-  const sanitized = base.slice(0, 20) || 'user';
-  
-  // Check if taken
+  const sanitized = base.slice(0, 20).padEnd(2, '0');
+
   const existing = await prisma.user.findUnique({ where: { username: sanitized } });
   if (!existing) return sanitized;
 
-  // Add random suffix to avoid collision
   const suffix = crypto.randomBytes(3).toString('hex');
   return `${sanitized.slice(0, 14)}-${suffix}`;
 }
@@ -85,48 +145,67 @@ async function findOrCreateOAuthUser(
   });
   if (user) {
     const wasUnverified = !user.emailVerified;
+    const promoteAdmin = wasUnverified && isConfiguredAdminEmail(email);
+    const shouldLinkProvider = !user.provider && !user.providerId;
+
     user = await prisma.user.update({
       where: { id: user.id },
       data: {
         email,
-        provider,
-        providerId,
+        ...(shouldLinkProvider || wasUnverified ? { provider, providerId } : {}),
         emailVerified: true,
         verificationToken: null,
         verificationTokenExpiry: null,
-        // Prevent pre-account takeover where an attacker pre-registered an unverified password account
-        ...(wasUnverified ? { password: null } : {}),
-        ...(avatarUrl ? { avatarUrl } : {}),
+        ...(wasUnverified ? { password: null, tokenVersion: { increment: 1 } } : {}),
+        ...(promoteAdmin ? { role: 'ADMIN', serverLimit: Math.max(user.serverLimit, 100) } : {}),
+        ...(avatarUrl && !user.avatarUrl ? { avatarUrl } : {}),
       },
     });
     if (wasUnverified) {
       await prisma.session.deleteMany({ where: { userId: user.id } });
+      const refResult = await completePendingReferral(user.id).catch(() => ({ success: false }));
+      sendWelcomeEmail(email, user.name || user.username, refResult.success ? REFEREE_REWARD_CREDITS : 0).catch(() => {});
     }
     return user;
   }
 
-  // 3. Create new user
-  const username = await generateUniqueUsername(email, name);
+  // 3. Create new user (retry username collisions safely)
   const isAdmin = isConfiguredAdminEmail(email);
-  const myReferralCode = await generateUniqueReferralCode(username);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const username =
+      attempt === 0
+        ? await generateUniqueUsername(email, name)
+        : `user-${crypto.randomBytes(4).toString('hex')}`;
+    const myReferralCode = await generateUniqueReferralCode(username);
+    try {
+      user = await prisma.user.create({
+        data: {
+          email,
+          username,
+          name,
+          avatarUrl,
+          provider,
+          providerId,
+          emailVerified: true,
+          password: null,
+          role: isAdmin ? 'ADMIN' : 'USER',
+          serverLimit: isAdmin ? 100 : 1,
+          referralCode: myReferralCode,
+        },
+      });
+      break;
+    } catch (err: any) {
+      if (err?.code === 'P2002' && attempt < 4) {
+        continue;
+      }
+      throw err;
+    }
+  }
 
-  user = await prisma.user.create({
-    data: {
-      email,
-      username,
-      name,
-      avatarUrl,
-      provider,
-      providerId,
-      emailVerified: true,
-      password: null,
-      role: isAdmin ? 'ADMIN' : 'USER',
-      serverLimit: isAdmin ? 100 : 1,
-      referralCode: myReferralCode,
-    },
-  });
+  if (!user) {
+    throw new Error('Failed to create OAuth user');
+  }
 
-  // If new user was referred, credit rewards
   if (referralCode) {
     await processReferralReward(user.id, referralCode);
   }
@@ -160,6 +239,7 @@ router.get('/google', (req, res) => {
   const ref = typeof req.query.ref === 'string' ? req.query.ref : undefined;
   const state = generateState();
   const stateToken = createStateToken(state, ref);
+  setOAuthStateCookie(res, state);
 
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
@@ -181,11 +261,11 @@ router.get('/google/callback', async (req, res) => {
       return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
     }
 
-    // Verify CSRF state
+    // Verify double-submit CSRF state cookie + signed JWT
     const colonIdx = stateParam.indexOf(':');
     const state = colonIdx > 0 ? stateParam.slice(0, colonIdx) : '';
     const stateToken = colonIdx > 0 ? stateParam.slice(colonIdx + 1) : '';
-    const verification = verifyStateToken(stateToken, state);
+    const verification = verifyStateBinding(req, res, stateToken, state);
     if (!state || !stateToken || !verification.valid) {
       return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
     }
@@ -194,6 +274,7 @@ router.get('/google/callback', async (req, res) => {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: AbortSignal.timeout(10_000),
       body: new URLSearchParams({
         code,
         client_id: env.GOOGLE_CLIENT_ID!,
@@ -257,6 +338,7 @@ router.get('/github', (req, res) => {
   const ref = typeof req.query.ref === 'string' ? req.query.ref : undefined;
   const state = generateState();
   const stateToken = createStateToken(state, ref);
+  setOAuthStateCookie(res, state);
 
   const params = new URLSearchParams({
     client_id: env.GITHUB_CLIENT_ID,
@@ -279,7 +361,7 @@ router.get('/github/callback', async (req, res) => {
     const colonIdx = stateParam.indexOf(':');
     const state = colonIdx > 0 ? stateParam.slice(0, colonIdx) : '';
     const stateToken = colonIdx > 0 ? stateParam.slice(colonIdx + 1) : '';
-    const verification = verifyStateToken(stateToken, state);
+    const verification = verifyStateBinding(req, res, stateToken, state);
     if (!state || !stateToken || !verification.valid) {
       return res.redirect(`${env.APP_URL}/login?error=oauth_failed`);
     }
@@ -291,6 +373,7 @@ router.get('/github/callback', async (req, res) => {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(10_000),
       body: JSON.stringify({
         client_id: env.GITHUB_CLIENT_ID,
         client_secret: env.GITHUB_CLIENT_SECRET,
@@ -313,8 +396,8 @@ router.get('/github/callback', async (req, res) => {
 
     // Fetch user profile
     const [profileRes, emailsRes] = await Promise.all([
-      fetch('https://api.github.com/user', { headers: ghHeaders }),
-      fetch('https://api.github.com/user/emails', { headers: ghHeaders }),
+      fetch('https://api.github.com/user', { headers: ghHeaders, signal: AbortSignal.timeout(10_000) }),
+      fetch('https://api.github.com/user/emails', { headers: ghHeaders, signal: AbortSignal.timeout(10_000) }),
     ]);
 
     const profile: any = await profileRes.json();

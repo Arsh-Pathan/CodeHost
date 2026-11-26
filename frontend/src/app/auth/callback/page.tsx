@@ -1,14 +1,20 @@
 "use client";
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { notifyAuthStateChanged } from '@/lib/api';
+import { sanitizeRedirectPath } from '@/lib/utils';
 
 function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const handledRef = useRef(false);
 
   useEffect(() => {
+    if (handledRef.current) return;
+    handledRef.current = true;
+
     const hashRaw = typeof window !== 'undefined' ? window.location.hash.replace(/^#/, '') : '';
     const hashParams = new URLSearchParams(hashRaw);
 
@@ -21,25 +27,27 @@ function CallbackHandler() {
     }
 
     if (error) {
-      router.push(`/login?error=${encodeURIComponent(error)}`);
+      router.replace(`/login?error=${encodeURIComponent(error)}`);
       return;
     }
 
     if (accessToken && refreshToken) {
       localStorage.setItem('token', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
+      notifyAuthStateChanged();
 
       let nextPath = '/dashboard';
       if (typeof window !== 'undefined') {
         const storedRedirect = sessionStorage.getItem('postAuthRedirect');
         sessionStorage.removeItem('postAuthRedirect');
-        if (storedRedirect && storedRedirect.startsWith('/dashboard') && !storedRedirect.startsWith('//')) {
-          nextPath = storedRedirect;
+        const safeRedirect = sanitizeRedirectPath(storedRedirect);
+        if (safeRedirect) {
+          nextPath = safeRedirect;
         }
       }
-      router.push(nextPath);
+      router.replace(nextPath);
     } else {
-      router.push('/login?error=oauth_failed');
+      router.replace('/login?error=oauth_failed');
     }
   }, [router, searchParams]);
 

@@ -12,27 +12,19 @@ export async function GET() {
     const apiStart = Date.now();
     const res = await fetch('https://api.code-host.online/health', {
       cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' }
+      signal: AbortSignal.timeout(5000),
     });
     apiLatency = Date.now() - apiStart;
     if (res.ok) {
       apiStatus = await res.json();
     }
-  } catch (err) {
-    apiStatus = { status: 'unreachable', error: String(err) };
+  } catch {
+    apiStatus = { status: 'unreachable' };
   }
-
-  const memory = process.memoryUsage();
-  const serverUptimeSeconds = Math.round(process.uptime());
 
   return NextResponse.json({
     status: apiStatus.status === 'healthy' ? 'operational' : 'degraded',
     timestamp: new Date().toISOString(),
-    server: {
-      uptimeSeconds: serverUptimeSeconds,
-      memoryMb: Math.round(memory.rss / (1024 * 1024)),
-      nodeVersion: process.version,
-    },
     services: {
       web: { status: 'operational' },
       api: { status: apiStatus.status === 'healthy' ? 'operational' : 'degraded', latencyMs: apiLatency },

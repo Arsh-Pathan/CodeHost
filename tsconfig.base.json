@@ -11,6 +11,8 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
+      "@codehost/database": ["database"],
+      "@codehost/billing": ["billing/src"],
       "@codehost/*": ["packages/*"]
     }
   }

@@ -165,12 +165,12 @@ export function ctaButton(label: string, href: string): string {
   `;
 }
 
-async function sendMail(to: string, subject: string, html: string) {
+async function sendMail(to: string, subject: string, html: string): Promise<boolean> {
   const cleanTo = stripHeaderCrlf(to);
   const cleanSubject = stripHeaderCrlf(subject);
   if (!transporter) {
     logger.warn(`SMTP not configured. Email to ${cleanTo}: ${cleanSubject}`);
-    return;
+    return false;
   }
   try {
     await transporter.sendMail({
@@ -180,13 +180,15 @@ async function sendMail(to: string, subject: string, html: string) {
       html,
     });
     logger.info(`Email sent to ${cleanTo}: ${cleanSubject}`);
+    return true;
   } catch (err) {
     logger.error({ err }, `Failed to send email to ${cleanTo}: ${cleanSubject}`);
+    return false;
   }
 }
 
 // ─── 1. Email Verification Email ─────────────────────────────────────
-export async function sendVerificationEmail(to: string, token: string, username?: string) {
+export async function sendVerificationEmail(to: string, token: string, username?: string): Promise<boolean> {
   const verifyBase = (env.APP_URL || appBaseUrl).replace(/\/$/, '');
   const verifyUrl = `${verifyBase}/verify-email?token=${encodeURIComponent(token)}`;
   const body = `
@@ -209,19 +211,54 @@ export async function sendVerificationEmail(to: string, token: string, username?
       If the button above does not work, copy and paste this verification URL into your browser:
     </p>
     <p style="margin:0;font-size:11px;font-family:monospace;background-color:#F1F5F9;padding:10px 14px;border-radius:8px;word-break:break-all;color:#0F172A;border:1px solid #E2E8F0;">
-      ${verifyUrl}
+      ${escapeHtml(verifyUrl)}
     </p>
     <p style="color:#94A3B8;font-size:11px;margin:20px 0 0;line-height:1.5;">
       This security link expires in 24 hours. If you did not create an account on CodeHost, you can safely disregard this message.
     </p>
   `;
 
-  await sendMail(
+  return sendMail(
     to,
     'Verify your email address - CodeHost',
     wrapEmail('Email Verification', body, {
       badge: 'Account Security',
       previewText: 'Verify your email address to activate your CodeHost cloud account.',
+    })
+  );
+}
+
+// ─── 1b. Password Reset Email ────────────────────────────────────────
+export async function sendPasswordResetEmail(to: string, username: string, token: string): Promise<boolean> {
+  const resetBase = (env.APP_URL || appBaseUrl).replace(/\/$/, '');
+  const resetUrl = `${resetBase}/login?reset=${encodeURIComponent(token)}`;
+  const body = `
+    <h1 style="color:#0F172A;margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-0.4px;">
+      Reset your CodeHost password
+    </h1>
+    <p style="margin:0 0 16px;color:#475569;font-size:14px;line-height:1.6;">
+      Hello <strong>${escapeHtml(username)}</strong>, we received a request to reset the password for your CodeHost account. Click the button below to choose a new password.
+    </p>
+
+    ${ctaButton('Reset Password', resetUrl)}
+
+    <p style="margin:20px 0 6px;color:#64748B;font-size:12px;line-height:1.5;">
+      If the button above does not work, copy and paste this reset link into your browser:
+    </p>
+    <p style="margin:0;font-size:11px;font-family:monospace;background-color:#F1F5F9;padding:10px 14px;border-radius:8px;word-break:break-all;color:#0F172A;border:1px solid #E2E8F0;">
+      ${escapeHtml(resetUrl)}
+    </p>
+    <p style="color:#94A3B8;font-size:11px;margin:20px 0 0;line-height:1.5;">
+      This password reset link expires in 1 hour and revokes active sessions once used. If you did not request a password reset, you can safely ignore this message.
+    </p>
+  `;
+
+  return sendMail(
+    to,
+    'Reset your password - CodeHost',
+    wrapEmail('Password Reset', body, {
+      badge: 'Security Alert',
+      previewText: 'Use this 1-hour security link to reset your CodeHost password.',
     })
   );
 }
@@ -264,7 +301,7 @@ export async function sendWelcomeEmail(to: string, username: string, bonusCredit
       <p style="margin:4px 0 0;color:#64748B;font-size:12px;line-height:1.5;">Every deployment receives an encrypted HTTPS URL along with an official deployment certificate to showcase your skills.</p>
     </div>
 
-    ${ctaButton('Open Developer Dashboard', 'https://code-host.online/dashboard')}
+    ${ctaButton('Open Developer Dashboard', `${appBaseUrl}/dashboard`)}
   `;
 
   await sendMail(
@@ -392,7 +429,7 @@ export async function sendReferralEarnedEmail(
       Share your referral link with colleagues and students to earn 50 compute credits for every signup. New signups also receive 25 bonus credits.
     </p>
 
-    ${ctaButton('View Referrals Dashboard', 'https://code-host.online/dashboard/referrals')}
+    ${ctaButton('View Referrals Dashboard', `${appBaseUrl}/dashboard/referrals`)}
   `;
 
   await sendMail(
@@ -487,7 +524,7 @@ export async function sendLowCreditWarningEmail(
       </p>
     </div>
 
-    ${ctaButton('Top Up Account Balance', 'https://code-host.online/dashboard/billing')}
+    ${ctaButton('Top Up Account Balance', `${appBaseUrl}/dashboard/billing`)}
   `;
 
   await sendMail(
@@ -605,7 +642,7 @@ export async function sendHackathonPassActivatedEmail(
         Access Valid Until: ${expiryStr} IST (72-Hour Duration)
       </p>
     </div>
-    ${ctaButton('Open Dashboard', 'https://code-host.online/dashboard')}
+    ${ctaButton('Open Dashboard', `${appBaseUrl}/dashboard`)}
   `;
 
   await sendMail(

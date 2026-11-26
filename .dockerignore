@@ -7,7 +7,14 @@ infra/data
 **/*.tsbuildinfo
 backend/uploads
 *.log
-.env
-.env.*
+**/.env
+**/.env.*
+!**/.env.example
 .turbo
 scratch
+.claude
+.github
+audit
+frontend/public/demos
+tmp
+storage

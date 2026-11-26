@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["NODE_ENV", "NEXT_PUBLIC_API_URL"],
+  "globalEnv": ["NODE_ENV", "NEXT_PUBLIC_API_URL", "NEXT_PUBLIC_RAZORPAY_KEY_ID", "ADMIN_EMAILS", "SMTP_FROM", "TRUST_PROXY"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

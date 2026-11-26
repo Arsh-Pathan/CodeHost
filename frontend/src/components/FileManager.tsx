@@ -33,8 +33,11 @@ export default function FileManager({ projectId }: FileManagerProps) {
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
+  const [savedContent, setSavedContent] = useState<string>('');
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [fileLoadError, setFileLoadError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ type: 'switch' | 'delete'; path: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['']));
   const [isDeploying, setIsDeploying] = useState(false);
@@ -44,13 +47,15 @@ export default function FileManager({ projectId }: FileManagerProps) {
   const [newItemName, setNewItemName] = useState('');
   const [targetPath, setTargetPath] = useState('');
 
+  const isDirty = Boolean(selectedFile) && !isLoadingFile && !fileLoadError && fileContent !== savedContent;
+
   const fetchFiles = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetchApi(`/files/${projectId}`);
       setFiles(res.files);
     } catch (err) {
-      console.error(err);
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to list files' });
     } finally {
       setLoading(false);
     }
@@ -63,14 +68,22 @@ export default function FileManager({ projectId }: FileManagerProps) {
     return () => clearTimeout(timer);
   }, [fetchFiles]);
 
-  const loadFileContent = async (path: string) => {
+  const loadFileContent = async (path: string, force = false) => {
+    if (!force && isDirty && selectedFile !== path) {
+      setPendingAction({ type: 'switch', path });
+      return;
+    }
     try {
+      setPendingAction(null);
+      setStatusMessage(null);
       setSelectedFile(path);
       setIsLoadingFile(true);
       setFileLoadError(null);
       setFileContent('');
+      setSavedContent('');
       const res = await fetchApi(`/files/${projectId}/content?filePath=${encodeURIComponent(path)}`);
       setFileContent(res.content);
+      setSavedContent(res.content);
     } catch (err: unknown) {
       setFileLoadError(err instanceof Error ? err.message : 'Failed to load file');
     } finally {
@@ -82,38 +95,49 @@ export default function FileManager({ projectId }: FileManagerProps) {
     if (!selectedFile || isLoadingFile || fileLoadError) return;
     try {
       setSaving(true);
+      setStatusMessage(null);
       await fetchApi(`/files/${projectId}`, {
         method: 'POST',
         body: JSON.stringify({ filePath: selectedFile, content: fileContent })
       });
-    } catch {
-      alert('Failed to save file');
+      setSavedContent(fileContent);
+      setStatusMessage({ type: 'success', text: `Saved ${selectedFile}` });
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to save file' });
     } finally {
       setSaving(false);
     }
   };
 
-  const deleteFile = async (path: string) => {
-    if (!confirm(`Delete ${path}?`)) return;
+  const deleteFile = async (path: string, confirmed = false) => {
+    if (!confirmed) {
+      setPendingAction({ type: 'delete', path });
+      return;
+    }
     try {
+      setPendingAction(null);
+      setStatusMessage(null);
       await fetchApi(`/files/${projectId}?filePath=${encodeURIComponent(path)}`, { method: 'DELETE' });
       if (selectedFile === path) {
         setSelectedFile(null);
         setFileContent('');
+        setSavedContent('');
       }
+      setStatusMessage({ type: 'success', text: `Deleted ${path}` });
       void fetchFiles();
-    } catch {
-      alert('Delete failed');
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Delete failed' });
     }
   };
 
   const deploy = async () => {
     try {
       setIsDeploying(true);
+      setStatusMessage(null);
       await fetchApi(`/files/${projectId}/deploy`, { method: 'POST' });
-      alert('Deployment queued!');
-    } catch {
-      alert('Deploy failed');
+      setStatusMessage({ type: 'success', text: 'Deployment queued!' });
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Deploy failed' });
     } finally {
       setIsDeploying(false);
     }
@@ -130,6 +154,7 @@ export default function FileManager({ projectId }: FileManagerProps) {
     if (!newItemName) return;
     try {
       setSaving(true);
+      setStatusMessage(null);
       const filePath = targetPath ? `${targetPath}/${newItemName}` : newItemName;
       
       if (showCreateModal === 'file') {
@@ -138,9 +163,6 @@ export default function FileManager({ projectId }: FileManagerProps) {
           body: JSON.stringify({ filePath, content: '' })
         });
       } else {
-        // Folder creation: we can just save a dummy .keep file or similar
-        // if the backend doesn't support empty directories yet.
-        // For now, let's assume we can just create the folder path.
         await fetchApi(`/files/${projectId}`, {
           method: 'POST',
           body: JSON.stringify({ filePath: `${filePath}/.keep`, content: '' })
@@ -150,8 +172,8 @@ export default function FileManager({ projectId }: FileManagerProps) {
       setShowCreateModal(null);
       setNewItemName('');
       await fetchFiles();
-    } catch {
-      alert('Failed to create item');
+    } catch (err: unknown) {
+      setStatusMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to create item' });
     } finally {
       setSaving(false);
     }
@@ -230,12 +252,66 @@ export default function FileManager({ projectId }: FileManagerProps) {
 
       {/* Editor Area */}
       <div className="flex-1 flex flex-col bg-slate-50/30">
+        {statusMessage && (
+          <div
+            className={`px-6 py-2.5 text-xs font-bold flex items-center justify-between border-b ${
+              statusMessage.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-red-50 text-red-700 border-red-200'
+            }`}
+          >
+            <span>{statusMessage.text}</span>
+            <button
+              type="button"
+              onClick={() => setStatusMessage(null)}
+              className="ml-4 font-black opacity-70 hover:opacity-100 cursor-pointer"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        {pendingAction && (
+          <div className="px-6 py-3 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-4 text-xs">
+            <span className="font-bold text-amber-900">
+              {pendingAction.type === 'delete'
+                ? `Permanently delete "${pendingAction.path}"?`
+                : `You have unsaved changes in "${selectedFile}". Discard and switch to "${pendingAction.path}"?`}
+            </span>
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setPendingAction(null)}
+                className="px-3 py-1 rounded-lg bg-white border border-amber-300 text-amber-900 font-bold hover:bg-amber-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pendingAction.type === 'delete') {
+                    void deleteFile(pendingAction.path, true);
+                  } else {
+                    void loadFileContent(pendingAction.path, true);
+                  }
+                }}
+                className="px-3 py-1 rounded-lg bg-amber-900 text-white font-bold hover:bg-amber-800 cursor-pointer"
+              >
+                {pendingAction.type === 'delete' ? 'Confirm Delete' : 'Discard Changes'}
+              </button>
+            </div>
+          </div>
+        )}
         {selectedFile ? (
           <>
             <div className="px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center space-x-3">
                  <File size={16} className="text-blue-500" />
                  <span className="text-sm font-bold text-slate-900">{selectedFile}</span>
+                 {isDirty && (
+                   <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider">
+                     Unsaved
+                   </span>
+                 )}
               </div>
               <div className="flex items-center space-x-2">
                  <button 

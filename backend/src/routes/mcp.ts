@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import path from 'path';
 import fs from 'fs-extra';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { prisma } from '@codehost/database';
 import { docker, demuxDockerLogBuffer } from '@codehost/docker';
+import { redis } from '@codehost/redis';
 import { logger } from '@codehost/logger';
 import {
   env,
@@ -15,10 +17,12 @@ import {
   CREDIT_PRICE_USD,
 } from '@codehost/config';
 import { generateTokens } from './auth.js';
+import { getLiveUserAuthState, isJtiRevoked } from '../middleware/auth.js';
 import {
   validateProjectName,
   sanitizeUserEnvVars,
   resolveSafeProjectPath,
+  validateGithubRepoInput,
 } from '../lib/validation.js';
 
 const router = Router();
@@ -253,6 +257,9 @@ function getSourceDir(projectId: string): string {
 }
 
 function getLiveUrl(project: { name: string; customDomain?: string | null }): string {
+  if (project.customDomain) {
+    return `https://${project.customDomain}`;
+  }
   const domain = env.DOMAIN || 'code-host.online';
   return `https://${project.name.toLowerCase()}.${domain}`;
 }
@@ -265,12 +272,27 @@ export async function assertSafeProjectFilePath(baseDir: string, relativePath: s
   return resolveSafeProjectPath(baseDir, relativePath);
 }
 
-// Simple bounded in-memory sliding-window rate limiter for MCP codehost_login
+// Bounded rate limiter for MCP codehost_login (Redis + bounded in-memory fallback)
 const mcpLoginAttempts = new Map<string, number[]>();
 const MCP_LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const MCP_LOGIN_MAX_ATTEMPTS = 10;
 
-function checkMcpLoginRateLimit(key: string): boolean {
+async function checkMcpLoginRateLimit(clientKey: string, identifier: string): Promise<boolean> {
+  const idHash = crypto.createHash('sha256').update(identifier).digest('hex').slice(0, 20);
+  if (process.env.NODE_ENV !== 'test') {
+    try {
+      const ipKey = `mcp-login:ip:${clientKey}`;
+      const idKey = `mcp-login:id:${idHash}`;
+      const [ipCount, idCount] = await Promise.all([redis.incr(ipKey), redis.incr(idKey)]);
+      if (ipCount === 1) await redis.expire(ipKey, 900);
+      if (idCount === 1) await redis.expire(idKey, 900);
+      return ipCount <= 20 && idCount <= MCP_LOGIN_MAX_ATTEMPTS;
+    } catch {
+      // Fall back to bounded local Map below if Redis is unavailable
+    }
+  }
+
+  const key = `${clientKey}:${idHash}`;
   const now = Date.now();
   const windowStart = now - MCP_LOGIN_WINDOW_MS;
   const recent = (mcpLoginAttempts.get(key) || []).filter((ts) => ts > windowStart);
@@ -280,17 +302,14 @@ function checkMcpLoginRateLimit(key: string): boolean {
   }
   recent.push(now);
   mcpLoginAttempts.set(key, recent);
-  if (mcpLoginAttempts.size > 1000) {
-    for (const [k, list] of mcpLoginAttempts.entries()) {
-      const kept = list.filter((ts) => ts > windowStart);
-      if (kept.length === 0) mcpLoginAttempts.delete(k);
-      else mcpLoginAttempts.set(k, kept);
-    }
+  if (mcpLoginAttempts.size >= 1000) {
+    const oldestKey = mcpLoginAttempts.keys().next().value;
+    if (oldestKey) mcpLoginAttempts.delete(oldestKey);
   }
   return true;
 }
 
-function resolveUserFromAuth(authHeader?: string, argToken?: unknown): { id: string; email: string; role: string } | null {
+async function resolveUserFromAuth(authHeader?: string, argToken?: unknown): Promise<{ id: string; email: string; role: string } | null> {
   let token: string | undefined;
 
   if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
@@ -302,8 +321,24 @@ function resolveUserFromAuth(authHeader?: string, argToken?: unknown): { id: str
   if (!token) return null;
 
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as { id?: string; email?: string; role?: string };
-    if (!decoded?.id) return null;
+    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as {
+      id?: string;
+      email?: string;
+      role?: string;
+      typ?: string;
+      tv?: number;
+      jti?: string;
+    };
+    if (!decoded?.id || decoded.typ === 'refresh') return null;
+    if (await isJtiRevoked(decoded.jti)) return null;
+
+    if (process.env.NODE_ENV !== 'test') {
+      const liveUser = await getLiveUserAuthState(decoded.id);
+      if (!liveUser) return null;
+      if (typeof decoded.tv === 'number' && decoded.tv !== liveUser.tokenVersion) return null;
+      return { id: liveUser.id, email: liveUser.email, role: liveUser.role };
+    }
+
     return { id: decoded.id, email: decoded.email || '', role: decoded.role || 'USER' };
   } catch {
     return null;
@@ -356,10 +391,7 @@ const createProjectArgsSchema = z.object({
 
 const deployGithubArgsSchema = z.object({
   projectId: z.string().min(1),
-  repoUrl: z
-    .string()
-    .url()
-    .refine((u) => /^https:\/\/github\.com\/[^/]+\/[^/]+/.test(u), 'Must be a valid GitHub HTTPS URL'),
+  repoUrl: z.string().min(1),
   branch: z.string().min(1).max(100).default('main'),
   subdir: z.string().max(200).optional(),
 });
@@ -394,7 +426,7 @@ async function executeToolCall(
       return toolResult({ error: 'Invalid credentials' }, true);
     }
 
-    if (!checkMcpLoginRateLimit(`${clientKey}:${identifier}`)) {
+    if (!(await checkMcpLoginRateLimit(clientKey, identifier))) {
       return toolResult({ error: 'Too many login attempts. Please wait 15 minutes and try again.' }, true);
     }
 
@@ -415,19 +447,7 @@ async function executeToolCall(
       return toolResult({ error: 'Invalid credentials' }, true);
     }
 
-    // Prune expired sessions so repeated MCP logins don't accumulate stale rows
-    await prisma.session.deleteMany({
-      where: { userId: user.id, expiresAt: { lt: new Date() } },
-    }).catch(() => {});
-
-    const { accessToken, refreshToken } = generateTokens(user);
-    await prisma.session.create({
-      data: {
-        userId: user.id,
-        token: refreshToken,
-        expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
-      },
-    });
+    const { accessToken } = generateTokens(user);
 
     return toolResult({
       accessToken,
@@ -442,7 +462,7 @@ async function executeToolCall(
     });
   }
 
-  const user = resolveUserFromAuth(authHeader, args?.token);
+  const user = await resolveUserFromAuth(authHeader, args?.token);
   if (!user) {
     return toolResult(
       {
@@ -530,6 +550,8 @@ async function executeToolCall(
         return toolResult({ error: `Subdomain "${projName}" is already taken.` }, true);
       }
 
+      const { recalculateUserServerLimit } = await import('../services/billing-guard.js');
+
       try {
         const project = await prisma.$transaction(async (tx) => {
           const lockedUsers = await tx.$queryRaw<Array<{ id: string; serverLimit: number }>>`
@@ -578,12 +600,7 @@ async function executeToolCall(
                 description: `Initial charge for ${projName} (${tierConfig.label} tier) via MCP`,
               },
             });
-            if (tierConfig.maxProjects > lockedUser.serverLimit) {
-              await tx.user.update({
-                where: { id: user.id },
-                data: { serverLimit: tierConfig.maxProjects },
-              });
-            }
+            await recalculateUserServerLimit(tx, user.id);
           }
 
           return created;
@@ -614,12 +631,15 @@ async function executeToolCall(
       if (!parsed.success) {
         return toolResult({ error: parsed.error.errors[0]?.message || 'Invalid GitHub deployment arguments' }, true);
       }
-      const { projectId, repoUrl, branch, subdir } = parsed.data;
+      const { projectId, ...rawGit } = parsed.data;
+      const repoCheck = validateGithubRepoInput(rawGit);
+      if (!repoCheck.valid) {
+        return toolResult({ error: repoCheck.error || 'Invalid GitHub repository settings' }, true);
+      }
+      const { repoUrl, branch, subdir } = repoCheck;
+
       const project = await getOwnedProject(projectId, user.id);
       if (!project) return toolResult({ error: 'Project not found' }, true);
-      if (project.status === 'building') {
-        return toolResult({ error: 'A deployment is already in progress for this project.' }, true);
-      }
 
       const { acquireDeploySlot, releaseDeployLock } = await import('../services/deploy-lock.js');
       const { ensureProjectBillingCurrent } = await import('../services/billing-guard.js');
@@ -663,12 +683,31 @@ async function executeToolCall(
       const project = await getOwnedProject(projectId, user.id);
       if (!project) return toolResult({ error: 'Project not found' }, true);
 
+      const locked = await redis.exists(`deploy-lock:${projectId}`).catch(() => 0);
+      if (locked === 1) {
+        return toolResult({ error: 'Cannot modify project files while a build is active.' }, true);
+      }
+
+      const tierConfig = RESOURCE_TIERS[project.tier] || RESOURCE_TIERS.free;
+      const maxWorkspaceBytes = Math.min(tierConfig.storage, 250 * 1024 * 1024);
       const sourceDir = getSourceDir(projectId);
       await fs.ensureDir(sourceDir);
+
+      let batchBytes = 0;
+      for (const file of files) {
+        batchBytes += Buffer.byteLength(file.content, 'utf8');
+      }
+      if (batchBytes > maxWorkspaceBytes) {
+        return toolResult({ error: 'Batch file size exceeds tier workspace quota' }, true);
+      }
 
       const written: string[] = [];
       for (const file of files) {
         const targetPath = await assertSafeProjectFilePath(sourceDir, file.path);
+        const existingStat = await fs.lstat(targetPath).catch(() => null);
+        if (existingStat?.isDirectory()) {
+          return toolResult({ error: `Cannot overwrite directory at ${file.path}` }, true);
+        }
         await fs.ensureDir(path.dirname(targetPath));
         await fs.writeFile(targetPath, file.content, 'utf8');
         written.push(file.path);
@@ -686,12 +725,9 @@ async function executeToolCall(
       const projectId = typeof args?.projectId === 'string' ? args.projectId : '';
       const project = await getOwnedProject(projectId, user.id);
       if (!project) return toolResult({ error: 'Project not found' }, true);
-      if (project.status === 'building') {
-        return toolResult({ error: 'A deployment is already in progress for this project.' }, true);
-      }
 
       const sourceDir = getSourceDir(projectId);
-      if (!(await fs.pathExists(sourceDir))) {
+      if (!(await fs.pathExists(sourceDir)) || (await fs.readdir(sourceDir)).length === 0) {
         return toolResult({ error: 'No source files found in workspace. Call `write_project_files` first.' }, true);
       }
 
@@ -731,9 +767,10 @@ async function executeToolCall(
       const tail = Math.min(500, Math.max(10, Number(args?.tail) || 150));
       let containerLogs = 'Container not running.';
 
-      if (project.containerId) {
-        try {
-          const container = docker.getContainer(`codehost-run-${project.id}`);
+      try {
+        const container = docker.getContainer(project.containerId || `codehost-run-${project.id}`);
+        const info = await container.inspect().catch(() => null);
+        if (info && info.Config?.Labels?.['codehost.project.id'] === project.id) {
           const logBuffer = await container.logs({
             stdout: true,
             stderr: true,
@@ -741,9 +778,9 @@ async function executeToolCall(
             timestamps: true,
           });
           containerLogs = demuxDockerLogBuffer(logBuffer);
-        } catch {
-          containerLogs = 'Container not running or unavailable.';
         }
+      } catch {
+        containerLogs = 'Container not running or unavailable.';
       }
 
       const latestDeployment = await prisma.deployment.findFirst({
@@ -775,6 +812,9 @@ async function executeToolCall(
       }
 
       if (action === 'restart') {
+        const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+        if (locked === 1) return toolResult({ error: 'A deployment is already in progress for this project.' }, true);
+
         const { ensureProjectBillingCurrent } = await import('../services/billing-guard.js');
         const billingCheck = await ensureProjectBillingCurrent(project.id, user.id);
         if (!billingCheck.ok) return toolResult({ error: billingCheck.error }, true);
@@ -793,9 +833,6 @@ async function executeToolCall(
       }
 
       if (action === 'redeploy') {
-        if (project.status === 'building') {
-          return toolResult({ error: 'A deployment is already in progress for this project.' }, true);
-        }
         const { ensureProjectBillingCurrent } = await import('../services/billing-guard.js');
         const billingCheck = await ensureProjectBillingCurrent(project.id, user.id);
         if (!billingCheck.ok) return toolResult({ error: billingCheck.error }, true);
@@ -826,7 +863,13 @@ async function executeToolCall(
       }
 
       if (action === 'delete') {
-        const { RunnerService } = await import('../services/runner.js');
+        const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+        if (locked === 1) return toolResult({ error: 'Cannot delete project while a deployment is actively building.' }, true);
+
+        const [{ RunnerService }, { recalculateUserServerLimit }] = await Promise.all([
+          import('../services/runner.js'),
+          import('../services/billing-guard.js'),
+        ]);
         await RunnerService.stopContainer(project.id).catch(() => {});
         const projectDeployments = await prisma.deployment.findMany({
           where: { projectId: project.id },
@@ -834,7 +877,9 @@ async function executeToolCall(
         });
         await prisma.deployment.deleteMany({ where: { projectId: project.id } });
         await prisma.project.delete({ where: { id: project.id } });
+        await recalculateUserServerLimit(prisma, project.userId).catch(() => {});
         await fs.remove(path.join(process.cwd(), 'storage', 'projects', project.id)).catch(() => {});
+        await redis.del(`deploy-lock:${project.id}`, `idle-net:${project.id}`, `low-credit-warn:${project.id}`).catch(() => {});
         await Promise.allSettled(
           projectDeployments.map((d) =>
             docker.getImage(`codehost-project-${project.id.toLowerCase()}:${d.id}`).remove({ force: true })
@@ -1045,9 +1090,11 @@ router.post('/', async (req, res) => {
         error: { code: -32000, message: 'Too many codehost_login calls in a single batch' },
       });
     }
-    const responses = (
-      await Promise.all(body.map((item) => handleMcpJsonRpc(item, authHeader, clientKey)))
-    ).filter(Boolean);
+    const responses: any[] = [];
+    for (const item of body) {
+      const r = await handleMcpJsonRpc(item, authHeader, clientKey);
+      if (r) responses.push(r);
+    }
     if (responses.length === 0) {
       return res.status(202).send();
     }

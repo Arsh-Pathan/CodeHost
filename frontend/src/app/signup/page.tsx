@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { fetchApi, getErrorMessage } from '@/lib/api';
+import { fetchApi, getErrorMessage, notifyAuthStateChanged } from '@/lib/api';
+import { sanitizeRedirectPath } from '@/lib/utils';
 import OAuthButtons from '@/components/oauth-buttons';
 import { LogoWithText } from '@/components/Logo';
 import { Gift, CheckCircle2, Tag, ChevronDown } from 'lucide-react';
@@ -13,10 +14,11 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const initialRef = searchParams.get('ref') || '';
   const templateParam = searchParams.get('template') || '';
+  const safeRedirectParam = sanitizeRedirectPath(searchParams.get('redirect'));
 
   const nextDestination = templateParam
     ? `/dashboard/new?template=${encodeURIComponent(templateParam)}`
-    : '/dashboard';
+    : safeRedirectParam || '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -103,13 +105,20 @@ function SignupForm() {
 
       localStorage.setItem('token', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
-      router.push(nextDestination);
+      notifyAuthStateChanged();
+      router.replace(nextDestination);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
+
+  const loginQuery = new URLSearchParams();
+  if (templateParam) loginQuery.set('template', templateParam);
+  if (safeRedirectParam) loginQuery.set('redirect', safeRedirectParam);
+  if (initialRef) loginQuery.set('ref', initialRef);
+  const loginHref = loginQuery.toString() ? `/login?${loginQuery.toString()}` : '/login';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 pt-24 pb-12 sm:px-6 lg:px-8">
@@ -124,7 +133,7 @@ function SignupForm() {
           <p className="mt-2 text-center text-sm text-slate-500 font-medium">
             Already have an account?{' '}
             <Link
-              href={templateParam ? `/login?template=${encodeURIComponent(templateParam)}` : '/login'}
+              href={loginHref}
               className="font-bold text-[#2563EB] hover:text-blue-500"
             >
               Sign in
@@ -143,7 +152,7 @@ function SignupForm() {
                 You were invited by @{activeReferrerDetails.referrerUsername || activeReferrerDetails.referrerName}!
               </p>
               <p className="mt-0.5 text-emerald-700 font-medium">
-                <span className="font-bold text-emerald-900">+{activeReferrerDetails.bonusCredits || 25} free credits</span> will be automatically added to your wallet upon signup.
+                <span className="font-bold text-emerald-900">+{activeReferrerDetails.bonusCredits || 25} free credits</span> will be added to your wallet once your email is verified.
               </p>
             </div>
           </div>

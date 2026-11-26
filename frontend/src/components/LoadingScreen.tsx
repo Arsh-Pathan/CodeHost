@@ -3,13 +3,16 @@
 import React, { useEffect, useRef } from 'react';
 import { Logo } from './Logo';
 import { gsap } from 'gsap';
+import { useIsMounted } from '@/lib/client-hooks';
 
 export const LoadingScreen = () => {
+    const mounted = useIsMounted();
     const containerRef = useRef<HTMLDivElement>(null);
     const logoRef = useRef<HTMLDivElement>(null);
     const dotsRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        if (!mounted) return;
         const container = containerRef.current;
         const logo = logoRef.current;
         const dots = dotsRef.current;
@@ -50,7 +53,9 @@ export const LoadingScreen = () => {
         });
 
         return () => { tl.kill(); };
-    }, []);
+    }, [mounted]);
+
+    if (!mounted) return null;
 
     return (
         <div

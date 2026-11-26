@@ -1,59 +1,103 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { docker, demuxDockerLogBuffer } from '@codehost/docker';
+import { docker, demuxDockerLogBuffer, createDockerLogDemuxer } from '@codehost/docker';
 import { logger } from '@codehost/logger';
 import { prisma } from '@codehost/database';
-import { env } from '@codehost/config';
+import { env, RESOURCE_TIERS } from '@codehost/config';
 import { io } from '../index.js';
-import { RESOURCE_TIERS } from '@codehost/config';
 import { sendServerStatusEmail } from '../lib/email.js';
 import { sanitizeUserEnvVars, validateCustomDomain } from '../lib/validation.js';
+import { getEffectiveUserTier } from './billing-guard.js';
+
+/**
+ * Parse listening ports from Linux `/proc/net/tcp` and `/proc/net/tcp6` output.
+ * Extracts TCP_LISTEN sockets (`st === '0A'`) while skipping IPv4 loopback (`0100007F`) and DNS port 53.
+ */
+export function parseProcNetTcpPorts(content: string): number[] {
+  if (!content) return [];
+  const ports = new Set<number>();
+  for (const rawLine of content.split(/\r?\n/)) {
+    const trimmed = rawLine.trim();
+    const match = trimmed.match(/^\d+:\s+([0-9A-Fa-f]+):([0-9A-Fa-f]{4})\s+[0-9A-Fa-f]+:[0-9A-Fa-f]+\s+([0-9A-Fa-f]{2})/);
+    if (!match) continue;
+    const [, ipHex, portHex, stateHex] = match;
+    if (stateHex.toUpperCase() !== '0A') continue; // 0A = TCP_LISTEN
+    if (ipHex.toUpperCase() === '0100007F') continue; // 127.0.0.1 loopback only
+    const port = parseInt(portHex, 16);
+    if (port > 0 && port <= 65535 && port !== 53) {
+      ports.add(port);
+    }
+  }
+  return Array.from(ports);
+}
 
 export class RunnerService {
   private static activeLogStreams: Map<string, any> = new Map();
 
+  public static isTrackingProject(projectId: string): boolean {
+    return this.activeLogStreams.has(projectId);
+  }
+
   public static async startContainer(projectId: string, deploymentId: string, imageName: string) {
-    const emitLog = (message: string) => {
+    let logCountInWindow = 0;
+    let logWindowStart = Date.now();
+    let throttledInWindow = false;
+
+    const emitLog = (message: string, bypassThrottle = false) => {
+      const trimmed = message.trim();
+      if (!trimmed) return;
+      if (!bypassThrottle) {
+        const room = io.sockets.adapter.rooms.get(`project:${projectId}`);
+        if (!room || room.size === 0) return;
+
+        const now = Date.now();
+        if (now - logWindowStart >= 1000) {
+          logWindowStart = now;
+          logCountInWindow = 0;
+          throttledInWindow = false;
+        }
+        logCountInWindow++;
+        if (logCountInWindow > 60) {
+          if (!throttledInWindow) {
+            throttledInWindow = true;
+            io.to(`project:${projectId}`).emit('log', {
+              type: 'run',
+              message: '[Log rate limit exceeded — throttling burst output]',
+              timestamp: new Date().toISOString(),
+            });
+          }
+          return;
+        }
+      }
+
       io.to(`project:${projectId}`).emit('log', {
         type: 'run',
-        message: message.trim(),
-        timestamp: new Date().toISOString()
+        message: trimmed.slice(0, 4096),
+        timestamp: new Date().toISOString(),
       });
     };
 
+    let oldImageToPrune: string | null = null;
     try {
       const containerName = `codehost-run-${projectId}`;
 
-      let oldImage: string | null = null;
       try {
         const existing = docker.getContainer(containerName);
         const info = await existing.inspect().catch(() => null);
         if (info) {
-          oldImage = info.Config?.Image || null;
+          oldImageToPrune = info.Config?.Image || null;
           if (info.State.Running) {
             await existing.stop();
           }
           await existing.remove({ force: true });
           logger.info(`Removed old container ${containerName}`);
-
-          // Untag and remove previous deployment image if it belonged to this project
-          if (
-            oldImage &&
-            oldImage !== imageName &&
-            oldImage.toLowerCase().startsWith(`codehost-project-${projectId.toLowerCase()}:`)
-          ) {
-            docker.getImage(oldImage).remove({ force: true })
-              .then(() => logger.info(`Pruned old deployment image ${oldImage}`))
-              .catch((err: any) => logger.warn(`Failed to prune old image ${oldImage}: ${err.message}`));
-          }
         }
       } catch (e: any) {
         logger.warn(`Failed to remove old container: ${e.message}`);
       }
 
-      emitLog('> Preparing your app...');
+      emitLog('> Preparing your app...', true);
 
-      // Retrieve the running project and user for the routing path
       const project = await prisma.project.findUnique({
         where: { id: projectId },
         include: { user: true }
@@ -67,15 +111,9 @@ export class RunnerService {
       const domain = env.DOMAIN || 'code-host.online';
       const host = domain;
 
-      // Support temporary timed tier upgrades (e.g. Weekend Hackathon Pass unlocking Pro resources)
-      const hasActiveTimedTier = Boolean(
-        project.user?.tier &&
-        project.user.tier !== 'free' &&
-        project.user.tierExpiresAt &&
-        project.user.tierExpiresAt > new Date()
-      );
+      const userEffectiveTier = getEffectiveUserTier(project.user);
       const effectiveTier =
-        project.tier === 'free' && hasActiveTimedTier ? project.user!.tier : project.tier || 'free';
+        project.tier === 'free' && userEffectiveTier !== 'free' ? userEffectiveTier : project.tier || 'free';
 
       const customDomainCheck = validateCustomDomain(project.customDomain, host);
       const validCustomDomain =
@@ -87,11 +125,8 @@ export class RunnerService {
         ([k, v]) => `${k}=${v}`
       );
 
-      // Determine the port the app actually listens on.
-      // Priority: Dockerfile EXPOSE → nginx.conf listen → image ExposedPorts → default 80
       const containerPort = await this.detectPort(projectId, imageName);
 
-      // Look up tier-based resource limits
       const tierConfig = RESOURCE_TIERS[effectiveTier] || RESOURCE_TIERS['free'];
       const memoryLimit = tierConfig.memory;
       const nanoCpus = tierConfig.cpus * 1e9;
@@ -103,9 +138,14 @@ export class RunnerService {
         NanoCpus: nanoCpus,
         PidsLimit: 128,
         CapDrop: ['ALL'],
-        CapAdd: ['CHOWN', 'DAC_OVERRIDE', 'FOWNER', 'SETGID', 'SETUID', 'NET_BIND_SERVICE'],
+        CapAdd: ['CHOWN', 'SETGID', 'SETUID', 'NET_BIND_SERVICE'],
         SecurityOpt: ['no-new-privileges:true'],
-        NetworkMode: 'proxy', // Connect to the proxy network
+        Tmpfs: { '/tmp': 'rw,noexec,nosuid,size=64m' },
+        Ulimits: [
+          { Name: 'core', Soft: 0, Hard: 0 },
+          { Name: 'nofile', Soft: 1024, Hard: 4096 },
+        ],
+        NetworkMode: 'proxy',
         RestartPolicy: { Name: 'on-failure', MaximumRetryCount: 3 },
         LogConfig: {
           Type: 'json-file',
@@ -139,11 +179,10 @@ export class RunnerService {
       // Give the process a moment to bind its port, then verify
       await new Promise(r => setTimeout(r, 1500));
 
-      // Check the actual listening port inside the container
       let actualPort: string | null = null;
       try {
         const exec = await container.exec({
-          Cmd: ['sh', '-c', 'netstat -tlnp 2>/dev/null || ss -tlnp 2>/dev/null'],
+          Cmd: ['sh', '-c', 'netstat -tlnp 2>/dev/null || ss -tlnp 2>/dev/null || cat /proc/net/tcp /proc/net/tcp6 2>/dev/null || true'],
           AttachStdout: true, AttachStderr: true,
         });
         const stream = await exec.start({ hijack: true, stdin: false });
@@ -153,16 +192,21 @@ export class RunnerService {
           stream.on('end', () => resolve(demuxDockerLogBuffer(Buffer.concat(chunks))));
           setTimeout(() => resolve(demuxDockerLogBuffer(Buffer.concat(chunks))), 3000);
         });
-        // Parse listening ports across netstat/ss address formats (0.0.0.0:3000, :::3000, *:3000, [::]:3000)
         const portMatches = output.match(/(?:0\.0\.0\.0|\*|:::|\[::\])[:.](\d+)/g);
         if (portMatches) {
           for (const match of portMatches) {
             const p = match.match(/(\d+)$/)?.[1];
             const parsedPort = p ? parseInt(p, 10) : 0;
-            if (p && parsedPort > 0 && parsedPort <= 65535 && p !== '53') { // skip DNS & port 0
+            if (p && parsedPort > 0 && parsedPort <= 65535 && parsedPort !== 53) {
               actualPort = p;
               break;
             }
+          }
+        }
+        if (!actualPort) {
+          const procPorts = parseProcNetTcpPorts(output);
+          if (procPorts.length > 0) {
+            actualPort = String(procPorts[0]);
           }
         }
       } catch {}
@@ -170,14 +214,13 @@ export class RunnerService {
       // If the actual port differs from what we told the proxy, recreate with correct port
       if (actualPort && actualPort !== containerPort) {
         logger.info(`Port mismatch: proxy port=${containerPort}, actual=${actualPort}. Recreating container...`);
-        emitLog(`> Detected app listening on port ${actualPort}, reconfiguring...`);
+        emitLog(`> Detected app listening on port ${actualPort}, reconfiguring...`, true);
 
         await container.stop().catch((err: any) => {
           if (err?.statusCode !== 304 && err?.statusCode !== 404) throw err;
         });
         await container.remove({ force: true });
 
-        // Recreate with correct port
         const fixedContainer = await docker.createContainer({
           Image: imageName,
           name: containerName,
@@ -197,7 +240,6 @@ export class RunnerService {
         });
         await fixedContainer.start();
         await new Promise(r => setTimeout(r, 1500));
-        // Replace reference so the rest of the code uses the new container
         container = fixedContainer;
       }
 
@@ -209,11 +251,23 @@ export class RunnerService {
           crashOutput = demuxDockerLogBuffer(logsBuf).trim();
         } catch {}
         if (crashOutput) {
-          emitLog(crashOutput);
+          emitLog(crashOutput, true);
         }
+        await container.remove({ force: true }).catch(() => {});
         throw new Error(
           `Container exited during startup (exit code ${containerInfo.State?.ExitCode ?? 'unknown'}). Check runtime logs for errors.`
         );
+      }
+
+      // Prune previous deployment image ONLY after the new container is verified running (preserves rollback on startup failure)
+      if (
+        oldImageToPrune &&
+        oldImageToPrune !== imageName &&
+        oldImageToPrune.toLowerCase().startsWith(`codehost-project-${projectId.toLowerCase()}:`)
+      ) {
+        docker.getImage(oldImageToPrune).remove({ force: true })
+          .then(() => logger.info(`Pruned old deployment image ${oldImageToPrune}`))
+          .catch((err: any) => logger.warn(`Failed to prune old image ${oldImageToPrune}: ${err.message}`));
       }
 
       let mappedPort: number | null = null;
@@ -225,10 +279,9 @@ export class RunnerService {
       }
       mappedPort = mappedPort || (actualPort ? parseInt(actualPort, 10) : parseInt(containerPort, 10) || null);
 
-      emitLog('> Your app is now live!');
+      emitLog('> Your app is now live!', true);
       logger.info(`Started container ${containerName} (internal: ${actualPort || containerPort})`);
 
-      // Clean up any existing log stream for this project to prevent memory & socket leaks
       if (this.activeLogStreams.has(projectId)) {
         try {
           const oldStream = this.activeLogStreams.get(projectId);
@@ -239,7 +292,6 @@ export class RunnerService {
         this.activeLogStreams.delete(projectId);
       }
 
-      // Attach container logs stream to websocket
       const logStream = await container.logs({
         stdout: true,
         stderr: true,
@@ -260,12 +312,11 @@ export class RunnerService {
 
       docker.modem.demuxStream(logStream,
         { write: (chunk: any) => { emitLog(chunk.toString()); return true; } } as any,
-        { write: (chunk: any) => { 
+        { write: (chunk: any) => {
           const msg = chunk.toString();
-          // Many apps use stderr for notices. Only tag as ERROR if it contains error keywords
           const isError = /error|fatal|exception/i.test(msg);
-          emitLog(isError ? `[ERROR] ${msg}` : msg); 
-          return true; 
+          emitLog(isError ? `[ERROR] ${msg}` : msg);
+          return true;
         } } as any
       );
 
@@ -276,14 +327,13 @@ export class RunnerService {
 
       await prisma.project.update({
         where: { id: projectId },
-        data: { 
+        data: {
           status: 'running',
           containerId: container.id,
           port: mappedPort
         }
       });
 
-      // Asynchronously send status email
       prisma.project.findUnique({
         where: { id: projectId },
         include: { user: { select: { email: true } } }
@@ -299,12 +349,16 @@ export class RunnerService {
 
       return { containerId: container.id, port: mappedPort };
     } catch (error: any) {
-      emitLog(`> Failed to launch app: ${error.message || 'Unknown error'}`);
+      emitLog(`> Failed to launch app: ${error.message || 'Unknown error'}`, true);
       logger.error(`Runner failed for project ${projectId}`, error);
-      await prisma.project.update({ where: { id: projectId }, data: { status: 'failed' } });
-      await prisma.deployment.update({ where: { id: deploymentId }, data: { status: 'failed' } });
+      // Clean up failed container & image if different from prior working image
+      await docker.getContainer(`codehost-run-${projectId}`).remove({ force: true }).catch(() => {});
+      if (imageName && imageName !== oldImageToPrune && imageName.toLowerCase().startsWith(`codehost-project-${projectId.toLowerCase()}:`)) {
+        await docker.getImage(imageName).remove({ force: true }).catch(() => {});
+      }
+      await prisma.project.update({ where: { id: projectId }, data: { status: 'failed', containerId: null } }).catch(() => {});
+      await prisma.deployment.update({ where: { id: deploymentId }, data: { status: 'failed' } }).catch(() => {});
 
-      // Asynchronously send failure email
       prisma.project.findUnique({
         where: { id: projectId },
         include: { user: { select: { email: true } } }

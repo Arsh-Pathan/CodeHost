@@ -40,11 +40,11 @@ export function canonicalizeEmail(rawEmail: string): string {
 export function isConfiguredAdminEmail(rawEmail: string): boolean {
   const normalized = rawEmail.trim().toLowerCase();
   if (!normalized) return false;
-  const allowlist = (env.ADMIN_EMAILS || 'mail.arsh.pathan@gmail.com')
+  const allowlist = (env.ADMIN_EMAILS || '')
     .split(',')
-    .map((e) => e.trim().toLowerCase())
+    .map((e) => canonicalizeEmail(e))
     .filter(Boolean);
-  return allowlist.includes(normalized);
+  return allowlist.includes(canonicalizeEmail(normalized));
 }
 
 /**
@@ -89,10 +89,18 @@ export async function ensureUserReferralCode(userId: string): Promise<string> {
   if (user.referralCode) return user.referralCode;
 
   const newCode = await generateUniqueReferralCode(user.username);
-  await prisma.user.update({
-    where: { id: userId },
+  const updated = await prisma.user.updateMany({
+    where: { id: userId, referralCode: null },
     data: { referralCode: newCode },
   });
+
+  if (updated.count === 0) {
+    const fresh = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { referralCode: true },
+    });
+    if (fresh?.referralCode) return fresh.referralCode;
+  }
 
   return newCode;
 }
@@ -199,13 +207,10 @@ export async function completePendingReferral(
       }
       claimedNow = true;
 
-      let refereeWallet = await tx.wallet.findUnique({ where: { userId: referral.refereeId } });
-      if (!refereeWallet) {
-        refereeWallet = await tx.wallet.create({ data: { userId: referral.refereeId, balance: 0 } });
-      }
-      await tx.wallet.update({
-        where: { id: refereeWallet.id },
-        data: { balance: { increment: referral.refereeReward } },
+      const refereeWallet = await tx.wallet.upsert({
+        where: { userId: referral.refereeId },
+        create: { userId: referral.refereeId, balance: referral.refereeReward },
+        update: { balance: { increment: referral.refereeReward } },
       });
       await tx.transaction.create({
         data: {
@@ -216,13 +221,10 @@ export async function completePendingReferral(
         },
       });
 
-      let referrerWallet = await tx.wallet.findUnique({ where: { userId: referral.referrerId } });
-      if (!referrerWallet) {
-        referrerWallet = await tx.wallet.create({ data: { userId: referral.referrerId, balance: 0 } });
-      }
-      await tx.wallet.update({
-        where: { id: referrerWallet.id },
-        data: { balance: { increment: referral.referrerReward } },
+      const referrerWallet = await tx.wallet.upsert({
+        where: { userId: referral.referrerId },
+        create: { userId: referral.referrerId, balance: referral.referrerReward },
+        update: { balance: { increment: referral.referrerReward } },
       });
       await tx.transaction.create({
         data: {

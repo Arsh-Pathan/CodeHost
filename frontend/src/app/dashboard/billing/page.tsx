@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { fetchApi, getErrorMessage, getErrorStatus } from '@/lib/api';
+import { fetchApi, getErrorMessage, getErrorStatus, clearClientAuth } from '@/lib/api';
 import {
   loadRazorpayScript,
   type RazorpayFailureResponse,
@@ -98,7 +98,10 @@ function BillingContent() {
       })
       .catch((err: unknown) => {
         const status = getErrorStatus(err);
-        if (status === 401 || status === 403) router.push('/login');
+        if (status === 401 || status === 403 || status === 404) {
+          clearClientAuth();
+          router.replace('/login');
+        }
       })
       .finally(() => setLoading(false));
   }, [router]);
@@ -431,7 +434,7 @@ function BillingContent() {
                   <span>₹0.00 / hr</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  When your apps are idle, container instances sleep automatically. Zero credits burned until the next HTTP hit wakes them in 280ms.
+                  When your apps are idle for 30 minutes, container instances sleep automatically. Zero credits burned until the next HTTP hit wakes them.
                 </p>
               </div>
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center text-[11px] text-emerald-600 font-bold space-x-1">
@@ -452,7 +455,7 @@ function BillingContent() {
               <div className="mt-3 flex items-center space-x-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 <span>Instant Activation</span>
                 <span>&bull;</span>
-                <span>GST Tax Receipts</span>
+                <span>Payment Receipts</span>
               </div>
             </div>
 
@@ -469,12 +472,12 @@ function BillingContent() {
               </div>
               <h3 className="text-2xl sm:text-3xl font-black text-white">Weekend Hackathon Pass &mdash; ₹49 for 72 Hours</h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-                Building at a hackathon this weekend? Unlock instant Turbo compute: 2 vCPUs, 512MB RAM, unlimited priority builds, and free SSL subdomains with zero recurring commitment.
+                Building at a hackathon this weekend? Unlock instant Pro compute: 2 vCPUs, 512MB RAM, up to 5 projects, +50 bonus credits, and free SSL subdomains with zero recurring commitment.
               </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 pt-1">
                 <span className="flex items-center space-x-1"><CheckCircle2 size={13} className="text-emerald-400" /><span>2 vCPUs Turbo</span></span>
-                <span className="flex items-center space-x-1"><CheckCircle2 size={13} className="text-emerald-400" /><span>Priority Deploy Sandboxes</span></span>
-                <span className="flex items-center space-x-1"><CheckCircle2 size={13} className="text-emerald-400" /><span>Custom Domains &amp; SSL</span></span>
+                <span className="flex items-center space-x-1"><CheckCircle2 size={13} className="text-emerald-400" /><span>512MB RAM &amp; Up to 5 Projects</span></span>
+                <span className="flex items-center space-x-1"><CheckCircle2 size={13} className="text-emerald-400" /><span>+50 Bonus Credits Included</span></span>
                 <span className="flex items-center space-x-1"><CheckCircle2 size={13} className="text-emerald-400" /><span>Expires Cleanly (₹0 Surprise)</span></span>
               </div>
             </div>
@@ -691,9 +694,9 @@ function BillingContent() {
             <div>
               <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center">
                 <Clock size={20} className="mr-2 text-blue-600" />
-                <span>Transaction History &amp; Invoices</span>
+                <span>Transaction History &amp; Receipts</span>
               </h2>
-              <p className="text-xs text-slate-500 font-medium">Download GST-compliant tax invoices for your records.</p>
+              <p className="text-xs text-slate-500 font-medium">View and print payment receipts and invoices for your records.</p>
             </div>
 
             {/* Filter Tabs */}
@@ -730,7 +733,7 @@ function BillingContent() {
               <div className="p-12 text-center text-slate-400 space-y-2">
                 <FileText size={32} className="mx-auto text-slate-300 mb-2" />
                 <p className="text-sm font-bold text-slate-600">No transactions recorded</p>
-                <p className="text-xs text-slate-400">Transactions and invoice downloads will appear here as you deploy apps.</p>
+                <p className="text-xs text-slate-400">Transactions and receipt downloads will appear here as you deploy apps.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -741,7 +744,7 @@ function BillingContent() {
                       <th className="text-left p-4">Type</th>
                       <th className="text-left p-4">Description</th>
                       <th className="text-right p-4">Credits</th>
-                      <th className="text-right p-4 pr-6">Invoice</th>
+                      <th className="text-right p-4 pr-6">Receipt</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -770,13 +773,13 @@ function BillingContent() {
                             </span>
                           </td>
                           <td className="p-4 pr-6 text-right whitespace-nowrap">
-                            {(tx.type === 'purchase' || tx.type === 'admin_grant') ? (
+                            {(tx.type === 'purchase' || tx.type === 'admin_grant') && tx.amount > 0 ? (
                               <Link
                                 href={`/dashboard/billing/invoice/${tx.id}`}
                                 className="inline-flex items-center space-x-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1 rounded-lg"
                               >
                                 <FileText size={12} />
-                                <span>Invoice</span>
+                                <span>Receipt</span>
                               </Link>
                             ) : (
                               <span className="text-[11px] text-slate-400 font-medium">&mdash;</span>

@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Join CodeHost | Claim 25 Free Cloud Deployment Credits",
-  description: "You have been invited to CodeHost! Sign up today to claim 25 free cloud credits and deploy your Next.js, Python, Node, or Go projects in seconds with automatic SSL and zero DevOps.",
+  title: "Create Your Account",
+  description: "Sign up for CodeHost to deploy Next.js, Python, Node, or Go applications in seconds with automatic HTTPS subdomains and zero DevOps.",
   alternates: {
     canonical: "https://code-host.online/signup",
   },
   openGraph: {
-    title: "Claim 25 Free Cloud Credits on CodeHost",
-    description: "Deploy Next.js, Python, Go, Node, and 20+ frameworks with persistent databases, instant subdomains, and zero DevOps.",
+    title: "Create Your Cloud Account | CodeHost",
+    description: "Deploy Next.js, Python, Go, Node, and 20+ frameworks with instant subdomains and automated SSL.",
     url: "https://code-host.online/signup",
     siteName: "CodeHost Cloud",
     images: [
@@ -16,15 +16,15 @@ export const metadata: Metadata = {
         url: "https://code-host.online/og-image.png",
         width: 1200,
         height: 630,
-        alt: "CodeHost Referral Invite - 25 Free Cloud Credits",
+        alt: "CodeHost Cloud Deployment Platform",
       },
     ],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Claim 25 Free Cloud Credits on CodeHost",
-    description: "Deploy Next.js, Python, Go, Node, and 20+ frameworks with persistent databases, instant subdomains, and zero DevOps.",
+    title: "Create Your Cloud Account | CodeHost",
+    description: "Deploy Next.js, Python, Go, Node, and 20+ frameworks with instant subdomains and automated SSL.",
     images: ["https://code-host.online/og-image.png"],
   },
 };

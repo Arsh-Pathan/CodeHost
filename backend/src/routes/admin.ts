@@ -2,13 +2,16 @@ import { Router } from 'express';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
+import bcrypt from 'bcryptjs';
 import { prisma } from '@codehost/database';
 import { docker } from '@codehost/docker';
 import { redis } from '@codehost/redis';
 import { RESOURCE_TIERS, CREDIT_PRICE_INR } from '@codehost/config';
-import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { requireAuth, AuthRequest, invalidateUserAuthCache } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/admin.js';
 import { logger } from '@codehost/logger';
+import { disconnectUserSockets } from '../lib/socket-registry.js';
+import { generateUniqueReferralCode } from '../services/referral.js';
 import { RunnerService } from '../services/runner.js';
 import { getEffectiveUserTier, recalculateUserServerLimit } from '../services/billing-guard.js';
 
@@ -164,6 +167,8 @@ router.get('/health', async (req: AuthRequest, res) => {
 // List all projects with user info
 router.get('/projects', async (req: AuthRequest, res) => {
   try {
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string, 10) || 200));
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
     const projects = await prisma.project.findMany({
       include: {
         user: {
@@ -173,7 +178,9 @@ router.get('/projects', async (req: AuthRequest, res) => {
           select: { deployments: true }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
     res.json({ projects });
@@ -208,6 +215,11 @@ router.delete('/projects/:id', async (req: AuthRequest, res) => {
   try {
     const project = await prisma.project.findUnique({ where: { id: req.params.id } });
     if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+    if (locked === 1) {
+      return res.status(409).json({ error: 'Project has a deployment currently in progress. Please wait briefly before deleting.' });
+    }
 
     try {
       await RunnerService.stopContainer(project.id);
@@ -276,12 +288,16 @@ router.put('/projects/:id/tier', async (req: AuthRequest, res) => {
 // List all users
 router.get('/users', async (req: AuthRequest, res) => {
   try {
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string, 10) || 200));
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
     const users = await prisma.user.findMany({
       select: {
         id: true,
         email: true,
         username: true,
         role: true,
+        tier: true,
+        tierExpiresAt: true,
         serverLimit: true,
         emailVerified: true,
         provider: true,
@@ -292,7 +308,9 @@ router.get('/users', async (req: AuthRequest, res) => {
           select: { projects: true, referralsMade: true }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
     res.json({ users });
@@ -318,11 +336,25 @@ router.put('/users/:id/role', async (req: AuthRequest, res) => {
     const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    if (role === 'ADMIN' && !user.emailVerified) {
+      return res.status(400).json({ error: 'Cannot promote an unverified account to ADMIN' });
+    }
+
     const updated = await prisma.user.update({
       where: { id: req.params.id },
-      data: { role },
+      data: {
+        role,
+        ...(role === 'USER' ? { tokenVersion: { increment: 1 } } : {}),
+      },
       select: { id: true, email: true, username: true, role: true }
     });
+
+    await recalculateUserServerLimit(prisma, user.id).catch(() => {});
+    invalidateUserAuthCache(user.id);
+    if (role === 'USER') {
+      await prisma.session.deleteMany({ where: { userId: user.id } }).catch(() => {});
+      disconnectUserSockets(user.id);
+    }
 
     logger.info(`Admin ${req.user!.email} changed role of ${updated.email} to ${role}`);
     res.json({ user: updated });
@@ -344,6 +376,16 @@ router.delete('/users/:id', async (req: AuthRequest, res) => {
       include: { projects: { include: { deployments: { select: { id: true } } } } }
     });
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    for (const project of user.projects) {
+      const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+      if (locked === 1) {
+        return res.status(409).json({ error: `Project ${project.name} has an active deployment. Please wait briefly before deleting user.` });
+      }
+    }
+
+    invalidateUserAuthCache(user.id);
+    disconnectUserSockets(user.id);
 
     // Stop and clean up all user's containers, images, and storage directories
     for (const project of user.projects) {
@@ -403,8 +445,6 @@ router.put('/users/:id/limit', async (req: AuthRequest, res) => {
   }
 });
 
-import bcrypt from 'bcryptjs';
-
 // Create a new user from Admin Panel
 router.post('/users', async (req: AuthRequest, res) => {
   try {
@@ -419,9 +459,14 @@ router.post('/users', async (req: AuthRequest, res) => {
     }
 
     const email = rawEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email) || email.length > 254) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
     const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
-    if (cleanUsername.length < 2) {
-      return res.status(400).json({ error: 'Username must be at least 2 alphanumeric/underscore/hyphen characters' });
+    if (cleanUsername.length < 2 || cleanUsername.length > 32) {
+      return res.status(400).json({ error: 'Username must be between 2 and 32 alphanumeric/underscore/hyphen characters' });
     }
 
     const existingUser = await prisma.user.findFirst({
@@ -437,11 +482,13 @@ router.post('/users', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Email or username already in use' });
     }
 
+    const targetRole = role === 'ADMIN' ? 'ADMIN' : 'USER';
     const hashedPassword = await bcrypt.hash(password, 10);
     const validServerLimit =
       typeof serverLimit === 'number' && Number.isInteger(serverLimit) && serverLimit >= 0 && serverLimit <= 1000
         ? serverLimit
-        : 1;
+        : targetRole === 'ADMIN' ? 100 : 1;
+    const referralCode = await generateUniqueReferralCode(cleanUsername);
 
     const newUser = await prisma.user.create({
       data: {
@@ -449,25 +496,28 @@ router.post('/users', async (req: AuthRequest, res) => {
         username: cleanUsername,
         password: hashedPassword,
         serverLimit: validServerLimit,
-        role: role === 'ADMIN' ? 'ADMIN' : 'USER',
+        role: targetRole,
+        referralCode,
         emailVerified: true, // Auto-verify admin created users
       }
     });
 
     logger.info(`Admin ${req.user!.email} manually created user ${newUser.email}`);
     res.json({ success: true, user: { id: newUser.id, email: newUser.email, username: newUser.username } });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      return res.status(400).json({ error: 'Email or username already in use' });
+    }
     logger.error({ error }, 'Admin create user error');
     res.status(500).json({ error: 'Failed to create user' });
   }
 });
 
-// Run Docker Prune
+// Run Docker Prune (containers & dangling images only — preserve proxy networks)
 router.post('/system/prune', async (req: AuthRequest, res) => {
   try {
     await docker.pruneContainers({ filters: { until: ['24h'] } });
     await docker.pruneImages({ filters: { dangling: ['true'] } });
-    await docker.pruneNetworks();
     logger.info(`Admin ${req.user!.email} ran system prune`);
     res.json({ success: true });
   } catch (error) {
@@ -480,13 +530,16 @@ router.post('/system/prune', async (req: AuthRequest, res) => {
 router.post('/system/maintenance', async (req: AuthRequest, res) => {
   try {
     const { enabled } = req.body;
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'Field "enabled" must be a boolean' });
+    }
     if (enabled) {
       await redis.set('system:maintenance', 'true');
     } else {
       await redis.del('system:maintenance');
     }
     logger.info(`Admin ${req.user!.email} set maintenance mode to ${enabled}`);
-    res.json({ success: true });
+    res.json({ success: true, enabled });
   } catch (error) {
     logger.error({ error }, 'Admin maintenance mode error');
     res.status(500).json({ error: 'Failed to toggle maintenance mode' });
@@ -614,28 +667,31 @@ router.get('/system/metrics', async (req: AuthRequest, res) => {
 router.get('/revenue/analytics', async (req: AuthRequest, res) => {
   try {
     const creditRate = CREDIT_PRICE_INR || 1.6;
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    // 1. Transactions breakdown
-    const allPurchases = await prisma.transaction.findMany({
-      where: { type: 'purchase' },
-      select: { amount: true, createdAt: true }
-    });
-
-    const totalRevenueCredits = allPurchases.reduce((acc, t) => acc + (t.amount || 0), 0);
-    const totalRevenueInr = parseFloat((totalRevenueCredits * creditRate).toFixed(2));
-
-    // 2. Active users, projects & wallets
-    const [users, projects, wallets] = await Promise.all([
+    // 1. Aggregate total purchases & 30-day purchases via DB aggregates
+    const [totalPurchaseAgg, recentPurchases, users, projects, walletAgg] = await Promise.all([
+      prisma.transaction.aggregate({
+        where: { type: 'purchase' },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.findMany({
+        where: { type: 'purchase', createdAt: { gte: thirtyDaysAgo } },
+        select: { amount: true, createdAt: true },
+      }),
       prisma.user.findMany({ select: { id: true, tier: true, tierExpiresAt: true, createdAt: true } }),
       prisma.project.findMany({ select: { id: true, tier: true, status: true } }),
-      prisma.wallet.findMany({ select: { balance: true } }),
+      prisma.wallet.aggregate({ _sum: { balance: true } }),
     ]);
+
+    const totalRevenueCredits = totalPurchaseAgg._sum.amount || 0;
+    const totalRevenueInr = parseFloat((totalRevenueCredits * creditRate).toFixed(2));
 
     const tierPricesInr: Record<string, number> = {
       free: 0,
       basic: parseFloat(((RESOURCE_TIERS.basic?.creditsPerMonth ?? 50) * creditRate).toFixed(2)),
       pro: parseFloat(((RESOURCE_TIERS.pro?.creditsPerMonth ?? 150) * creditRate).toFixed(2)),
-      business: parseFloat(((RESOURCE_TIERS.business?.creditsPerMonth ?? 350) * creditRate).toFixed(2)),
+      business: parseFloat(((RESOURCE_TIERS.business?.creditsPerMonth ?? 400) * creditRate).toFixed(2)),
     };
 
     let estimatedMrr = 0;
@@ -655,7 +711,7 @@ router.get('/revenue/analytics', async (req: AuthRequest, res) => {
     for (const p of projects) {
       const t = (p.tier && tierBreakdown[p.tier]) ? p.tier : 'free';
       tierBreakdown[t].projects++;
-      if (t !== 'free') {
+      if (t !== 'free' && p.status === 'running') {
         const monthlyInr = tierPricesInr[t] || 0;
         estimatedMrr += monthlyInr;
         tierBreakdown[t].revenueInr = parseFloat((tierBreakdown[t].revenueInr + monthlyInr).toFixed(2));
@@ -667,10 +723,6 @@ router.get('/revenue/analytics', async (req: AuthRequest, res) => {
     const paidUsers = users.filter((u) => getEffectiveUserTier(u) !== 'free').length;
     const conversionRate = parseFloat(((paidUsers / totalUsers) * 100).toFixed(1));
     const arpu = parseFloat((totalRevenueInr / totalUsers).toFixed(1));
-
-    // 3. 30-Day Daily Revenue Trend
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const recentPurchases = allPurchases.filter((p) => new Date(p.createdAt) >= thirtyDaysAgo);
 
     const trendMap = new Map<string, { revenue: number; orders: number }>();
     for (let i = 29; i >= 0; i--) {
@@ -695,7 +747,7 @@ router.get('/revenue/analytics', async (req: AuthRequest, res) => {
     }));
 
     // 4. Wallet Float
-    const totalWalletFloatCredits = wallets.reduce((acc, w) => acc + (w.balance || 0), 0);
+    const totalWalletFloatCredits = walletAgg._sum.balance || 0;
     const totalWalletFloatInr = parseFloat((totalWalletFloatCredits * creditRate).toFixed(2));
 
     // 5. Recent transactions & completed referral metrics
@@ -816,9 +868,14 @@ router.post('/projects/:id/restart', async (req: AuthRequest, res) => {
     const project = await prisma.project.findUnique({ where: { id: req.params.id } });
     if (!project) return res.status(404).json({ error: 'Project not found' });
 
+    const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+    if (locked === 1) {
+      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
+    }
+
     try {
       await RunnerService.restartContainer(project.id);
-    } catch (err: any) {
+    } catch {
       const lastSuccess = await prisma.deployment.findFirst({
         where: { projectId: project.id, status: 'success' },
         orderBy: { createdAt: 'desc' },
@@ -834,7 +891,7 @@ router.post('/projects/:id/restart', async (req: AuthRequest, res) => {
     res.json({ success: true, message: `Container ${project.name} restarted successfully` });
   } catch (error: any) {
     logger.error({ error }, 'Admin restart container error');
-    res.status(500).json({ error: error.message || 'Failed to restart container' });
+    res.status(500).json({ error: 'Failed to restart container' });
   }
 });
 
@@ -843,6 +900,11 @@ router.post('/projects/:id/start', async (req: AuthRequest, res) => {
   try {
     const project = await prisma.project.findUnique({ where: { id: req.params.id } });
     if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+    if (locked === 1) {
+      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
+    }
 
     try {
       await RunnerService.startExistingContainer(project.id);
@@ -862,7 +924,7 @@ router.post('/projects/:id/start', async (req: AuthRequest, res) => {
     res.json({ success: true, message: `Container ${project.name} started successfully` });
   } catch (error: any) {
     logger.error({ error }, 'Admin start container error');
-    res.status(500).json({ error: error.message || 'Failed to start container' });
+    res.status(500).json({ error: 'Failed to start container' });
   }
 });
 
@@ -889,20 +951,38 @@ router.put('/users/:id/tier', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Invalid tier. Must be free, basic, pro, or business' });
     }
 
+    let tierExpiresAt: Date | null = null;
+    if (tier !== 'free' && durationDays !== undefined && durationDays !== null && durationDays !== '') {
+      const parsedDays = Number(durationDays);
+      if (!Number.isFinite(parsedDays) || parsedDays <= 0 || parsedDays > 3650) {
+        return res.status(400).json({ error: 'durationDays must be a finite number between 1 and 3650' });
+      }
+      tierExpiresAt = new Date(Date.now() + parsedDays * 24 * 60 * 60 * 1000);
+    }
+
     const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) return res.status(404).json({ error: 'User not found' });
-
-    let tierExpiresAt: Date | null = null;
-    if (tier !== 'free' && typeof durationDays === 'number' && durationDays > 0) {
-      tierExpiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
-    }
 
     await prisma.user.update({
       where: { id: user.id },
       data: { tier, tierExpiresAt },
     });
 
-    await recalculateUserServerLimit(prisma, user.id);
+    const nextServerLimit = await recalculateUserServerLimit(prisma, user.id);
+
+    if (tier === 'free') {
+      const runningFree = await prisma.project.findMany({
+        where: { userId: user.id, status: 'running', tier: 'free' },
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true },
+      });
+      const paidCount = await prisma.project.count({ where: { userId: user.id, tier: { not: 'free' } } });
+      const allowedFreeRunning = Math.max(0, nextServerLimit - paidCount);
+      for (const p of runningFree.slice(allowedFreeRunning)) {
+        await RunnerService.stopContainer(p.id).catch(() => {});
+        await prisma.project.update({ where: { id: p.id }, data: { status: 'stopped', containerId: null } }).catch(() => {});
+      }
+    }
 
     const updated = await prisma.user.findUnique({
       where: { id: user.id },

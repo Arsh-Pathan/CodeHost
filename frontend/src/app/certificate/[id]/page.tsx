@@ -70,9 +70,10 @@ export default function CertificatePage({ params: paramsPromise }: { params: Pro
     async function loadCertificate() {
       try {
         setLoading(true);
+        const hasToken = typeof window !== 'undefined' && Boolean(localStorage.getItem('token'));
         const [res, authRes] = await Promise.all([
           fetchApi(`/certificates/verify/${encodeURIComponent(params.id)}`),
-          fetchApi('/auth/me').catch(() => null),
+          hasToken ? fetchApi('/auth/me').catch(() => null) : Promise.resolve(null),
         ]);
         if (res.valid && res.certificate) {
           setData(res.certificate);

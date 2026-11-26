@@ -32,14 +32,14 @@ The central control plane and execution API for the CodeHost cloud platform. Bui
 
 | Path | Purpose | Key Endpoints |
 |---|---|---|
-| `/auth` | Authentication & User Management | `/signup`, `/login`, `/me`, `/verify-email`, `/resend-verification` |
-| `/auth/oauth` | Third-Party Single Sign-On | `/google`, `/github`, `/callback` |
-| `/projects` | Project Lifecycle & Settings | `GET /`, `POST /`, `GET /:id`, `PUT /:id`, `DELETE /:id`, `GET /:id/logs` |
-| `/deployments` | Git & Archive Deploy Pipeline | `POST /:projectId` (ZIP), `POST /:projectId/github`, `GET /:projectId` |
-| `/billing` | Wallet, Tiers & Payments | `/wallet`, `/transactions`, `/tiers`, `/unlock-slot`, `/razorpay/create-order`, `/razorpay/verify-payment`, `/razorpay/webhook` |
-| `/referrals` | Referral Program | `GET /`, `GET /stats` |
-| `/certificates` | Student Credential Generator | `POST /issue`, `GET /:certNumber`, `GET /user` |
-| `/files` | Web-Based File Manager | `GET /:projectId`, `POST /:projectId/read`, `POST /:projectId/write`, `DELETE /:projectId` |
+| `/auth` | Authentication & User Management | `/register`, `/login`, `/refresh`, `/logout`, `/me`, `/mcp-token`, `/verify-email`, `/resend-verification`, `/change-password`, `/forgot-password`, `/reset-password` |
+| `/auth` (OAuth) | Third-Party Single Sign-On | `/google`, `/google/callback`, `/github`, `/github/callback` |
+| `/projects` | Project Lifecycle & Settings | `GET /`, `POST /`, `GET /:id`, `PUT /:id`, `DELETE /:id`, `POST /:id/restart`, `POST /:id/stop`, `POST /:id/redeploy`, `GET /:id/logs` |
+| `/deployments` | Git & Archive Deploy Pipeline | `POST /:projectId` (ZIP), `POST /:projectId/github`, `GET /:projectId`, `GET /:projectId/:deploymentId` |
+| `/billing` | Wallet, Tiers & Payments | `/wallet`, `/transactions`, `/transactions/:id`, `/tiers`, `/unlock-slot`, `/razorpay/create-order`, `/razorpay/verify`, `/razorpay/webhook` |
+| `/referrals` | Referral Program | `GET /stats`, `GET /validate/:code` |
+| `/certificates` | Student Credential Generator | `GET /my-status`, `POST /claim`, `GET /verify/:idOrCode` |
+| `/files` | Web-Based File Manager | `GET /:projectId`, `GET /:projectId/content`, `POST /:projectId`, `POST /:projectId/deploy`, `DELETE /:projectId` |
 | `/mcp` | Model Context Protocol Server | `GET /` (discovery), `POST /` (JSON-RPC 2.0 `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`) |
 | `/admin` | Infrastructure & User Admin | `/stats`, `/health`, `/users`, `/projects`, `/system/metrics` |
 

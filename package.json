@@ -11,8 +11,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "turbo run build",
-    "dev": "npm run dev --workspaces --if-present",
+    "build": "turbo run build --no-daemon",
+    "dev": "turbo run dev",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
   },
@@ -20,6 +20,6 @@
     "typescript": "^5.0.0",
     "eslint": "^8.0.0",
     "prettier": "^3.0.0",
-    "turbo": "latest"
+    "turbo": "^2.8.11"
   }
 }

@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
+import DocsSearch from '@/components/DocsSearch';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -117,9 +119,12 @@ export default function DocsPage() {
         {/* Main content */}
         <main className="flex-1 min-w-0 max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-[#0F172A] mb-4">Documentation</h1>
-          <p className="text-lg text-slate-500 font-medium mb-16 max-w-2xl">
+          <p className="text-lg text-slate-500 font-medium mb-8 max-w-2xl">
             Everything you need to deploy your projects on CodeHost. No terminal, no Docker knowledge, no complex setup.
           </p>
+          <Suspense fallback={null}>
+            <DocsSearch />
+          </Suspense>
 
           <div className="space-y-20">
             {/* What is CodeHost */}
@@ -445,7 +450,7 @@ export default function DocsPage() {
                 <h2 className="text-2xl font-black text-[#0F172A]">Scale-to-Zero & Intelligent Auto-Sleep</h2>
               </div>
               <p className="text-slate-600 leading-relaxed mb-6">
-                Why pay for idle servers running at 3 AM? CodeHost features a background daemon that automatically detects when your application has had zero HTTP traffic for <strong>15 minutes</strong> and safely puts compute resources to sleep.
+                Why pay for idle servers running at 3 AM? CodeHost features a background daemon that automatically detects when your application has had zero HTTP traffic for <strong>30 minutes</strong> and safely puts compute resources to sleep.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -957,17 +962,17 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`}</Cod
                 <h2 className="text-2xl font-black text-[#0F172A]">Weekend Hackathon Pass</h2>
               </div>
               <p className="text-slate-600 leading-relaxed mb-6">
-                Designed specifically for collegiate hackathons (e.g. Smart India Hackathon, MLH, internal college project showcases) and 48-hour sprints, the <strong>Hackathon Pass</strong> delivers full Pro tier specs without needing monthly subscriptions.
+                Designed specifically for collegiate hackathons (e.g. Smart India Hackathon, MLH, internal college project showcases) and 48-hour sprints, the <strong>Hackathon Pass</strong> delivers full Pro tier specs (up to 5 projects, +50 bonus compute credits included) without needing monthly subscriptions.
               </p>
 
               <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-900 via-slate-900 to-indigo-950 text-white mb-6 border border-blue-500/20 shadow-xl">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-4 border-b border-slate-800">
                   <div>
                     <h3 className="text-xl font-black">₹49 for 72 Hours (3 Days)</h3>
-                    <p className="text-xs text-slate-400">One-time payment &middot; Instant activation &middot; Zero recurring auto-renew</p>
+                    <p className="text-xs text-slate-400">One-time payment &middot; +50 bonus credits &middot; Zero recurring auto-renew</p>
                   </div>
                   <span className="px-3 py-1 bg-amber-500/20 text-amber-400 font-mono text-xs font-bold rounded-lg border border-amber-500/30">
-                    Pro Specs
+                    Pro Specs (5 Projects)
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">

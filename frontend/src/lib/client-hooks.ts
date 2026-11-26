@@ -1,29 +1,31 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { usePathname } from 'next/navigation';
 
 const noopSubscribe = () => () => {};
 
-function subscribeStorage(callback: () => void) {
+function subscribeAuthState(callback: () => void) {
   if (typeof window === 'undefined') return () => {};
   window.addEventListener('storage', callback);
-  return () => window.removeEventListener('storage', callback);
+  window.addEventListener('codehost-auth-change', callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener('codehost-auth-change', callback);
+  };
 }
 
 export function useHasAuthToken(): boolean {
   return useSyncExternalStore(
-    subscribeStorage,
+    subscribeAuthState,
     () => (typeof window !== 'undefined' ? Boolean(localStorage.getItem('token')) : false),
     () => false
   );
 }
 
 export function useClientPathname(fallback = '/requested-route'): string {
-  return useSyncExternalStore(
-    noopSubscribe,
-    () => (typeof window !== 'undefined' ? window.location.pathname || fallback : fallback),
-    () => fallback
-  );
+  const pathname = usePathname();
+  return pathname || fallback;
 }
 
 export function useIsMounted(): boolean {

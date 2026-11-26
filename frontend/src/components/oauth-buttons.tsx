@@ -1,6 +1,7 @@
 "use client";
 
 import { API_URL } from '@/lib/api';
+import { sanitizeRedirectPath } from '@/lib/utils';
 
 export default function OAuthButtons({ referralCode }: { referralCode?: string }) {
   const refQuery = referralCode ? `?ref=${encodeURIComponent(referralCode)}` : '';
@@ -9,10 +10,10 @@ export default function OAuthButtons({ referralCode }: { referralCode?: string }
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const template = params.get('template');
-    const redirect = params.get('redirect');
+    const redirect = sanitizeRedirectPath(params.get('redirect'));
     if (template) {
       sessionStorage.setItem('postAuthRedirect', `/dashboard/new?template=${encodeURIComponent(template)}`);
-    } else if (redirect && redirect.startsWith('/dashboard') && !redirect.startsWith('//')) {
+    } else if (redirect) {
       sessionStorage.setItem('postAuthRedirect', redirect);
     }
   };

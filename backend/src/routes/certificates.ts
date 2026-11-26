@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
 import { prisma } from '@codehost/database';
 import { logger } from '@codehost/logger';
 import { env } from '@codehost/config';
@@ -7,6 +8,12 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { sendCertificateAwardEmail } from '../lib/email.js';
 
 const router = Router();
+
+const verifyCertLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  message: { valid: false, error: 'Too many certificate verification requests, please try again later.' },
+});
 
 /**
  * GET /certificates/my-status
@@ -119,7 +126,7 @@ router.post('/claim', requireAuth, async (req: AuthRequest, res) => {
 
     let certNumber = '';
     for (let attempt = 0; attempt < 5; attempt++) {
-      const randomSuffix = crypto.randomBytes(4).toString('hex').toUpperCase();
+      const randomSuffix = crypto.randomBytes(6).toString('hex').toUpperCase();
       certNumber = `CH-CERT-${randomSuffix}`;
       try {
         cert = await prisma.certificate.create({
@@ -187,7 +194,7 @@ router.post('/claim', requireAuth, async (req: AuthRequest, res) => {
  * GET /certificates/verify/:idOrCode
  * Public verification endpoint
  */
-router.get('/verify/:idOrCode', async (req, res) => {
+router.get('/verify/:idOrCode', verifyCertLimiter, async (req, res) => {
   try {
     const { idOrCode } = req.params;
     if (!idOrCode) {
@@ -220,7 +227,6 @@ router.get('/verify/:idOrCode', async (req, res) => {
       valid: true,
       certificate: {
         id: cert.id,
-        userId: cert.userId,
         certNumber: cert.certNumber,
         recipientName: cert.recipientName,
         projectName: cert.projectName || 'Production Cloud Services',

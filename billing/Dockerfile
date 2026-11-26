@@ -7,18 +7,22 @@ WORKDIR /app
 
 RUN npm install -g turbo
 
-COPY package.json package-lock.json tsconfig.base.json ./
+COPY package.json package-lock.json tsconfig.base.json turbo.json ./
+COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
 COPY billing/package.json ./billing/
-COPY packages/config/package.json ./packages/config/
 COPY database/package.json ./database/
+COPY packages/config/package.json ./packages/config/
+COPY packages/docker/package.json ./packages/docker/
 COPY packages/logger/package.json ./packages/logger/
+COPY packages/redis/package.json ./packages/redis/
 COPY packages/types/package.json ./packages/types/
 
 RUN npm ci
 
 COPY . .
 RUN cd database && npx prisma generate
-RUN turbo run build --filter=@codehost/billing
+RUN turbo run build --no-daemon --filter=@codehost/billing
 
 # --- Stage 2: Runtime ---
 FROM node:20-alpine AS runner
@@ -27,12 +31,17 @@ RUN apk add --no-cache openssl libc6-compat git
 
 WORKDIR /app
 ENV NODE_ENV=production
+ENV HOME=/tmp
 
 COPY package.json package-lock.json ./
+COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
 COPY billing/package.json ./billing/
-COPY packages/config/package.json ./packages/config/
 COPY database/package.json ./database/
+COPY packages/config/package.json ./packages/config/
+COPY packages/docker/package.json ./packages/docker/
 COPY packages/logger/package.json ./packages/logger/
+COPY packages/redis/package.json ./packages/redis/
 COPY packages/types/package.json ./packages/types/
 
 RUN npm ci --omit=dev

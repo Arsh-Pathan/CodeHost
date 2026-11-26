@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '@codehost/database';
+import { redis } from '@codehost/redis';
+import { RESOURCE_TIERS } from '@codehost/config';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { logger } from '@codehost/logger';
 import path from 'path';
@@ -15,6 +17,43 @@ router.use(requireAuth);
 
 const getSourceDir = (projectId: string) => path.join(process.cwd(), 'storage', 'projects', projectId, 'source');
 const MAX_EDITABLE_FILE_BYTES = 2 * 1024 * 1024;
+const MAX_WORKSPACE_FILES = 5000;
+const SKIPPED_LIST_DIRS = new Set([
+  'node_modules',
+  '.git',
+  '.next',
+  '.venv',
+  'venv',
+  '__pycache__',
+  'target',
+  'vendor',
+  '.gradle',
+  '.nuxt',
+  '.output',
+]);
+
+async function getWorkspaceUsage(dirPath: string): Promise<{ files: number; bytes: number }> {
+  if (!(await fs.pathExists(dirPath))) return { files: 0, bytes: 0 };
+  let files = 0;
+  let bytes = 0;
+  const walk = async (dir: string) => {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else if (entry.isFile()) {
+        files++;
+        const stat = await fs.lstat(full).catch(() => null);
+        if (stat) bytes += stat.size;
+      }
+      if (files > MAX_WORKSPACE_FILES) return;
+    }
+  };
+  await walk(dirPath);
+  return { files, bytes };
+}
 
 // List files in a project
 router.get('/:projectId', async (req: AuthRequest, res) => {
@@ -28,35 +67,41 @@ router.get('/:projectId', async (req: AuthRequest, res) => {
       return res.json({ files: [] });
     }
 
-    const getAllFiles = async (dirPath: string, relativeTo: string = ''): Promise<any[]> => {
+    let totalEntries = 0;
+    const MAX_LIST_ENTRIES = 2500;
+    const getAllFiles = async (dirPath: string, relativeTo: string = '', depth = 0): Promise<any[]> => {
+      if (depth > 12 || totalEntries >= MAX_LIST_ENTRIES) return [];
       const items = await fs.readdir(dirPath, { withFileTypes: true });
-      const files = await Promise.all(items.map(async (item) => {
-        if (item.isSymbolicLink()) return null;
+      const results: any[] = [];
+      for (const item of items) {
+        if (totalEntries >= MAX_LIST_ENTRIES) break;
+        if (item.isSymbolicLink()) continue;
         const relativePath = path.join(relativeTo, item.name).replace(/\\/g, '/');
         const absolutePath = path.join(dirPath, item.name);
 
         if (item.isDirectory()) {
-          // Ignore heavy or hidden folders
-          if (item.name === 'node_modules' || item.name === '.git' || item.name === '.next') return null;
-          return {
+          if (SKIPPED_LIST_DIRS.has(item.name)) continue;
+          totalEntries++;
+          results.push({
             name: item.name,
             path: relativePath,
             type: 'directory',
-            children: await getAllFiles(absolutePath, relativePath)
-          };
+            children: await getAllFiles(absolutePath, relativePath, depth + 1),
+          });
         } else if (item.isFile()) {
-          const stats = await fs.lstat(absolutePath);
-          return {
+          totalEntries++;
+          const stats = await fs.lstat(absolutePath).catch(() => null);
+          if (!stats) continue;
+          results.push({
             name: item.name,
             path: relativePath,
             type: 'file',
             size: stats.size,
-            updatedAt: stats.mtime
-          };
+            updatedAt: stats.mtime,
+          });
         }
-        return null;
-      }));
-      return files.filter(Boolean);
+      }
+      return results;
     };
 
     const files = await getAllFiles(sourceDir);
@@ -118,18 +163,41 @@ router.post('/:projectId', async (req: AuthRequest, res) => {
     if (!filePath || typeof filePath !== 'string' || typeof content !== 'string') {
       return res.status(400).json({ error: 'filePath and string content are required' });
     }
-    if (Buffer.byteLength(content, 'utf8') > MAX_EDITABLE_FILE_BYTES) {
+    const contentBytes = Buffer.byteLength(content, 'utf8');
+    if (contentBytes > MAX_EDITABLE_FILE_BYTES) {
       return res.status(400).json({ error: 'File content exceeds 2MB editor limit' });
     }
 
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== req.user!.id) return res.status(404).json({ error: 'Project not found' });
 
+    const locked = await redis.exists(`deploy-lock:${projectId}`).catch(() => 0);
+    if (locked === 1) {
+      return res.status(409).json({ error: 'Cannot edit files while a deployment is building.' });
+    }
+
+    const sourceDir = getSourceDir(projectId);
     let fullPath: string;
     try {
-      fullPath = await resolveSafeProjectPath(getSourceDir(projectId), filePath);
+      fullPath = await resolveSafeProjectPath(sourceDir, filePath);
     } catch (e: any) {
       return res.status(403).json({ error: e.message || 'Forbidden path' });
+    }
+
+    const existingStat = await fs.lstat(fullPath).catch(() => null);
+    if (existingStat?.isDirectory()) {
+      return res.status(400).json({ error: 'Cannot overwrite an existing directory with a file' });
+    }
+
+    const tierConfig = RESOURCE_TIERS[project.tier] || RESOURCE_TIERS.free;
+    const maxWorkspaceBytes = Math.min(tierConfig.storage, 250 * 1024 * 1024);
+    const usage = await getWorkspaceUsage(sourceDir);
+    if (!existingStat && usage.files >= MAX_WORKSPACE_FILES) {
+      return res.status(400).json({ error: `Workspace file limit (${MAX_WORKSPACE_FILES} files) reached` });
+    }
+    const projectedBytes = usage.bytes - (existingStat?.size || 0) + contentBytes;
+    if (projectedBytes > maxWorkspaceBytes) {
+      return res.status(400).json({ error: 'Workspace exceeds tier storage quota' });
     }
 
     await fs.ensureDir(path.dirname(fullPath));
@@ -152,6 +220,11 @@ router.delete('/:projectId', async (req: AuthRequest, res) => {
 
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== req.user!.id) return res.status(404).json({ error: 'Project not found' });
+
+    const locked = await redis.exists(`deploy-lock:${projectId}`).catch(() => 0);
+    if (locked === 1) {
+      return res.status(409).json({ error: 'Cannot delete files while a deployment is building.' });
+    }
 
     let fullPath: string;
     try {
@@ -177,8 +250,10 @@ router.post('/:projectId/deploy', async (req: AuthRequest, res) => {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project || project.userId !== userId) return res.status(404).json({ error: 'Project not found' });
 
-    if (project.status === 'building') {
-      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
+    const sourceDir = getSourceDir(projectId);
+    const hasSource = (await fs.pathExists(sourceDir)) && (await fs.readdir(sourceDir)).length > 0;
+    if (!hasSource) {
+      return res.status(400).json({ error: 'Workspace contains no source files to deploy.' });
     }
 
     const billingCheck = await ensureProjectBillingCurrent(projectId, userId);

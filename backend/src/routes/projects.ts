@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { prisma } from '@codehost/database';
 import { docker, demuxDockerLogBuffer } from '@codehost/docker';
+import { redis } from '@codehost/redis';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { logger } from '@codehost/logger';
 import { z } from 'zod';
@@ -180,6 +181,11 @@ router.delete('/:id', async (req: AuthRequest, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
+    const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+    if (locked === 1) {
+      return res.status(409).json({ error: 'Cannot delete a project while a deployment is actively building.' });
+    }
+
     // Stop container first
     try {
       await RunnerService.stopContainer(project.id);
@@ -203,6 +209,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     await recalculateUserServerLimit(prisma, project.userId).catch(() => {});
 
     await fs.remove(path.join(process.cwd(), 'storage', 'projects', project.id)).catch(() => {});
+    await redis.del(`deploy-lock:${project.id}`, `idle-net:${project.id}`, `low-credit-warn:${project.id}`).catch(() => {});
     await Promise.allSettled(
       projectDeployments.map((d) =>
         docker.getImage(`codehost-project-${project.id.toLowerCase()}:${d.id}`).remove({ force: true })
@@ -226,6 +233,11 @@ router.post('/:id/restart', async (req: AuthRequest, res) => {
 
     if (!project || project.userId !== req.user!.id) {
       return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+    if (locked === 1) {
+      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
     }
 
     const lastDeployment = project.deployments[0];
@@ -284,10 +296,6 @@ router.post('/:id/redeploy', async (req: AuthRequest, res) => {
 
     if (!project || project.userId !== req.user!.id) {
       return res.status(404).json({ error: 'Project not found' });
-    }
-
-    if (project.status === 'building') {
-      return res.status(409).json({ error: 'A deployment is already in progress for this project.' });
     }
 
     const billingCheck = await ensureProjectBillingCurrent(project.id, req.user!.id);
@@ -356,12 +364,12 @@ router.get('/:id/logs', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    if (!project.containerId) {
-      return res.json({ logs: 'No active container.' });
-    }
-
     try {
-      const container = docker.getContainer(project.containerId);
+      const container = docker.getContainer(project.containerId || `codehost-run-${project.id}`);
+      const info = await container.inspect().catch(() => null);
+      if (!info || info.Config?.Labels?.['codehost.project.id'] !== project.id) {
+        return res.json({ logs: 'No active container.' });
+      }
       const logBuffer = await container.logs({
         stdout: true,
         stderr: true,
@@ -405,6 +413,16 @@ router.put('/:id', async (req: AuthRequest, res) => {
 
     const { name, buildCommand, startCommand, dockerfileOverride, envVars, tier, customDomain } = req.body;
 
+    if (buildCommand !== undefined && String(buildCommand).length > 1000) {
+      return res.status(400).json({ error: 'Build command must be at most 1000 characters' });
+    }
+    if (startCommand !== undefined && String(startCommand).length > 1000) {
+      return res.status(400).json({ error: 'Start command must be at most 1000 characters' });
+    }
+    if (dockerfileOverride !== undefined && String(dockerfileOverride).length > 65536) {
+      return res.status(400).json({ error: 'Dockerfile override must be at most 64KB' });
+    }
+
     // 1. Validate EVERY field BEFORE performing any credit charge or DB write
     let nextName = project.name;
     if (name !== undefined && String(name).trim().toLowerCase() !== project.name.toLowerCase()) {
@@ -427,10 +445,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
     const newTier = tier && RESOURCE_TIERS[tier] ? tier : project.tier;
     const newTierConfig = RESOURCE_TIERS[newTier] || RESOURCE_TIERS['free'];
     const oldTierConfig = RESOURCE_TIERS[project.tier] || RESOURCE_TIERS['free'];
-    const upgradeDiff =
-      newTier !== 'free' && newTierConfig.creditsPerMonth > oldTierConfig.creditsPerMonth
-        ? newTierConfig.creditsPerMonth - oldTierConfig.creditsPerMonth
-        : 0;
+    const isUpgradingPaid = newTier !== 'free' && newTierConfig.creditsPerMonth > oldTierConfig.creditsPerMonth;
 
     let nextCustomDomain = project.customDomain;
     if (customDomain !== undefined) {
@@ -455,7 +470,6 @@ router.put('/:id', async (req: AuthRequest, res) => {
       }
       nextCustomDomain = domainCheck.normalized;
     } else if (newTier === 'free' && project.customDomain) {
-      // Clear custom domain automatically when downgrading to Free
       nextCustomDomain = null;
     }
 
@@ -463,23 +477,40 @@ router.put('/:id', async (req: AuthRequest, res) => {
       envVars !== undefined ? sanitizeUserEnvVars(envVars) : project.envVars;
 
     // 2. Execute credit debit (if upgrading), project update, and serverLimit recalculation inside ONE atomic transaction
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const updated = await prisma.$transaction(async (tx) => {
-      if (upgradeDiff > 0) {
+      if (isUpgradingPaid) {
         const wallet = await tx.wallet.findUnique({ where: { userId: req.user!.id } });
+        let chargeCredits = newTierConfig.creditsPerMonth - oldTierConfig.creditsPerMonth;
+
+        // If upgrading from a paid tier whose 30-day cycle already expired, charge the full new tier cycle
+        if (project.tier !== 'free' && wallet) {
+          const lastCharge = await tx.transaction.findFirst({
+            where: { walletId: wallet.id, type: 'tier_charge', projectId: project.id },
+            orderBy: { createdAt: 'desc' },
+          });
+          const refDate = lastCharge ? lastCharge.createdAt : project.createdAt;
+          if (refDate <= thirtyDaysAgo) {
+            chargeCredits = newTierConfig.creditsPerMonth;
+          }
+        } else if (project.tier !== 'free') {
+          chargeCredits = newTierConfig.creditsPerMonth;
+        }
+
         if (!wallet) {
-          throw new Error(`INSUFFICIENT_CREDITS:Insufficient credits. Upgrade requires ${upgradeDiff} additional credits.`);
+          throw new Error(`INSUFFICIENT_CREDITS:Insufficient credits. Upgrade requires ${chargeCredits} credits.`);
         }
         const debited = await tx.wallet.updateMany({
-          where: { id: wallet.id, balance: { gte: upgradeDiff } },
-          data: { balance: { decrement: upgradeDiff } },
+          where: { id: wallet.id, balance: { gte: chargeCredits } },
+          data: { balance: { decrement: chargeCredits } },
         });
         if (debited.count === 0) {
-          throw new Error(`INSUFFICIENT_CREDITS:Insufficient credits. Upgrade requires ${upgradeDiff} additional credits.`);
+          throw new Error(`INSUFFICIENT_CREDITS:Insufficient credits. Upgrade requires ${chargeCredits} credits.`);
         }
         await tx.transaction.create({
           data: {
             walletId: wallet.id,
-            amount: -upgradeDiff,
+            amount: -chargeCredits,
             type: 'tier_charge',
             description: `Tier upgrade for ${nextName}: ${oldTierConfig.label} → ${newTierConfig.label}`,
             projectId: project.id,
@@ -511,29 +542,33 @@ router.put('/:id', async (req: AuthRequest, res) => {
     const nameChanged = nextName !== project.name;
     const tierChanged = newTier !== project.tier;
     const domainChanged = nextCustomDomain !== project.customDomain;
+    let restarting = false;
 
-    if ((nameChanged || tierChanged || domainChanged) && (project.status === 'running' || project.containerId)) {
-      const lastDeployment = await prisma.deployment.findFirst({
-        where: { projectId: project.id, status: 'success' },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      if (lastDeployment) {
-        const imageName = `codehost-project-${project.id.toLowerCase()}:${lastDeployment.id}`;
-        void (async () => {
-          try {
-            await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
-            logger.info(`Auto-restarted container for project ${project.id} after settings change (name/tier/domain)`);
-          } catch (err) {
-            logger.error({ error: err }, `Failed to auto-restart container after settings change for ${project.id}`);
-          }
-        })();
+    if ((nameChanged || tierChanged || domainChanged) && project.status === 'running') {
+      const locked = await redis.exists(`deploy-lock:${project.id}`).catch(() => 0);
+      if (locked !== 1) {
+        const lastDeployment = await prisma.deployment.findFirst({
+          where: { projectId: project.id, status: 'success' },
+          orderBy: { createdAt: 'desc' }
+        });
+        if (lastDeployment) {
+          restarting = true;
+          const imageName = `codehost-project-${project.id.toLowerCase()}:${lastDeployment.id}`;
+          void (async () => {
+            try {
+              await RunnerService.startContainer(project.id, lastDeployment.id, imageName);
+              logger.info(`Auto-restarted container for project ${project.id} after settings change (name/tier/domain)`);
+            } catch (err) {
+              logger.error({ error: err }, `Failed to auto-restart container after settings change for ${project.id}`);
+            }
+          })();
+        }
       }
     }
 
     res.json({
       project: updated,
-      restarting: !!((nameChanged || tierChanged || domainChanged) && (project.status === 'running' || project.containerId))
+      restarting,
     });
   } catch (error: any) {
     if (error?.message?.startsWith('INSUFFICIENT_CREDITS:')) {

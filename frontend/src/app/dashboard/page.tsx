@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchApi, getErrorStatus } from '@/lib/api';
+import { fetchApi, getErrorStatus, clearClientAuth } from '@/lib/api';
 import { 
   Plus, 
   Code, 
@@ -133,12 +133,9 @@ export default function Dashboard() {
         }
       } catch (err: unknown) {
         const status = getErrorStatus(err);
-        if (status === 401 || status === 403) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('codehost_user_cache');
-          localStorage.removeItem('codehost_projects_cache');
-          localStorage.removeItem('codehost_wallet_cache');
-          router.push('/login');
+        if (status === 401 || status === 403 || status === 404) {
+          clearClientAuth();
+          router.replace('/login');
         }
       } finally {
         setLoading(false);
@@ -274,7 +271,7 @@ export default function Dashboard() {
                   </h3>
                   <p className={`text-sm font-medium ${isLimitReached ? 'text-red-100/90' : 'text-slate-500'}`}>
                     {isLimitReached 
-                      ? "You've reached your free server limit (1 server). Purchase credits or upgrade your plan to deploy additional servers." 
+                      ? `You've reached your server limit (${user?.serverLimit || 1} ${(user?.serverLimit || 1) === 1 ? 'server' : 'servers'}). Purchase credits or unlock an extra slot to deploy more servers.`
                       : "You have available capacity to deploy more servers."}
                   </p>
                 </div>
@@ -357,9 +354,9 @@ export default function Dashboard() {
 
                         <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
                           <div className="flex flex-col space-y-1">
-                             <span>CPU Usage</span>
+                             <span>Compute</span>
                              <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="bg-emerald-500 h-full w-[12%] transition-all" />
+                                <div className={`h-full transition-all ${project.status === 'running' ? 'bg-emerald-500 w-full' : 'bg-slate-300 w-0'}`} />
                              </div>
                           </div>
                           <div className="flex flex-col space-y-1 items-end">

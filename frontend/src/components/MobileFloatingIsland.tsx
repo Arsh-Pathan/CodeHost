@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Home,
@@ -19,7 +19,7 @@ interface MobileFloatingIslandProps {
 export function MobileFloatingIsland({ isLoggedIn = false }: MobileFloatingIslandProps) {
   const [activeTab, setActiveTab] = useState<'home' | 'stacks' | 'features' | 'pricing'>('home');
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollYRef = useRef(0);
 
   // Track active section and hide on fast downward scroll, reveal on upward scroll
   useEffect(() => {
@@ -29,16 +29,17 @@ export function MobileFloatingIsland({ isLoggedIn = false }: MobileFloatingIslan
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
+          const prevScrollY = lastScrollYRef.current;
 
           // Scroll direction visibility
           if (currentScrollY < 80) {
             setIsVisible(true);
-          } else if (currentScrollY > lastScrollY + 20) {
+          } else if (currentScrollY > prevScrollY + 20) {
             setIsVisible(false);
-          } else if (currentScrollY < lastScrollY - 10) {
+          } else if (currentScrollY < prevScrollY - 10) {
             setIsVisible(true);
           }
-          setLastScrollY(currentScrollY);
+          lastScrollYRef.current = currentScrollY;
 
           // Active section highlight
           const stacksEl = document.getElementById('stacks');
@@ -65,7 +66,7 @@ export function MobileFloatingIsland({ isLoggedIn = false }: MobileFloatingIslan
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, []);
 
   const scrollToSection = (id: string, tab: 'home' | 'stacks' | 'features' | 'pricing') => {
     setActiveTab(tab);
